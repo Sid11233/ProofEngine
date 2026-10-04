@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:isolation": "vitest run --config vitest.isolation.config.mts",
-    "test:db": "supabase test db"
+    "test:db": "supabase test db",
+    "test:e2e": "vitest run --config vitest.e2e.config.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

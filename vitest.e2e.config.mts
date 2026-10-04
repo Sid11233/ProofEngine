@@ -1,7 +1,8 @@
 import { defineConfig } from "vitest/config";
 import { fileURLToPath } from "node:url";
 
-// Isolation suite: talks to a local Supabase. Kept out of the default `npm test`.
+// Browser tests against the production build and a LOCAL Supabase:
+//   npm run build && npm run test:e2e
 export default defineConfig({
   resolve: {
     alias: {
@@ -11,11 +12,10 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["supabase/tests/isolation/**/*.test.ts", "src/**/*.integration.test.ts"],
-    testTimeout: 30_000,
+    include: ["e2e/**/*.e2e.test.ts"],
+    testTimeout: 60_000,
     hookTimeout: 120_000,
-    // One file, shared fixtures: run tests in order.
-    sequence: { concurrent: false },
     fileParallelism: false,
+    sequence: { concurrent: false },
   },
 });
