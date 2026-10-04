@@ -42,7 +42,7 @@ export default async function LoginPage({
         <Link href="/forgot-password" className="underline underline-offset-2">
           Forgot password?
         </Link>
-        <Link href="/signup" className="underline underline-offset-2">
+        <Link href={safeNext ? `/signup?next=${encodeURIComponent(safeNext)}` : "/signup"} className="underline underline-offset-2">
           Create an account
         </Link>
       </div>

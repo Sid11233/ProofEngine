@@ -1,4 +1,7 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { MfaBanner } from "@/components/settings/mfa-banner";
+import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/session";
 import { getCurrentWorkspace } from "@/lib/workspace/current";
 import { signOutAction } from "@/app/(auth)/actions";
@@ -9,8 +12,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const workspace = await getCurrentWorkspace();
   if (!workspace) redirect("/onboarding");
 
+  // Owners hold the keys to the workspace, so nudge them towards two-factor.
+  let showMfaBanner = false;
+  if (workspace.role === "owner") {
+    const supabase = await createClient();
+    const { data: factors } = await supabase.auth.mfa.listFactors();
+    showMfaBanner = !factors?.totp?.length;
+  }
+
   return (
     <div className="min-h-dvh">
+      {showMfaBanner ? <MfaBanner /> : null}
       <header className="flex items-center justify-between gap-3 border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
         <div className="min-w-0">
           <span className="font-semibold tracking-tight">Proof Engine</span>
@@ -23,6 +35,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </button>
         </form>
       </header>
+      <nav aria-label="Main" className="flex gap-1 border-b border-neutral-200 px-4 text-sm dark:border-neutral-800">
+        {[
+          ["/app/dashboard", "Dashboard"],
+          ["/app/settings/team", "Team"],
+          ["/app/settings/security", "Security"],
+        ].map(([href, label]) => (
+          <Link key={href} href={href} className="inline-flex min-h-11 items-center px-3 hover:underline">
+            {label}
+          </Link>
+        ))}
+      </nav>
       <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
     </div>
   );

@@ -46,6 +46,9 @@ export const serverEnvSchema = z.object({
   // Phase 7: cron
   CRON_SECRET: optional(z.string().min(32)),
 
+  // How recent a sign-in must be for sensitive actions (default 600 = 10 minutes)
+  REAUTH_MAX_AGE_SECONDS: optional(z.coerce.number().int().min(1).max(86400)),
+
   // Phase 8: Stripe
   STRIPE_SECRET_KEY: optional(z.string().min(1)),
   STRIPE_WEBHOOK_SECRET: optional(z.string().min(1)),

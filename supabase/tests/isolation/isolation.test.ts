@@ -617,16 +617,13 @@ describe("workspace roles", () => {
     expect(data).toHaveLength(1);
   });
 
-  it("editors cannot add members; admins can add non-owners but not owners", async () => {
-    const asEditor = await D.client.from("workspace_members").insert({ workspace_id: tenantA.ws, user_id: F.id, role: "viewer" }).select();
-    expect(wasBlocked(asEditor), "workspace_members: editor can add members").toBe(true);
-
-    const adminOwner = await E.client.from("workspace_members").insert({ workspace_id: tenantA.ws, user_id: F.id, role: "owner" }).select();
-    expect(wasBlocked(adminOwner), "workspace_members: admin can create an owner").toBe(true);
-
-    const adminViewer = await E.client.from("workspace_members").insert({ workspace_id: tenantA.ws, user_id: F.id, role: "viewer" }).select();
-    expect(rowsOf(adminViewer), "workspace_members: admin cannot add a viewer").toHaveLength(1);
-    await admin.from("workspace_members").delete().eq("workspace_id", tenantA.ws).eq("user_id", F.id);
+  it("nobody can add members directly: not owner, admin, editor or viewer", async () => {
+    for (const user of [A, E, D, C]) {
+      const res = await user.client.from("workspace_members").insert({ workspace_id: tenantA.ws, user_id: F.id, role: "viewer" }).select();
+      expect(wasBlocked(res), "workspace_members: direct insert is possible").toBe(true);
+    }
+    const { data } = await admin.from("workspace_members").select("user_id").eq("workspace_id", tenantA.ws).eq("user_id", F.id);
+    expect(data).toHaveLength(0);
   });
 
   it("an admin cannot demote or remove an owner, or promote anyone to owner", async () => {
@@ -647,9 +644,11 @@ describe("workspace roles", () => {
     }
   });
 
-  it("an admin can change another member's role (positive control)", async () => {
-    const res = await E.client.from("workspace_members").update({ role: "viewer" }).eq("workspace_id", tenantA.ws).eq("user_id", D.id).select();
-    expect(rowsOf(res), "workspace_members: admin cannot change a role").toHaveLength(1);
+  it("an admin can change another member's role through change_member_role (positive control)", async () => {
+    const res = await E.client.rpc("change_member_role", { ws: tenantA.ws, member: D.id, new_role: "viewer" });
+    expect(res.error, "change_member_role: admin cannot change a role").toBeNull();
+    const { data } = await admin.from("workspace_members").select("role").eq("workspace_id", tenantA.ws).eq("user_id", D.id).single();
+    expect(data?.role).toBe("viewer");
     await admin.from("workspace_members").update({ role: "editor" }).eq("workspace_id", tenantA.ws).eq("user_id", D.id);
   });
 

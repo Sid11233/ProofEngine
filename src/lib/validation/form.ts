@@ -7,6 +7,8 @@ export interface FormState {
   ok: boolean;
   message?: string;
   fieldErrors?: FieldErrors;
+  /** The action needs a fresh sign-in first; says which kind of proof to ask for. */
+  reauth?: "password" | "mfa" | "oauth";
 }
 
 /**

@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { z } from "zod";
+import { getUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 
 const roleSchema = z.enum(["owner", "admin", "editor", "viewer"]);
@@ -31,10 +32,16 @@ export interface CurrentWorkspace {
  * per user in the UI (the oldest membership); multi-workspace switching comes later.
  */
 export const getCurrentWorkspace = cache(async (): Promise<CurrentWorkspace | null> => {
+  const user = await getUser();
+  if (!user) return null;
+
   const supabase = await createClient();
+  // RLS lets members read every row of their own workspaces, so the query must be
+  // pinned to the caller's own membership or it would return a teammate's role.
   const { data, error } = await supabase
     .from("workspace_members")
     .select("role, workspaces(id, name, type, plan, subdomain_slug)")
+    .eq("user_id", user.id)
     .order("created_at", { ascending: true })
     .limit(1);
 

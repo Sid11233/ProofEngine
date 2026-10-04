@@ -2,11 +2,35 @@ import "server-only";
 import { createRateLimiter, type RateLimiter } from "@/lib/security/rate-limit";
 import { sha256Hex } from "@/lib/security/hash";
 
-export type AuthAction = "login" | "signup" | "reset" | "mfa" | "workspace";
+// Each code-entry step has its own bucket so one flow cannot exhaust another's attempts.
+export type AuthAction =
+  | "login"
+  | "signup"
+  | "reset"
+  | "workspace"
+  | "reauth"
+  | "mfa-login"
+  | "mfa-reauth"
+  | "mfa-enroll"
+  | "mfa-manage"
+  | "team-invite"
+  | "team-manage"
+  | "invite-accept";
 
-// 5 attempts per 15 minutes per email, 20 per hour per IP (Prompt 2.1).
-const EMAIL_LIMIT = { limit: 5, windowSec: 15 * 60 };
-const IP_LIMIT = { limit: 20, windowSec: 60 * 60 };
+interface Limit {
+  limit: number;
+  windowSec: number;
+}
+
+// Credential-style actions: 5 attempts per 15 minutes per email or user, 20 per hour per IP (Prompt 2.1).
+const EMAIL_LIMIT: Limit = { limit: 5, windowSec: 15 * 60 };
+const IP_LIMIT: Limit = { limit: 20, windowSec: 60 * 60 };
+
+// Management actions are not guessable secrets, so they get roomier limits.
+const OVERRIDES: Partial<Record<AuthAction, { subject: Limit; ip: Limit }>> = {
+  "team-invite": { subject: { limit: 20, windowSec: 60 * 60 }, ip: { limit: 60, windowSec: 60 * 60 } },
+  "team-manage": { subject: { limit: 60, windowSec: 15 * 60 }, ip: { limit: 120, windowSec: 60 * 60 } },
+};
 
 const limiters = new Map<AuthAction, { byEmail: RateLimiter; byIp: RateLimiter }>();
 
@@ -14,8 +38,8 @@ function limitersFor(action: AuthAction) {
   let entry = limiters.get(action);
   if (!entry) {
     entry = {
-      byEmail: createRateLimiter({ prefix: `auth:${action}:email`, ...EMAIL_LIMIT }),
-      byIp: createRateLimiter({ prefix: `auth:${action}:ip`, ...IP_LIMIT }),
+      byEmail: createRateLimiter({ prefix: `auth:${action}:email`, ...(OVERRIDES[action]?.subject ?? EMAIL_LIMIT) }),
+      byIp: createRateLimiter({ prefix: `auth:${action}:ip`, ...(OVERRIDES[action]?.ip ?? IP_LIMIT) }),
     };
     limiters.set(action, entry);
   }

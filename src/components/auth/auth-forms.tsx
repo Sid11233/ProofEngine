@@ -25,10 +25,11 @@ export function LoginForm({ action, next }: { action: Action; next?: string }) {
   );
 }
 
-export function SignupForm({ action }: { action: Action }) {
+export function SignupForm({ action, next }: { action: Action; next?: string }) {
   const [state, formAction] = useActionState(action, undefined as unknown as FormState);
   return (
     <form action={formAction} className="space-y-4" noValidate>
+      {next ? <input type="hidden" name="next" value={next} /> : null}
       <TextField label="Your name" name="fullName" autoComplete="name" errors={state?.fieldErrors?.fullName} />
       <TextField label="Work email" name="email" type="email" autoComplete="email" errors={state?.fieldErrors?.email} />
       <TextField

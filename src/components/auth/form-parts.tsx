@@ -15,6 +15,7 @@ export function TextField({
   hint,
   required = true,
   defaultValue,
+  inputMode,
 }: {
   label: string;
   name: string;
@@ -24,6 +25,7 @@ export function TextField({
   hint?: string;
   required?: boolean;
   defaultValue?: string;
+  inputMode?: "numeric" | "text" | "email";
 }) {
   const errorId = `${name}-error`;
   const hintId = `${name}-hint`;
@@ -39,6 +41,7 @@ export function TextField({
         autoComplete={autoComplete}
         required={required}
         defaultValue={defaultValue}
+        inputMode={inputMode}
         aria-invalid={errors?.length ? true : undefined}
         aria-describedby={[errors?.length ? errorId : null, hint ? hintId : null].filter(Boolean).join(" ") || undefined}
         className={inputClass}

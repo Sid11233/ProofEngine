@@ -26,6 +26,7 @@ export const signupSchema = z
     fullName: z.string().trim().min(1, "Enter your name").max(100, "Name is too long"),
     email: emailSchema,
     password: newPasswordSchema,
+    next: nextSchema,
   })
   .strict();
 

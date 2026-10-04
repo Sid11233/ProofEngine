@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { randomBytes } from "node:crypto";
+import { createHmac, randomBytes } from "node:crypto";
 import { chromium, type Browser, type Page } from "playwright";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { loadLocalConfig, makeClient, type LocalConfig } from "../supabase/tests/isolation/harness";
@@ -15,7 +15,7 @@ export interface Stack {
 }
 
 /** Starts the production build of the app against the LOCAL Supabase, plus a browser. */
-export async function startStack(): Promise<Stack> {
+export async function startStack(extraEnv: Record<string, string> = {}): Promise<Stack> {
   const cfg = loadLocalConfig();
   const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-p", String(PORT)], {
     env: {
@@ -24,6 +24,7 @@ export async function startStack(): Promise<Stack> {
       NEXT_PUBLIC_SUPABASE_ANON_KEY: cfg.anonKey,
       SUPABASE_SERVICE_ROLE_KEY: cfg.serviceKey,
       NEXT_PUBLIC_APP_URL: BASE,
+      ...extraEnv,
     },
     stdio: "ignore",
     detached: true,
@@ -106,4 +107,22 @@ export async function signIn(page: Page, email: string, password: string) {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
+}
+
+const BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+
+/** RFC 6238 time-based one-time password, as an authenticator app would compute it. */
+export function totp(secretBase32: string, stepOffset = 0, now = Date.now()): string {
+  let bits = "";
+  for (const char of secretBase32.toUpperCase().replace(/[^A-Z2-7]/g, "")) {
+    bits += BASE32.indexOf(char).toString(2).padStart(5, "0");
+  }
+  const key = Buffer.from(bits.match(/.{8}/g)?.map((byte) => parseInt(byte, 2)) ?? []);
+  const counter = Math.floor(now / 30_000) + stepOffset;
+  const message = Buffer.alloc(8);
+  message.writeBigUInt64BE(BigInt(counter));
+  const digest = createHmac("sha1", key).update(message).digest();
+  const offset = digest[digest.length - 1] & 0x0f;
+  const binary = digest.readUInt32BE(offset) & 0x7fffffff;
+  return String(binary % 1_000_000).padStart(6, "0");
 }

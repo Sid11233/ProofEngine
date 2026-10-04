@@ -49,6 +49,13 @@ Validated by `src/lib/security/env-schema.ts`, which `next.config.ts` runs on ev
 - Children reference `(parent_id, workspace_id)` with a composite foreign key. New tenant tables must be added to `SPECS` in `supabase/tests/isolation/isolation.test.ts`.
 - `realtime` is disabled in `supabase/config.toml` (unused in V1; its init step also fails in some container environments).
 
+## Auth and team
+
+- Server code gets the user from `getUser()`/`requireUser()` (always revalidated). The workspace comes from `getCurrentWorkspace()` (pinned to the caller's own membership), never from a request field.
+- Sensitive actions call `checkRecentAuth()` and return `reauth` so the UI shows `ReauthPrompt`.
+- Rate limits: `isAuthAttemptAllowed(action, ...)` in `src/lib/auth/rate-limits.ts`; add new actions there. Upstash when configured, in-memory fallback otherwise.
+- Membership changes only through the SECURITY DEFINER functions (they audit-log). Never re-grant direct writes on `workspace_members`.
+
 ## Commands
 
 `npm run dev` · `npm run build` · `npm run lint` · `npm run typecheck` · `npm test`
