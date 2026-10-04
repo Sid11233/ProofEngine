@@ -50,6 +50,15 @@ jobs:
         run: supabase test db
       - name: Tenant isolation (real users through the REST API)
         run: npm run test:isolation
+      - name: Install browser for end-to-end tests
+        run: npx playwright install --with-deps chromium
+      - name: Build the app against local Supabase
+        run: |
+          eval "$(supabase status -o env | sed -n 's/^API_URL=/export LOCAL_URL=/p;s/^ANON_KEY=/export LOCAL_ANON=/p;s/^SERVICE_ROLE_KEY=/export LOCAL_SERVICE=/p')"
+          NEXT_PUBLIC_SUPABASE_URL="$LOCAL_URL" NEXT_PUBLIC_SUPABASE_ANON_KEY="$LOCAL_ANON" \
+          SUPABASE_SERVICE_ROLE_KEY="$LOCAL_SERVICE" NEXT_PUBLIC_APP_URL=http://localhost:3111 npm run build
+      - name: Browser end-to-end tests (auth, onboarding, MFA, team)
+        run: npm run test:e2e
       - name: Stop Supabase
         if: always()
         run: supabase stop --no-backup

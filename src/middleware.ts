@@ -1,7 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { needsSession, resolveAuthRedirect } from "@/lib/auth/redirects";
 import { buildCsp } from "@/lib/security/csp";
+import { updateSession } from "@/lib/supabase/middleware";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const nonce = btoa(crypto.randomUUID());
   const csp = buildCsp({
     nonce,
@@ -14,7 +16,27 @@ export function middleware(request: NextRequest) {
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", csp);
 
-  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  const { pathname, search } = request.nextUrl;
+  let response = NextResponse.next({ request: { headers: requestHeaders } });
+  let isAuthenticated = false;
+  let mfaPending = false;
+
+  if (needsSession(pathname)) {
+    const session = await updateSession(request, requestHeaders);
+    response = session.response();
+    isAuthenticated = session.user !== null;
+    mfaPending = session.mfaPending;
+  }
+
+  const target = resolveAuthRedirect({ pathname, search, isAuthenticated, mfaPending });
+  if (target) {
+    const redirect = NextResponse.redirect(new URL(target, request.nextUrl.origin));
+    // Keep any refreshed auth cookies on the redirect.
+    for (const cookie of response.cookies.getAll()) redirect.cookies.set(cookie);
+    redirect.headers.set("Content-Security-Policy", csp);
+    return redirect;
+  }
+
   response.headers.set("Content-Security-Policy", csp);
   return response;
 }
