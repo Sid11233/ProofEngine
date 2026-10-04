@@ -69,11 +69,18 @@ export async function newPage(stack: Stack): Promise<Page> {
   return context.newPage();
 }
 
-export async function createUser(admin: SupabaseClient, label: string) {
+/** A confirmed user, with a workspace of their own unless `withWorkspace` is false. */
+export async function createUser(admin: SupabaseClient, label: string, { withWorkspace = true } = {}) {
   const email = `e2e-${label}-${randomBytes(4).toString("hex")}@example.test`;
   const password = randomBytes(18).toString("base64url");
   const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
   if (error || !data.user) throw new Error(`createUser failed: ${error?.message}`);
+  if (withWorkspace) {
+    const { data: ws, error: wsError } = await admin.from("workspaces").insert({ name: `E2E ${label}`, type: "agency" }).select("id").single();
+    if (wsError || !ws) throw new Error(`workspace failed: ${wsError?.message}`);
+    const { error: memberError } = await admin.from("workspace_members").insert({ workspace_id: ws.id, user_id: data.user.id, role: "owner" });
+    if (memberError) throw new Error(`membership failed: ${memberError.message}`);
+  }
   return { id: data.user.id, email, password };
 }
 

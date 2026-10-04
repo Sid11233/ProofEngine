@@ -2,7 +2,7 @@ import "server-only";
 import { createRateLimiter, type RateLimiter } from "@/lib/security/rate-limit";
 import { sha256Hex } from "@/lib/security/hash";
 
-export type AuthAction = "login" | "signup" | "reset" | "mfa";
+export type AuthAction = "login" | "signup" | "reset" | "mfa" | "workspace";
 
 // 5 attempts per 15 minutes per email, 20 per hour per IP (Prompt 2.1).
 const EMAIL_LIMIT = { limit: 5, windowSec: 15 * 60 };
