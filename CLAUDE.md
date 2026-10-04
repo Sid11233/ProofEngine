@@ -42,6 +42,14 @@ Validated by `src/lib/security/env-schema.ts`, which `next.config.ts` runs on ev
 - Browser code imports `@/lib/security/env.public`; server code imports `@/lib/security/env.server` (`server-only`).
 - New var: add it to the schema and `.env.example` together. Make it optional until the phase that uses it, then promote it to required.
 
+## Database
+
+- Migrations in `supabase/migrations` are the source of truth; `docs/database.md` summarises the access model.
+- Every new table: RLS + explicit policies + a `comment on policy` for each, in the same migration. Grant `authenticated` only the columns it needs and nothing to `anon`.
+- Children reference `(parent_id, workspace_id)` with a composite foreign key. New tenant tables must be added to `SPECS` in `supabase/tests/isolation/isolation.test.ts`.
+- `realtime` is disabled in `supabase/config.toml` (unused in V1; its init step also fails in some container environments).
+
 ## Commands
 
 `npm run dev` · `npm run build` · `npm run lint` · `npm run typecheck` · `npm test`
+`npx supabase start` then `npx supabase test db` (pgTAP) and `npm run test:isolation` (RLS through the REST API; local Supabase only).

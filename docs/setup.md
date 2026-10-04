@@ -36,6 +36,16 @@ npx supabase link --project-ref <proof-dev project ref>   # ref = the subdomain 
 
 `supabase/config.toml` is already initialised. Link **dev only**; apply migrations to prod deliberately with `supabase db push` once the isolation tests pass.
 
+### Applying the schema to proof-dev (Phase 1)
+
+After `supabase link`, review `supabase/migrations/` and run:
+
+```bash
+npx supabase db push        # dev project only; never push to prod until the isolation tests pass in CI
+```
+
+Then open **Security Advisor** in the dashboard and fix any warning (the gate is zero RLS warnings). See [database.md](database.md) for the access model.
+
 ### Dashboard settings to do now
 
 - **Authentication → Providers → Email:** require email confirmation; minimum password length 12; enable leaked-password protection if available.
