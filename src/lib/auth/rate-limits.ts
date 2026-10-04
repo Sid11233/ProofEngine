@@ -15,7 +15,8 @@ export type AuthAction =
   | "mfa-manage"
   | "team-invite"
   | "team-manage"
-  | "invite-accept";
+  | "invite-accept"
+  | "request-manage";
 
 interface Limit {
   limit: number;
@@ -29,6 +30,7 @@ const IP_LIMIT: Limit = { limit: 20, windowSec: 60 * 60 };
 // Management actions are not guessable secrets, so they get roomier limits.
 const OVERRIDES: Partial<Record<AuthAction, { subject: Limit; ip: Limit }>> = {
   "team-invite": { subject: { limit: 20, windowSec: 60 * 60 }, ip: { limit: 60, windowSec: 60 * 60 } },
+  "request-manage": { subject: { limit: 60, windowSec: 60 * 60 }, ip: { limit: 120, windowSec: 60 * 60 } },
   "team-manage": { subject: { limit: 60, windowSec: 15 * 60 }, ip: { limit: 120, windowSec: 60 * 60 } },
 };
 

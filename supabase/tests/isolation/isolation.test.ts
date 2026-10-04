@@ -231,7 +231,7 @@ afterAll(async () => {
   // Best-effort cleanup. Workspaces first: the last-owner guard blocks deleting
   // an owner's auth user while their workspace still exists.
   if (!admin) return;
-  await admin.from("question_flows").delete().is("workspace_id", null);
+  await admin.from("question_flows").delete().is("workspace_id", null).eq("name", "System flow");
   for (const ws of createdWorkspaces) await admin.from("workspaces").delete().eq("id", ws);
   await admin.from("templates").delete().in("id", [template1, template2].filter(Boolean));
   for (const id of createdUsers) await admin.auth.admin.deleteUser(id);
