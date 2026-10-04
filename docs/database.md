@@ -20,7 +20,7 @@ R = read, W = write. "Server" means service role, used only in token-authenticat
 | workspaces | R | R | R, W (not `plan`) | R, W, delete | created only by `create_workspace()` |
 | workspace_members | R | R | invite (non-admin roles), change roles of non-owners, remove non-owners | everything, including owners | **no direct writes**: only via `create_invite`/`accept_invite`/`change_member_role`/`remove_member`, which audit-log in the same transaction; no self role change; last owner protected |
 | workspace_invites | | | R (no token_hash), create, revoke | same, plus invite admins | functions only; single use, 7 days, hashed token, invitee must have a verified matching email |
-| proof_requests | R | R, W | R, W, delete | same | `token_hash` is never selectable (use `proof_requests_safe`) |
+| proof_requests | R | R; edit descriptive fields; create/send/remind/revoke/regenerate via functions | same, plus delete | same | **no direct insert**; status, revoked_at, token_hash, expiry and reminders change only through `create_proof_request`, `rotate_request_token`, `revoke_request` (audit-logged, plan limit enforced); `token_hash` is never selectable (use `proof_requests_safe`) |
 | interviews, interview_messages, interview_uploads | R | R | R | R | written by server only |
 | referrals | R | R, update status | same | same | inserted by server only |
 | question_flows | R (system flows: any signed-in user) | | | | no client writes |
@@ -35,7 +35,8 @@ R = read, W = write. "Server" means service role, used only in token-authenticat
 
 ## Left for later phases (deliberately)
 
-- **Request state machine and plan limits (3.1, 8.3):** an editor can currently set `proof_requests.status` and `revoked_at` directly, and nothing in the database yet caps interviews per plan. Move those into functions or triggers when the flows exist.
+- **Interview state (3.3/3.4):** `started`/`completed` transitions and interview rows are written by the server with the service role; add those functions with the interview endpoints.
+- **Plan limits (8.3):** `plan_interview_limit()` holds placeholder numbers (free 3, pro 100, team 1000 per month) until plans are decided.
 - **Publishing (6.2):** the trigger that requires an approval for the current version, an allowed template, a valid slug and confirmed claims. Until then `published` is not settable from the client.
 - **Seeding:** system question flows (3.4) and templates (5.2).
 - **Storage buckets** `uploads` and `exports` (private) are created in the dashboard or a later migration.
@@ -46,6 +47,13 @@ R = read, W = write. "Server" means service role, used only in token-authenticat
 - `select *` on `workspace_invites` is refused because `token_hash` is not granted: always name columns.
 - Teammate names and emails come from `list_team_members(ws)`, not from a wider `profiles` policy.
 - Sensitive actions (removing someone else, granting ownership, turning MFA off) require a recent sign-in, judged from the signed session token (`amr`), not a client value.
+
+## Proof request links (Phase 3.1-3.2)
+
+- A link is `/i/<43-char token>` (32 random bytes). Only its SHA-256 is stored. Because the raw token is never stored, every email that carries a link rotates the token: **send, remind and regenerate each replace the previous link immediately.** A reminder therefore says "this link replaces the one in our earlier email".
+- Reminders: only for `sent` requests, max 3, at least 48 hours apart. Links live 30 days (the database caps it at 90).
+- `resolveInterview()` (`src/lib/interview-access.ts`) is the only way an interview page or endpoint learns who is calling. It rate limits by IP (30/min) and token (60/min), compares hashes in constant time, and returns the same "not found" for unknown, malformed, expired, revoked and completed links.
+- Interview pages and `/api/interview/*` send `X-Robots-Tag: noindex`, `Referrer-Policy: no-referrer` and `Cache-Control: no-store`.
 
 ## Running the tests
 

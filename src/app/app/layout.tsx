@@ -38,6 +38,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <nav aria-label="Main" className="flex gap-1 border-b border-neutral-200 px-4 text-sm dark:border-neutral-800">
         {[
           ["/app/dashboard", "Dashboard"],
+          ["/app/requests", "Requests"],
           ["/app/settings/team", "Team"],
           ["/app/settings/security", "Security"],
         ].map(([href, label]) => (
