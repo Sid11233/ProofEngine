@@ -71,6 +71,10 @@ Then open **Security Advisor** in the dashboard and fix any warning (the gate is
 
 Custom domains come later: the app on `app.<yourproduct>.com`, interview links on `i.<yourproduct>.com`, and published pages on a **separate registrable domain**. Decide those names before Phase 3 and 6.
 
+### Reminder emails (Phase 7)
+
+Set `CRON_SECRET` (random, 32+ characters: `openssl rand -hex 32`) in Vercel. Vercel Cron then calls `/api/cron/reminders` daily at 09:00 UTC (`vercel.json`) with `Authorization: Bearer $CRON_SECRET`; without the secret the endpoint always answers 401. Reminders need `RESEND_API_KEY` and `RESEND_FROM_EMAIL` with a verified sending domain: until email is configured the job changes nothing. Referral notifications use the same email setup.
+
 ### Public pages domain (Phase 6)
 
 Published case studies are served from their own domain so they never share an origin with the app.

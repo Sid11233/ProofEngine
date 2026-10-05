@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { PageViewBeacon, TrackedLink } from "@/components/public/tracking";
 import { CaseStudyView } from "@/components/case-study/view/case-study-view";
 import { brand } from "@/lib/brand";
 import { loadPublishedStudy, type PublicStudy } from "@/lib/public/load";
@@ -67,6 +68,13 @@ export default async function PublicStudyPage({ params }: { params: Promise<Para
         theme={effectiveTheme(template, study.themeSettings)}
         logoUrl={study.logoPath ? `/${study.slug}/logo` : null}
       />
+      <PageViewBeacon slug={study.slug} />
+      {study.website && (
+        <section aria-label="Work with us" className="space-y-1 px-4 py-6 text-center">
+          <p className="font-medium"><TrackedLink slug={study.slug} type="cta_click" href={study.website}>Work with {study.workspaceName}</TrackedLink></p>
+          <p className="text-sm text-neutral-600">Know someone who would benefit? <TrackedLink slug={study.slug} type="referral_click" href={study.website}>Refer them</TrackedLink></p>
+        </section>
+      )}
       <footer className="space-x-4 px-4 py-6 text-center text-sm text-neutral-600">
         <a href={`/${study.slug}/report`} className="underline underline-offset-2">Report this page</a>
         {study.showBadge && (

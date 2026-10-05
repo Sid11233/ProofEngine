@@ -7,6 +7,9 @@ import { requireUser } from "@/lib/auth/session";
 import { getEmailSender } from "@/lib/email/resend";
 import { getClientIp } from "@/lib/security/client-ip";
 import { publicEnv } from "@/lib/security/env.public";
+import { serverEnv } from "@/lib/security/env.server";
+import { unsubscribeSecret } from "@/lib/security/ip-hash";
+import { unsubscribeToken } from "@/lib/security/unsubscribe";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentWorkspace } from "@/lib/workspace/current";
 import { fieldErrorsOf, formDataToObject, type FieldErrors } from "@/lib/validation/form";
@@ -36,7 +39,13 @@ async function authorise() {
 }
 
 async function context(workspaceName: string): Promise<requests.Context> {
-  return { appUrl: publicEnv.NEXT_PUBLIC_APP_URL, workspaceName, sender: getEmailSender() };
+  const secret = unsubscribeSecret(serverEnv);
+  return {
+    appUrl: publicEnv.NEXT_PUBLIC_APP_URL,
+    workspaceName,
+    sender: getEmailSender(),
+    unsubscribeUrl: (requestId) => new URL(`/unsubscribe/${unsubscribeToken(secret, requestId)}`, publicEnv.NEXT_PUBLIC_APP_URL).toString(),
+  };
 }
 
 function describe(result: requests.LinkResult, verb: string): RequestActionResult {

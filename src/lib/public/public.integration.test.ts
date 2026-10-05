@@ -62,7 +62,7 @@ describe("public_case_studies", () => {
 
     const { data } = await anon.from("public_case_studies").select("*").eq("slug", s.slug);
     expect(Object.keys(data?.[0] ?? {}).sort()).toEqual(
-      ["content", "logo_path", "published_at", "show_badge", "slug", "template_active", "template_category", "template_default_theme", "template_id", "template_name", "template_sections", "template_tier", "theme_settings", "workspace_name", "workspace_slug"],
+      ["content", "logo_path", "published_at", "show_badge", "slug", "template_active", "template_category", "template_default_theme", "template_id", "template_name", "template_sections", "template_tier", "theme_settings", "workspace_name", "workspace_slug", "workspace_website"],
     );
   });
 

@@ -17,6 +17,8 @@ export interface PublicStudy {
   themeSettings: unknown;
   logoPath: string | null;
   showBadge: boolean;
+  /** https URL of the workspace's own website, for the call-to-action link; null when unset or not https. */
+  website: string | null;
   publishedAt: string | null;
 }
 
@@ -28,7 +30,7 @@ export interface PublicListItem {
 }
 
 const COLUMNS =
-  "workspace_slug, workspace_name, show_badge, slug, content, logo_path, theme_settings, published_at, template_id, template_name, template_category, template_tier, template_sections, template_default_theme, template_active";
+  "workspace_slug, workspace_name, show_badge, slug, content, logo_path, theme_settings, published_at, template_id, template_name, template_category, template_tier, template_sections, template_default_theme, template_active, workspace_website";
 
 type Row = Record<string, unknown>;
 
@@ -45,6 +47,17 @@ function toTemplate(row: Row): Template | null {
   });
 }
 
+/** Only a plain https URL is ever used as a link. */
+export function httpsOrNull(value: unknown): string | null {
+  if (typeof value !== "string" || value.length > 2048) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && !url.username && !url.password ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 function toStudy(row: Row): PublicStudy | null {
   const content = caseStudyContentSchema.safeParse(row.content);
   // Content that does not pass the schema is never rendered.
@@ -58,6 +71,7 @@ function toStudy(row: Row): PublicStudy | null {
     themeSettings: row.theme_settings ?? {},
     logoPath: typeof row.logo_path === "string" ? row.logo_path : null,
     showBadge: row.show_badge === true,
+    website: httpsOrNull(row.workspace_website),
     publishedAt: typeof row.published_at === "string" ? row.published_at : null,
   };
 }
