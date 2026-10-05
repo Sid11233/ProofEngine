@@ -155,6 +155,23 @@ async function seedTenant(ws: string, ownerId: string): Promise<Tenant> {
       .select(),
     "approvals",
   );
+  // An approval token (never selectable by clients) and one piece of client feedback, made the way the app makes them.
+  await must(
+    admin
+      .from("case_study_approval_tokens")
+      .insert({ case_study_id: caseStudy.id, workspace_id: ws, version: 1, token_hash: hex64() })
+      .select(),
+    "case_study_approval_tokens",
+  );
+  const feedbackToken = hex64();
+  await admin.from("case_studies").update({ status: "awaiting_client_approval" }).eq("id", caseStudy.id);
+  await must(
+    admin.from("case_study_approval_tokens").insert({ case_study_id: caseStudy.id, workspace_id: ws, version: 2, token_hash: feedbackToken }).select(),
+    "case_study_approval_tokens",
+  );
+  await admin.from("case_studies").update({ current_version: 2 }).eq("id", caseStudy.id);
+  const changes = await admin.rpc("request_case_study_changes", { token_hash: feedbackToken, note: "Seed note", ip_hash: hex64() });
+  if (changes.error) throw new Error(`seed feedback: ${changes.error.message}`);
   await must(
     admin
       .from("takedown_requests")
@@ -248,7 +265,7 @@ interface Spec {
   tenantCol?: string;
   columns?: string;
   /** Lowest role that can read rows. */
-  readRole: "viewer" | "admin";
+  readRole: "viewer" | "editor" | "admin";
   /** A harmless-looking column change an attacker would try. */
   patch: Row;
   /** A payload that would be valid if the caller were allowed to insert into tenant `t`. */
@@ -353,6 +370,20 @@ const SPECS: Spec[] = [
     appendOnly: true,
     patch: { approver_email: "evil@example.com" },
     insert: (t) => ({ case_study_id: t.caseStudyId, workspace_id: t.ws, version: 2, approver_email: "evil@example.com", method: "email_link" }),
+  },
+  {
+    table: "case_study_approval_tokens",
+    columns: "id,case_study_id,workspace_id,version,expires_at,used_at,revoked_at",
+    readRole: "editor",
+    patch: { revoked_at: "2030-01-01T00:00:00Z" },
+    insert: (t) => ({ case_study_id: t.caseStudyId, workspace_id: t.ws, version: 1, token_hash: hex64() }),
+  },
+  {
+    table: "case_study_feedback",
+    readRole: "editor",
+    appendOnly: true,
+    patch: { message: "edited" },
+    insert: (t) => ({ case_study_id: t.caseStudyId, workspace_id: t.ws, version: 1, kind: "declined", message: "x" }),
   },
   {
     table: "takedown_requests",
@@ -466,6 +497,13 @@ describe.each(SPECS)("tenant isolation: $table", (spec) => {
     }
     await expectNoWrites(spec, "viewer C", C.client, C.id);
   });
+
+  if (spec.readRole === "editor") {
+    it("3c. editor D can read these rows", async () => {
+      const asEditor = await D.client.from(spec.table).select(cols(spec)).in(tenantCol(spec), [tenantA.ws]);
+      expect(rowsOf(asEditor).length, `${spec.table}: editor cannot read rows they should see`).toBeGreaterThan(0);
+    });
+  }
 
   if (spec.readRole === "admin") {
     it("3b. editor D cannot read admin-only rows, admin E can", async () => {
@@ -714,18 +752,14 @@ describe("case study integrity", () => {
     }
   });
 
-  it("an editor cannot forge approval or publication; asking for approval is fine", async () => {
-    for (const status of ["approved", "published"]) {
-      const res = await D.client.from("case_studies").update({ status }).eq("id", draftId).select();
-      expect(wasBlocked(res), `case_studies: editor set status to ${status}`).toBe(true);
+  it("nobody can write a case study's status or slug directly; transitions use the approval and publish functions", async () => {
+    for (const [who, user] of [["editor", D], ["admin", E], ["owner", A]] as const) {
+      for (const status of ["draft", "awaiting_client_approval", "approved", "published", "unpublished"]) {
+        const res = await user.client.from("case_studies").update({ status }).eq("id", draftId).select();
+        expect(wasBlocked(res), `case_studies: ${who} set status to ${status} directly`).toBe(true);
+      }
+      expect(wasBlocked(await user.client.from("case_studies").update({ slug: slug() }).eq("id", draftId).select()), `case_studies: ${who} set slug directly`).toBe(true);
     }
-    const ok = await D.client.from("case_studies").update({ status: "awaiting_client_approval" }).eq("id", draftId).select();
-    expect(rowsOf(ok), "case_studies: editor cannot request approval").toHaveLength(1);
-  });
-
-  it("an admin cannot publish from the client either (database trigger lands in Phase 6.2)", async () => {
-    const res = await E.client.from("case_studies").update({ status: "published" }).eq("id", draftId).select();
-    expect(wasBlocked(res), "case_studies: admin published without the Phase 6.2 guard").toBe(true);
   });
 
   it("the database rejects a claim without a verbatim client quote, for every role including the server", async () => {

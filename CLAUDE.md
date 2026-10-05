@@ -69,7 +69,8 @@ Validated by `src/lib/security/env-schema.ts`, which `next.config.ts` runs on ev
 - Case study content changes only through `save_case_study_edit`; creation only through `create_generated_case_study`. Cookie-authenticated POST route handlers must call `isSameOrigin`.
 
 - Editing: autosave and review-save both go through `prepareEdit()` (schema, claim linkage, edited-claim set computed on the server). Approval must call `snapshot_case_study()` first. Logo storage uses the service role only after auth, role check and re-encoding (`src/lib/uploads/server.ts`).
-- Anything served by a secret link (`/i`, `/preview`) resolves through its own `*-access-core` resolver and gets noindex, no-referrer and no-store headers in `next.config.ts`.
+- Approval and publishing: `status` and `slug` on `case_studies` are never client-writable; use `request_client_approval`, `publish_case_study`, `unpublish_case_study`. Client decisions (`/approve/[token]`) go through `approval-access-core.ts` and the service-role-only `approve_case_study` / `request_case_study_changes` / `decline_case_study`. Publish rules live in the `enforce_publish_rules` trigger, not in app code.
+- Anything served by a secret link (`/i`, `/preview`, `/approve`) resolves through its own `*-access-core` resolver and gets noindex, no-referrer and no-store headers in `next.config.ts`.
 
 ## Security audit rules (see docs/security-audit.md)
 
