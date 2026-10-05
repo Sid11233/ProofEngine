@@ -13,6 +13,8 @@ export interface CaseStudyView {
   id: string;
   workspaceId: string;
   status: string;
+  slug: string | null;
+  declined: boolean;
   version: number;
   templateId: string | null;
   themeSettings: unknown;
@@ -25,7 +27,7 @@ export interface CaseStudyView {
 export async function loadCaseStudy(supabase: SupabaseClient, id: string): Promise<CaseStudyView | null> {
   const { data: study } = await supabase
     .from("case_studies")
-    .select("id, workspace_id, status, current_version, content, generation_issues, template_id, theme_settings")
+    .select("id, workspace_id, status, slug, client_declined_at, current_version, content, generation_issues, template_id, theme_settings")
     .eq("id", id)
     .maybeSingle();
   if (!study) return null;
@@ -47,6 +49,8 @@ export async function loadCaseStudy(supabase: SupabaseClient, id: string): Promi
     id: String(study.id),
     workspaceId: String(study.workspace_id),
     status: String(study.status),
+    slug: typeof study.slug === "string" ? study.slug : null,
+    declined: study.client_declined_at !== null,
     version: Number(study.current_version),
     templateId: typeof study.template_id === "string" ? study.template_id : null,
     themeSettings: study.theme_settings ?? {},

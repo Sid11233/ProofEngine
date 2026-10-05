@@ -203,13 +203,13 @@ describe("editing with a live preview", () => {
     await context.close();
   }, 120_000);
 
-  it("watermarks a locked template, explains why Publish is off, and keeps it disabled", async () => {
+  it("watermarks a locked template, explains why it cannot go live, and offers no Publish button", async () => {
     const owner = await createUser(stack.admin, "ed-locked");
     const s = await seed(owner.id, { plan: "free", templateName: "Timeline Story" });
     const { context, page } = await openEditor(owner.email, owner.password, s.studyId);
     await page.getByText(/Timeline Story is a paid template/).waitFor();
     expect(await page.getByTestId("preview-frame").getByText("Preview only: needs an upgrade to publish").count()).toBeGreaterThan(0);
-    expect(await page.getByRole("button", { name: "Publish", exact: true }).isDisabled()).toBe(true);
+    expect(await page.getByRole("button", { name: "Publish", exact: true }).count(), "Publish is not offered before approval").toBe(0);
     await page.getByText("This template is not included in your plan", { exact: false }).waitFor();
     await context.close();
 

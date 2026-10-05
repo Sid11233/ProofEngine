@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AutosaveResult, PreviewActionResult } from "@/app/app/case-studies/[id]/edit/actions";
+import { useRouter } from "next/navigation";
+import type { AutosaveResult, LifecycleResult, PreviewActionResult } from "@/app/app/case-studies/[id]/edit/actions";
 import { numbersMatch, quoteMatches } from "@/lib/case-study/claim-check";
+import { slugify } from "@/lib/case-study/slug";
 import { caseStudyContentSchema, type CaseStudyContent, type Section } from "@/lib/case-study/schema";
 import { FONT_PAIR_LABELS, FONT_PAIRS, MODES, RADII, SPACINGS, themeSchema, type Theme } from "@/lib/case-study/theme";
 import type { Blocker } from "@/lib/case-study/publish-check";
@@ -23,11 +25,19 @@ interface Props {
   logoUrl: string | null;
   previews: Array<{ id: string; expires: string }>;
   blockers: Blocker[];
+  role: string;
+  slug: string | null;
+  declined: boolean;
+  /** What the client last asked to change, shown as plain text. */
+  clientNote: string | null;
   actions: {
     autosave: (id: string, content: unknown) => Promise<AutosaveResult>;
     saveTheme: (id: string, theme: unknown) => Promise<AutosaveResult>;
     createPreview: (id: string) => Promise<PreviewActionResult>;
     revokePreview: (id: string, previewId: string) => Promise<PreviewActionResult>;
+    requestApproval: (id: string) => Promise<LifecycleResult>;
+    publish: (id: string, slug: string | null, headline: string) => Promise<LifecycleResult>;
+    unpublish: (id: string) => Promise<LifecycleResult>;
   };
 }
 
@@ -368,15 +378,7 @@ export function CaseStudyEditor(props: Props) {
             </div>
           </div>
 
-          <div className="mt-4 space-y-2 rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
-            <button type="button" disabled aria-describedby="publish-why" className="inline-flex min-h-11 items-center rounded-md bg-neutral-900 px-5 text-base font-medium text-white opacity-50 dark:bg-neutral-100 dark:text-neutral-900">Publish</button>
-            <div id="publish-why" className="text-sm text-neutral-600 dark:text-neutral-400">
-              <p className="font-medium">Why you cannot publish yet</p>
-              <ul className="list-disc pl-5">
-                {blockers.map((b) => <li key={b.code}>{b.message}</li>)}
-              </ul>
-            </div>
-          </div>
+          <PublishPanel id={id} status={status} role={props.role} canEdit={canEdit} headline={content.headline} slug={props.slug} declined={props.declined} clientNote={props.clientNote} blockers={blockers} actions={actions} />
         </section>
       </div>
 
@@ -439,6 +441,75 @@ function PreviewLinks({ id, initial, canEdit, actions }: { id: string; initial: 
             </li>
           ))}
         </ul>
+      )}
+      <div role="status" aria-live="polite">
+        {message ? <p className={message.ok ? "text-sm text-green-800 dark:text-green-300" : "text-sm text-red-700 dark:text-red-400"}>{message.text}</p> : null}
+      </div>
+    </section>
+  );
+}
+
+function PublishPanel({ id, status, role, canEdit, headline, slug, declined, clientNote, blockers, actions }: { id: string; status: string; role: string; canEdit: boolean; headline: string; slug: string | null; declined: boolean; clientNote: string | null; blockers: Blocker[]; actions: Props["actions"] }) {
+  const router = useRouter();
+  const [address, setAddress] = useState(slug ?? slugify(headline));
+  const [link, setLink] = useState<string>();
+  const [message, setMessage] = useState<{ ok: boolean; text: string }>();
+  const [pending, setPending] = useState(false);
+  const canPublish = role === "admin" || role === "owner";
+
+  async function run(action: () => Promise<LifecycleResult>) {
+    setPending(true);
+    setMessage(undefined);
+    const result = await action();
+    setPending(false);
+    setMessage({ ok: result.ok, text: result.message ?? (result.ok ? "Done." : "Something went wrong.") });
+    if (result.link) setLink(result.link);
+    if (result.ok) router.refresh();
+  }
+
+  return (
+    <section aria-labelledby="ed-publish" className="mt-4 space-y-3 rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
+      <h2 id="ed-publish" className="font-semibold">Approval and publishing</h2>
+      {declined && <p role="note" className="text-sm text-red-800 dark:text-red-300">The client declined this case study. It cannot be published.</p>}
+      {clientNote && status === "draft" && (
+        <p role="note" className="text-sm"><span className="font-medium">Your client asked for changes:</span> <span data-testid="client-note">{clientNote}</span></p>
+      )}
+
+      {!declined && (status === "draft" || status === "awaiting_client_approval") && canEdit && (
+        <div className="space-y-2">
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+            {status === "draft" ? "Your client approves this exact version by email. Editing afterwards cancels the request." : "Waiting for your client. A new link replaces the previous one."}
+          </p>
+          <button type="button" disabled={pending} onClick={() => run(() => actions.requestApproval(id))} className={smallButton}>
+            {status === "draft" ? "Request client approval" : "Send a new approval link"}
+          </button>
+        </div>
+      )}
+
+      {!declined && (status === "approved" || status === "unpublished") && canPublish && (
+        <div className="space-y-2">
+          <label htmlFor="ed-slug" className="block text-sm font-medium">Page address</label>
+          <input id="ed-slug" value={address} onChange={(e) => setAddress(e.target.value)} maxLength={60} className={`${field} font-mono`} />
+          <button type="button" disabled={pending || blockers.length > 0} onClick={() => run(() => actions.publish(id, address, headline))} className="inline-flex min-h-11 items-center rounded-md bg-neutral-900 px-5 text-base font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900">Publish</button>
+        </div>
+      )}
+      {(status === "approved" || status === "unpublished") && !canPublish && <p className="text-sm text-neutral-600 dark:text-neutral-400">Approved by your client. An admin or owner can publish it.</p>}
+
+      {status === "published" && canPublish && (
+        <button type="button" disabled={pending} onClick={() => run(() => actions.unpublish(id))} className={smallButton}>Unpublish</button>
+      )}
+
+      {link && (
+        <div className="space-y-1 text-sm">
+          <p className="font-medium">Approval link (shown once)</p>
+          <input readOnly value={link} aria-label="Approval link" onFocus={(e) => e.currentTarget.select()} className={`${field} font-mono text-sm`} />
+        </div>
+      )}
+      {blockers.length > 0 && status !== "published" && (
+        <div id="publish-why" className="text-sm text-neutral-600 dark:text-neutral-400">
+          <p className="font-medium">Before this can go live</p>
+          <ul className="list-disc pl-5">{blockers.map((b) => <li key={b.code}>{b.message}</li>)}</ul>
+        </div>
       )}
       <div role="status" aria-live="polite">
         {message ? <p className={message.ok ? "text-sm text-green-800 dark:text-green-300" : "text-sm text-red-700 dark:text-red-400"}>{message.text}</p> : null}

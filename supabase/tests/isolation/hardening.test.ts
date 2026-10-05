@@ -84,12 +84,12 @@ describe("the REST surface as PostgREST publishes it", () => {
       [
         "accept_invite", "autosave_case_study", "bump_ai_usage", "change_member_role", "create_generated_case_study",
         "create_invite", "create_preview_link", "create_proof_request", "create_workspace", "get_invite_preview",
-        "is_member", "is_reserved_slug", "list_team_members", "plan_interview_limit", "remove_member", "revoke_invite",
+        "is_member", "is_reserved_slug", "list_team_members", "plan_interview_limit", "publish_case_study", "remove_member", "request_client_approval", "revoke_invite",
         "revoke_preview_link", "revoke_request", "role_rank", "rotate_request_token", "save_case_study_edit",
-        "snapshot_case_study", "template_allowed", "write_audit_log",
+        "snapshot_case_study", "template_allowed", "unpublish_case_study", "write_audit_log",
       ].sort(),
     );
-    for (const serverOnly of ["start_interview", "record_client_message", "record_bot_message", "finish_interview", "record_upload", "check_ai_breaker", "audit"]) {
+    for (const serverOnly of ["start_interview", "record_client_message", "record_bot_message", "finish_interview", "record_upload", "check_ai_breaker", "audit", "approve_case_study", "request_case_study_changes", "decline_case_study", "lock_approval"]) {
       expect(functions).not.toContain(serverOnly);
     }
   });

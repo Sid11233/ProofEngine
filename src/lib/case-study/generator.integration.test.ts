@@ -1,7 +1,7 @@
 /** Generator and editing against the real database with a scripted model (npm run test:isolation). */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createTestUser, loadLocalConfig, makeClient, rowsOf, wasBlocked, type TestUser } from "../../../supabase/tests/isolation/harness";
+import { createTestUser, loadLocalConfig, makeClient, wasBlocked, type TestUser } from "../../../supabase/tests/isolation/harness";
 import type { AiClient, AiRequest } from "@/lib/ai/client";
 import { generateCaseStudy } from "./generator";
 import { verifyContent, findEditedClaims, type ClaimRef } from "./claim-check";
@@ -335,7 +335,7 @@ describe("editing a generated case study", () => {
     expect(after.claims.find((c) => c.id === editedIds[0])?.client_confirmed).toBe(false);
   });
 
-  it("only editors and above can edit, only in their own workspace, never a published page", async () => {
+  it("only editors and above can edit, only in their own workspace", async () => {
     const { id, content } = await fresh();
     expect((await edit(viewer, id, content)).error, "viewer edited").not.toBeNull();
     expect((await edit(outsider, id, content)).error, "outsider edited").not.toBeNull();
@@ -343,8 +343,6 @@ describe("editing a generated case study", () => {
     expect((await edit(owner, id, "not an object")).error).not.toBeNull();
     expect((await edit(owner, id, [])).error).not.toBeNull();
 
-    await admin.from("case_studies").update({ status: "published" }).eq("id", id);
-    expect((await edit(owner, id, content)).error?.code, "a published page was edited").toBe("22023");
     expect((await load(id)).cs.current_version).toBe(1);
   });
 
@@ -353,8 +351,10 @@ describe("editing a generated case study", () => {
     for (const patch of [{ content: { headline: "hacked" } }, { current_version: 99 }]) {
       expect(wasBlocked(await owner.client.from("case_studies").update(patch).eq("id", id).select()), `direct update of ${Object.keys(patch)[0]}`).toBe(true);
     }
-    // Status moves that are not edits still work for editors: asking for approval.
-    expect(rowsOf(await editor.client.from("case_studies").update({ status: "draft" }).eq("id", id).select("id"))).toHaveLength(1);
+    // Status moves only through the approval and publish functions, never by a direct update.
+    for (const status of ["draft", "awaiting_client_approval", "approved", "published", "unpublished"]) {
+      expect(wasBlocked(await editor.client.from("case_studies").update({ status }).eq("id", id).select("id")), `editor set status ${status}`).toBe(true);
+    }
     expect(wasBlocked(await editor.client.from("claims").update({ client_confirmed: true, edited: false }).eq("case_study_id", id).select())).toBe(true);
   });
 });

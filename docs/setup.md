@@ -87,7 +87,7 @@ Custom domains come later: the app on `app.<yourproduct>.com`, interview links o
 | Stripe (test mode) | Phase 8 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` |
 | Sentry | Phase 11 | added then |
 
-`IP_HASH_SECRET` and `CRON_SECRET` are random strings you generate yourself: `openssl rand -hex 32`.
+`IP_HASH_SECRET` and `CRON_SECRET` are random strings you generate yourself: `openssl rand -hex 32`. If `IP_HASH_SECRET` is unset, approval IP hashes use a key derived from the service role key (rotating that key changes later hashes only).
 
 ## 5. Branding (name and logo)
 

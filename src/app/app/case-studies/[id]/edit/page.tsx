@@ -12,7 +12,7 @@ import { effectiveTheme } from "@/lib/templates/model";
 import { createClient } from "@/lib/supabase/server";
 import { signedLogoUrl } from "@/lib/uploads/server";
 import { getCurrentWorkspace } from "@/lib/workspace/current";
-import { autosaveContentAction, createPreviewLinkAction, revokePreviewLinkAction, saveThemeAction } from "./actions";
+import { autosaveContentAction, createPreviewLinkAction, publishAction, requestApprovalAction, revokePreviewLinkAction, saveThemeAction, unpublishAction } from "./actions";
 
 export const metadata = { title: pageTitle("Edit case study") };
 
@@ -48,6 +48,14 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
     .gt("expires_at", new Date().toISOString())
     .order("created_at", { ascending: false });
 
+  const { data: feedbackRows } = await supabase
+    .from("case_study_feedback")
+    .select("kind, message, created_at")
+    .eq("case_study_id", study.id)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  const latest = feedbackRows?.[0];
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -71,7 +79,11 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
         logoUrl={await signedLogoUrl(study.content.client.logoPath)}
         previews={(previewRows ?? []).map((p) => ({ id: String(p.id), expires: String(p.expires_at).slice(0, 10) }))}
         blockers={blockers}
-        actions={{ autosave: autosaveContentAction, saveTheme: saveThemeAction, createPreview: createPreviewLinkAction, revokePreview: revokePreviewLinkAction }}
+        role={workspace.role}
+        slug={study.slug}
+        declined={study.declined}
+        clientNote={latest?.kind === "changes_requested" && typeof latest.message === "string" ? latest.message : null}
+        actions={{ autosave: autosaveContentAction, saveTheme: saveThemeAction, createPreview: createPreviewLinkAction, revokePreview: revokePreviewLinkAction, requestApproval: requestApprovalAction, publish: publishAction, unpublish: unpublishAction }}
       />
     </div>
   );

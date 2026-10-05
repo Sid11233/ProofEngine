@@ -26,7 +26,9 @@ R = read, W = write. "Server" means service role, used only in token-authenticat
 | question_flows | R (system flows: any signed-in user) | | | | no client writes |
 | templates | any signed-in user R | | | | no client writes |
 | template_entitlements, subscriptions, usage_counters, page_events | R | R | R | R | no client writes |
-| case_studies | R | generate (function); edit content only through `save_case_study_edit`; set draft / awaiting approval / unpublished | delete | same | content, version and status-on-edit cannot be written directly; `approved` is server-only; `published` arrives in Phase 6.2 with its trigger |
+| case_studies | R | generate (function); edit content only through `save_case_study_edit`; ask for client approval (`request_client_approval`) | publish and unpublish (functions), delete | same | content, version, **status and slug cannot be written directly by anyone**; transitions only through functions; `published` is guarded by a trigger (see Approval and publishing) |
+| case_study_approval_tokens | | R (no hash) | R | R | issued by `request_client_approval`, consumed by the server-only client functions |
+| case_study_feedback | | R | R | R | written by the server-only client functions; append-only |
 | case_study_versions | R | append (as self) | same | same | append-only |
 | claims | R | none directly | same | same | created only with the case study by `create_generated_case_study` (unconfirmed, quote must be verbatim, enforced by trigger); `client_confirmed` is server-only; `edited` is set by `save_case_study_edit` |
 | approvals | R | R | R | R | server insert only; append-only |
@@ -36,7 +38,6 @@ R = read, W = write. "Server" means service role, used only in token-authenticat
 ## Left for later phases (deliberately)
 
 - **Plan limits (8.3):** `plan_interview_limit()` holds placeholder numbers (free 3, pro 100, team 1000 per month) until plans are decided.
-- **Publishing (6.2):** the trigger that requires an approval for the current version, an allowed template, a valid slug and confirmed claims. Until then `published` is not settable from the client.
 
 ## Team management (Phase 2.3)
 
@@ -88,6 +89,14 @@ R = read, W = write. "Server" means service role, used only in token-authenticat
 - Logo paths must be `{workspace_id}/logos/{uuid}.webp`; the function rejects anything else (other workspaces, `..`, other extensions, URLs).
 - **Preview links** (`case_study_previews`): unlisted, 14-day maximum (a check constraint), revocable, at most 10 active per case study, only a SHA-256 stored. Created and revoked only through `create_preview_link()` / `revoke_preview_link()` (audit-logged); editors and above can list them (never the hash). `/preview/[token]` goes through `createPreviewResolver`: IP and token rate limits, constant-time hash check, one generic 404 for unknown, malformed, revoked, expired and published; it reads only that case study's content, template and theme, and refuses content that does not pass the schema.
 - Private-bucket writes for logos use the service role **only after the route has authenticated the user, checked their role in the study's workspace, and validated and re-encoded the file**; no storage policy lets a client write directly.
+
+## Approval and publishing (Phase 6.1-6.2)
+
+- **Request**: `request_client_approval(study, hash)` (editor+) snapshots the content into a version, revokes any earlier link, stores a hashed single-use token (14 days maximum, a check constraint) tied to that version and moves the study to `awaiting_client_approval`. The raw token goes only into the email (and is shown once to the owner if email is not configured).
+- **Client actions** (`/approve/[token]`, service-role functions only, each consumes the token under a row lock): `approve_case_study` (records the approval with the person the interview was sent to, never a typed name; marks the claims confirmed), `request_case_study_changes` (stores a plain-text note, back to draft), `decline_case_study` (final: `client_declined_at`, no more approval requests, never publishable). The token only works while the study is awaiting approval, on the version it was issued for, and while the stored version equals the content; every failure is the same generic 404.
+- **IP evidence**: `approvals.ip_hash` is an HMAC of the client IP, keyed by `IP_HASH_SECRET` or, when unset, a key derived from the service role key.
+- **Publish rules** (`enforce_publish_rules` trigger, so they hold for the owner through the API and for the service role): an approval exists for the CURRENT version and the stored version equals the content; the template is allowed (`template_allowed`); a valid, unreserved slug and a workspace address (`subdomain_slug`); every claim confirmed and every metric or quote on the page pointing at a confirmed claim of this study; the client has not declined. Changing the content of a published page puts it back to draft.
+- **Who**: `publish_case_study` and `unpublish_case_study` need admin or above. Approval is requested by editors and above.
 
 ## Running the tests
 

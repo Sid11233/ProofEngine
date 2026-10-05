@@ -5,7 +5,10 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { isAuthAttemptAllowed, RATE_LIMITED_MESSAGE } from "@/lib/auth/rate-limits";
 import { requireUser } from "@/lib/auth/session";
+import { publishStudy, requestApproval, unpublishStudy } from "@/lib/case-study/approval-service";
 import { prepareEdit } from "@/lib/case-study/edit";
+import { isValidSlug } from "@/lib/case-study/slug";
+import { getEmailSender } from "@/lib/email/resend";
 import { themeSchema } from "@/lib/case-study/theme";
 import { getClientIp } from "@/lib/security/client-ip";
 import { publicEnv } from "@/lib/security/env.public";
@@ -109,4 +112,52 @@ export async function revokePreviewLinkAction(studyId: string, previewId: string
   if (error) return { ok: false, message: "We could not revoke the link." };
   revalidatePath(`/app/case-studies/${ids.data.studyId}/edit`);
   return { ok: true, message: "Link revoked. It stops working immediately." };
+}
+
+export interface LifecycleResult {
+  ok: boolean;
+  message?: string;
+  /** The approval link, shown once so the owner can copy it if the email did not go out. */
+  link?: string;
+  slug?: string;
+}
+
+const publishInput = z.object({ studyId: idSchema, slug: z.string().max(60).nullable() }).strict();
+
+/** Editor and above: send the client the exact current version to approve. */
+export async function requestApprovalAction(studyId: string): Promise<LifecycleResult> {
+  const auth = await authorise();
+  if (auth === "throttled") return { ok: false, message: RATE_LIMITED_MESSAGE };
+  if (!auth) return NO_PERMISSION;
+  const id = idSchema.safeParse(studyId);
+  if (!id.success) return { ok: false, message: "That case study was not found." };
+
+  const result = await requestApproval(await createClient(), id.data, { appUrl: publicEnv.NEXT_PUBLIC_APP_URL, workspaceName: auth.workspace.name, sender: getEmailSender() });
+  if (!result.ok) return result;
+  revalidatePath(`/app/case-studies/${id.data}/edit`);
+  return { ok: true, link: result.link, message: result.emailSent ? "We emailed your client." : "Email is not set up, so copy the link below and send it to your client yourself." };
+}
+
+/** Admin and above (the database checks too). Every publish rule is enforced by a trigger. */
+export async function publishAction(studyId: string, slug: string | null, headline: string): Promise<LifecycleResult> {
+  const auth = await authorise();
+  if (auth === "throttled") return { ok: false, message: RATE_LIMITED_MESSAGE };
+  if (!auth || (auth.workspace.role !== "admin" && auth.workspace.role !== "owner")) return NO_PERMISSION;
+  const input = publishInput.safeParse({ studyId, slug: slug?.trim() ? slug.trim().toLowerCase() : null });
+  if (!input.success || (input.data.slug !== null && !isValidSlug(input.data.slug))) return { ok: false, message: "That page address is not valid. Use lowercase letters, numbers and single hyphens." };
+
+  const result = await publishStudy(await createClient(), input.data.studyId, input.data.slug, headline.slice(0, 200));
+  if (result.ok) revalidatePath(`/app/case-studies/${input.data.studyId}/edit`);
+  return result.ok ? { ok: true, slug: result.slug } : result;
+}
+
+export async function unpublishAction(studyId: string): Promise<LifecycleResult> {
+  const auth = await authorise();
+  if (auth === "throttled") return { ok: false, message: RATE_LIMITED_MESSAGE };
+  if (!auth || (auth.workspace.role !== "admin" && auth.workspace.role !== "owner")) return NO_PERMISSION;
+  const id = idSchema.safeParse(studyId);
+  if (!id.success) return { ok: false, message: "That case study was not found." };
+  const result = await unpublishStudy(await createClient(), id.data);
+  if (result.ok) revalidatePath(`/app/case-studies/${id.data}/edit`);
+  return result;
 }
