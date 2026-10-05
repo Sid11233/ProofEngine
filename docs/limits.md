@@ -44,6 +44,16 @@ Every limit below is enforced on the server (in the database or in code), never 
 | Cron endpoint | `Authorization: Bearer $CRON_SECRET`, compared in constant time; 20 calls per minute per IP; daily at 09:00 UTC (Vercel Cron) | `/api/cron/reminders`, `vercel.json` |
 | Unsubscribe | one signed link per request, valid for the life of the request; needs a confirming click; 30 per minute per IP | `/unsubscribe/[token]` |
 
+## Billing (Phase 8)
+
+| Control | Value | Where |
+| --- | --- | --- |
+| Free plan | 3 interviews a month, 100 AI messages, free templates, Powered by line | `plans.ts`, `plan_interview_limit()` |
+| Pro plan | 100 interviews, 3000 AI messages, all templates, no Powered by line | `plans.ts` |
+| Webhook | 300 requests per minute per IP, 1 MB body, signature required, each event id processed once | `/api/stripe/webhook` |
+| Checkout and portal | owner only, recent sign-in, 10 per hour per user | `billing` rate limit |
+| Payment grace | 7 days from the first failed payment, then free | `billing_effective_plan`, `/api/cron/billing` |
+
 ## Uploads
 
 | Control | Value |

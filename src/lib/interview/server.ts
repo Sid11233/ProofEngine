@@ -2,7 +2,7 @@ import "server-only";
 import { createAnthropicClient } from "@/lib/ai/client";
 import type { InterviewerDeps } from "@/lib/ai/interviewer";
 import { getEmailSender } from "@/lib/email/resend";
-import { aiMessageLimitFor } from "@/lib/limits";
+import { canUseAI } from "@/lib/billing/entitlements";
 import { limits } from "@/lib/limits.server";
 import { createRateLimiter, type RateLimiter } from "@/lib/security/rate-limit";
 import { serverEnv } from "@/lib/security/env.server";
@@ -35,8 +35,7 @@ function build(): Wiring {
           admin.from("workspaces").select("plan").eq("id", access.workspaceId).single(),
           admin.from("usage_counters").select("ai_messages").eq("workspace_id", access.workspaceId).eq("period", period).maybeSingle(),
         ]);
-        const cap = aiMessageLimitFor(String(workspace.data?.plan ?? "free"), limits);
-        return Number(usage.data?.ai_messages ?? 0) < cap;
+        return canUseAI({ plan: String(workspace.data?.plan ?? "free"), usedThisMonth: Number(usage.data?.ai_messages ?? 0), limits }).allowed;
       },
     },
     store: createSupabaseStore(admin),

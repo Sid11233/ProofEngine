@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { canCreateInterview, interviewsUsedThisMonth } from "@/lib/billing/entitlements";
 import type { EmailSender } from "@/lib/email/types";
 import { generateToken } from "@/lib/security/tokens";
 import { classify, type TeamError } from "@/lib/team/service";
@@ -48,6 +49,8 @@ export interface Context {
   sender: EmailSender | null;
   /** Link that stops further emails about one request. Included in every email to the client. */
   unsubscribeUrl?: (requestId: string) => string;
+  /** The workspace's plan, for the friendly early check of the monthly interview limit. The database enforces it for real. */
+  plan?: string;
 }
 
 export const buildInterviewLink = (appUrl: string, rawToken: string) => new URL(`/i/${rawToken}`, appUrl).toString();
@@ -113,6 +116,10 @@ export async function createRequest(
   input: CreateRequestInput,
   ctx: Context,
 ): Promise<RequestOutcome<LinkResult>> {
+  if (ctx.plan) {
+    const decision = canCreateInterview({ plan: ctx.plan, usedThisMonth: await interviewsUsedThisMonth(supabase, workspaceId) });
+    if (!decision.allowed) return { ok: false, error: "limit" };
+  }
   const token = generateToken();
   const { data, error } = await supabase.rpc("create_proof_request", {
     ws: workspaceId,

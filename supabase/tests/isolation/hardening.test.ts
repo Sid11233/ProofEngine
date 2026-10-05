@@ -89,7 +89,7 @@ describe("the REST surface as PostgREST publishes it", () => {
         "snapshot_case_study", "template_allowed", "unpublish_case_study", "write_audit_log",
       ].sort(),
     );
-    for (const serverOnly of ["start_interview", "record_client_message", "record_bot_message", "finish_interview", "record_upload", "check_ai_breaker", "audit", "approve_case_study", "request_case_study_changes", "decline_case_study", "lock_approval", "create_takedown_request", "set_case_study_disabled", "resolve_takedown", "record_page_event", "auto_remind_candidates", "auto_remind_request", "auto_remind_revert", "mark_do_not_contact", "reminder_due", "workspace_reminders_today"]) {
+    for (const serverOnly of ["start_interview", "record_client_message", "record_bot_message", "finish_interview", "record_upload", "check_ai_breaker", "audit", "approve_case_study", "request_case_study_changes", "decline_case_study", "lock_approval", "create_takedown_request", "set_case_study_disabled", "resolve_takedown", "record_page_event", "auto_remind_candidates", "auto_remind_request", "auto_remind_revert", "mark_do_not_contact", "reminder_due", "workspace_reminders_today", "claim_stripe_event", "release_stripe_event", "link_stripe_customer", "billing_effective_plan", "apply_billing_state", "apply_invoice_state", "expire_billing_grace"]) {
       expect(functions).not.toContain(serverOnly);
     }
   });

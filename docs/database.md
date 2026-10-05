@@ -113,6 +113,16 @@ R = read, W = write. "Server" means service role, used only in token-authenticat
 - **Reminders**: `proof_requests.sent_at` and `do_not_contact_at`. `auto_remind_candidates`, `auto_remind_request`, `auto_remind_revert` and `mark_do_not_contact` are service-role only; the rules (day 3/7, max 2, active and unanswered only, do-not-contact, 25 per workspace per day) live in the database. The job rotates the link first and gives the reminder back if the email fails, and does nothing at all when email is not configured. `rotate_request_token` refuses send and remind for a do-not-contact request.
 - **Unsubscribe token**: `<request id>.<HMAC>` derived from `IP_HASH_SECRET` (or the service role key), so it survives link rotation; the page needs a confirming click so an email scanner cannot unsubscribe anyone.
 
+## Billing (Phase 8)
+
+- **No client write path.** `workspaces.plan` and `subscriptions` change only through `apply_billing_state()`, `apply_invoice_state()` and `expire_billing_grace()`, all service-role only and called by the signature-verified webhook (`/api/stripe/webhook`) and the daily grace cron. Members can read their own subscription; `stripe_events` has RLS on and no policy or grant at all.
+- **Access rules live in SQL** (`billing_effective_plan`): active and trialing give the paid plan; past_due keeps it for 7 days from the first failure (`past_due_since`), then the cron drops it to free; canceled, unpaid, incomplete and paused are free. A price id that is not the configured one never grants access, but a cancellation always removes it.
+- **Idempotent and retry-safe.** Each Stripe event id is claimed once in `stripe_events`; a handler that fails releases the claim so Stripe's retry is processed. Forged, unsigned, stale-timestamp and tampered requests are 400 before any of the body is read; events are narrowed with zod and anything unexpected is ignored.
+- **Customer binding.** `link_stripe_customer` stores a workspace's customer once; a different customer for the same workspace, or one customer on two workspaces, is refused (so metadata alone cannot move a subscription to another workspace).
+- **Checkout and portal** (owner only, recent sign-in): the price id is server config, success and cancel URLs are built from the app URL, the browser is only ever sent to checkout.stripe.com or billing.stripe.com, and the page never trusts the "success" redirect.
+- **Entitlements** (`src/lib/billing/entitlements.ts`): `canCreateInterview`, `canUseAI`, `templateAllowed`, `canRemoveBranding` are the one place app code asks. The database stays the authority (the interview limit under a lock in `create_proof_request`, `template_allowed()` in the publish trigger, the public view's badge flag) and tests keep the numbers equal.
+- **Downgrade**: published pages stay online (the public view does not look at the plan), cannot be edited (published pages are never editable) or republished on a template the plan no longer includes; the editor and billing page say so in plain words.
+
 ## Running the tests
 
 ```bash

@@ -81,6 +81,8 @@ export const serverEnvSchema = z.object({
   // Phase 8: Stripe
   STRIPE_SECRET_KEY: optional(z.string().min(1)),
   STRIPE_WEBHOOK_SECRET: optional(z.string().min(1)),
+  // The Stripe Price id the Pro plan is sold under. Server config only: a price id from a browser is never used.
+  STRIPE_PRICE_PRO: optional(z.string().regex(/^price_[A-Za-z0-9]+$/, "a Stripe price id (price_...)")),
 });
 
 export type PublicEnv = z.infer<typeof publicEnvSchema>;

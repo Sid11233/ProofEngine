@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/auth/session";
 import { pageTitle } from "@/lib/brand";
 import { loadCaseStudy } from "@/lib/case-study/load";
 import { explainPublishBlockers } from "@/lib/case-study/publish-check";
-import { isTemplateAllowed, templateAllowed } from "@/lib/templates/allowed";
+import { templateAllowed as templateAllowedFor, templateAllowedInDatabase } from "@/lib/billing/entitlements";
 import { defaultTemplate, loadEntitledTemplateIds, loadTemplates } from "@/lib/templates/load";
 import { effectiveTheme } from "@/lib/templates/model";
 import { createClient } from "@/lib/supabase/server";
@@ -29,13 +29,13 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
   if (!template) notFound();
 
   const entitled = await loadEntitledTemplateIds(supabase, study.workspaceId);
-  const allowed = isTemplateAllowed({ tier: template.tier, plan: workspace.plan, entitled: entitled.has(template.id) });
+  const allowed = templateAllowedFor({ tier: template.tier, plan: workspace.plan, entitled: entitled.has(template.id) });
 
   // For the "why can't I publish" list. The database publish trigger (Phase 6.2) is what enforces it.
   const { data: approvals } = await supabase.from("approvals").select("id").eq("case_study_id", study.id).eq("version", study.version).limit(1);
   const blockers = explainPublishBlockers({
     status: study.status,
-    templateAllowed: await templateAllowed(supabase, study.workspaceId, template.id),
+    templateAllowed: await templateAllowedInDatabase(supabase, study.workspaceId, template.id),
     approvedCurrentVersion: (approvals ?? []).length > 0,
     allClaimsConfirmed: study.claims.length > 0 && study.claims.every((c) => c.confirmed),
   });
@@ -65,6 +65,12 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
           <Link href={`/app/case-studies/${study.id}/template`} className="inline-flex min-h-11 items-center underline underline-offset-2">Change template</Link>
         </div>
       </div>
+      {study.status === "published" && !allowed && (
+        <p role="note" className="rounded-md border border-amber-700/30 bg-amber-50 p-3 text-sm text-amber-950">
+          Your plan no longer includes the {template.name} template. This page stays online, but it cannot be edited or republished until you upgrade again or switch to a free template.
+          {workspace.role === "owner" ? <> <Link href="/app/billing" className="underline underline-offset-2">Open billing</Link></> : null}
+        </p>
+      )}
       <CaseStudyEditor
         key={study.id}
         id={study.id}
