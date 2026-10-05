@@ -37,7 +37,6 @@ R = read, W = write. "Server" means service role, used only in token-authenticat
 
 - **Plan limits (8.3):** `plan_interview_limit()` holds placeholder numbers (free 3, pro 100, team 1000 per month) until plans are decided.
 - **Publishing (6.2):** the trigger that requires an approval for the current version, an allowed template, a valid slug and confirmed claims. Until then `published` is not settable from the client.
-- **Seeding:** system question flows (3.4) and templates (5.2).
 
 ## Team management (Phase 2.3)
 
@@ -74,6 +73,14 @@ R = read, W = write. "Server" means service role, used only in token-authenticat
 - Claims are saved unconfirmed with the case study in one transaction; version 1 is written with it.
 - **Editing** only through `save_case_study_edit`: it makes the next version, returns the study to draft, and sets `claims.edited` for any number or quote that no longer matches the client's words (computed on the server), clearing `client_confirmed` on those. Editors cannot write content, version or confirmation directly.
 - Generation counts against the workspace's AI usage and respects the monthly cap (a clear error, since the owner chose to spend it).
+
+## Templates (Phase 5)
+
+- Templates are configuration, not code or HTML: a list of allowed section types, a default theme, and the **name** of a layout variant that is implemented in code (`classic`, `minimal`, `before-after`, `timeline`, `saas-switch`). Five are seeded by migration (Classic and Minimal free; Before and After, Timeline Story, SaaS Switch Story pro). Every row is validated with zod when loaded and dropped if it does not fit.
+- `template_allowed(workspace, template)` is the one rule: free templates are open, pro templates need a pro or team plan or an entitlement, pack templates need an entitlement, inactive ones never. Only members (or the server) get an answer. The TypeScript copy `isTemplateAllowed` is checked against it for every combination in a test; **publishing will use the database function** (Phase 6.2 trigger).
+- Locked templates can be selected to preview with a watermark. Switching a template changes only `template_id` and `theme_settings` (reset to the template's defaults); the content JSON, version and status are untouched (tested).
+- Theme input is validated: a hex colour, one of six font pairs, and fixed radius, spacing and mode values. Unknown keys are rejected, so no arbitrary CSS or URL can be stored.
+- The CSP allows `style-src-attr 'unsafe-inline'` (style attributes only) because the theme is applied as CSS variables on one element. `<style>` elements and scripts still need the nonce.
 
 ## Running the tests
 
