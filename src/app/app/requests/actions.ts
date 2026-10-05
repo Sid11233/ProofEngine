@@ -38,11 +38,12 @@ async function authorise() {
   return { workspace };
 }
 
-async function context(workspaceName: string): Promise<requests.Context> {
+async function context(workspaceName: string, plan: string): Promise<requests.Context> {
   const secret = unsubscribeSecret(serverEnv);
   return {
     appUrl: publicEnv.NEXT_PUBLIC_APP_URL,
     workspaceName,
+    plan,
     sender: getEmailSender(),
     unsubscribeUrl: (requestId) => new URL(`/unsubscribe/${unsubscribeToken(secret, requestId)}`, publicEnv.NEXT_PUBLIC_APP_URL).toString(),
   };
@@ -69,7 +70,7 @@ export async function createRequestAction(_prev: RequestActionResult, formData: 
   );
   if (!parsed.success) return { ok: false, fieldErrors: fieldErrorsOf(parsed.error) };
 
-  const result = await requests.createRequest(await createClient(), auth.workspace.id, parsed.data, await context(auth.workspace.name));
+  const result = await requests.createRequest(await createClient(), auth.workspace.id, parsed.data, await context(auth.workspace.name, auth.workspace.plan));
   if (!result.ok) return fail(result.error);
   revalidatePath("/app/requests");
   return describe(result, parsed.data.sendNow ? "Request created and invitation sent." : "Request created.");
@@ -84,7 +85,7 @@ async function linkAction(requestId: string, run: LinkAction, verb: string): Pro
   const id = requestIdSchema.safeParse(requestId);
   if (!id.success) return fail("invalid");
 
-  const result = await run(await createClient(), id.data, await context(auth.workspace.name));
+  const result = await run(await createClient(), id.data, await context(auth.workspace.name, auth.workspace.plan));
   if (!result.ok) return fail(result.error);
   revalidatePath("/app/requests");
   revalidatePath(`/app/requests/${id.data}`);

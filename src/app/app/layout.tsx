@@ -45,6 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           ["/app/referrals", "Referrals"],
           ["/app/settings/wall", "Wall of proof"],
           ["/app/settings/team", "Team"],
+          ["/app/billing", "Billing"],
           ["/app/settings/security", "Security"],
           ...(user.email_confirmed_at && isPlatformAdminEmail(user.email) ? [["/app/admin/takedowns", "Takedowns"]] : []),
         ].map(([href, label]) => (

@@ -71,6 +71,16 @@ Then open **Security Advisor** in the dashboard and fix any warning (the gate is
 
 Custom domains come later: the app on `app.<yourproduct>.com`, interview links on `i.<yourproduct>.com`, and published pages on a **separate registrable domain**. Decide those names before Phase 3 and 6.
 
+### Stripe billing (Phase 8)
+
+Plan names and prices are placeholders: change `src/lib/billing/plans.ts` (and the matching number in the SQL function `plan_interview_limit`, which a test keeps in step) when you decide them.
+1. In Stripe (test mode first) create a Product "Pro" with a recurring Price. Put its id in `STRIPE_PRICE_PRO` (`price_...`). Only this server-side id is ever sold; no price comes from the browser.
+2. Set `STRIPE_SECRET_KEY` (restricted key is fine: Customers, Checkout Sessions and Billing Portal write access).
+3. Add a webhook endpoint `https://<your app domain>/api/stripe/webhook` listening to: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`, `invoice.paid`. Put its signing secret in `STRIPE_WEBHOOK_SECRET`.
+4. Turn on the Customer Portal (Stripe Dashboard, Settings, Billing, Customer portal) so owners can update cards, change plan and cancel.
+5. `CRON_SECRET` (see Reminder emails) also protects `/api/cron/billing`, which runs daily at 09:30 UTC and ends 7 day payment grace periods.
+Until the three Stripe variables are set the Billing page says paid plans are not available, and the webhook answers 503.
+
 ### Reminder emails (Phase 7)
 
 Set `CRON_SECRET` (random, 32+ characters: `openssl rand -hex 32`) in Vercel. Vercel Cron then calls `/api/cron/reminders` daily at 09:00 UTC (`vercel.json`) with `Authorization: Bearer $CRON_SECRET`; without the secret the endpoint always answers 401. Reminders need `RESEND_API_KEY` and `RESEND_FROM_EMAIL` with a verified sending domain: until email is configured the job changes nothing. Referral notifications use the same email setup.

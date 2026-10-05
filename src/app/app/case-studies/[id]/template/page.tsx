@@ -6,7 +6,7 @@ import { TemplateGallery, type GalleryItem } from "@/components/case-study/templ
 import { requireUser } from "@/lib/auth/session";
 import { pageTitle } from "@/lib/brand";
 import { loadCaseStudy } from "@/lib/case-study/load";
-import { isTemplateAllowed } from "@/lib/templates/allowed";
+import { templateAllowed as isTemplateAllowed } from "@/lib/billing/entitlements";
 import { defaultTemplate, loadEntitledTemplateIds, loadTemplates } from "@/lib/templates/load";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentWorkspace } from "@/lib/workspace/current";
