@@ -34,6 +34,16 @@ Every limit below is enforced on the server (in the database or in code), never 
 | Wall of proof | 120 per minute per IP; 1 to 24 stories; up to 10 allowed https origins | `/embed`, `wall_settings` |
 | Reports | 5 per hour per IP, 20 per day per page, 20 open per page, one open report per contact and page; Turnstile when configured | `handleReport`, `create_takedown_request` |
 
+## Referrals, analytics and reminders (Phase 7)
+
+| Control | Value | Where |
+| --- | --- | --- |
+| Referrals | max 3 per interview, each a name plus a valid email or phone; stored only; the person is never emailed, only the workspace owners and admins are told | `finishSchema`, `notifyReferrals` |
+| Page events | 60 per minute per IP; same-origin only; 2 KB body; only view, cta_click, referral_click; repeats from one visitor per day per page are not stored (in-memory daily-rotating key, never persisted) | `/[slug]/event`, `createDeduper` |
+| Automatic reminders | day 3 and day 7 after sending, at most 2, 48 hours apart, only requests still `sent`, never revoked, expired, started, completed or do-not-contact; 25 per workspace per 24 hours | `auto_remind_request`, `reminder_due` |
+| Cron endpoint | `Authorization: Bearer $CRON_SECRET`, compared in constant time; 20 calls per minute per IP; daily at 09:00 UTC (Vercel Cron) | `/api/cron/reminders`, `vercel.json` |
+| Unsubscribe | one signed link per request, valid for the life of the request; needs a confirming click; 30 per minute per IP | `/unsubscribe/[token]` |
+
 ## Uploads
 
 | Control | Value |

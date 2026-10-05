@@ -105,6 +105,14 @@ R = read, W = write. "Server" means service role, used only in token-authenticat
 - **Widget** (`/embed`): script-free HTML built with a tested `esc()`; its own CSP `default-src 'none'` and `frame-ancestors` = the admin's allowlist of https origins (validated in the app and by a database constraint). Off until an admin enables it with at least one origin. `save_wall_settings` is admin+ and audit-logged.
 - **Reports**: `create_takedown_request` (service role only) inserts for a published page; a report never removes anything by itself. Workspace owners/admins and `PLATFORM_ADMIN_EMAILS` are emailed in plain text. A platform admin (verified email on that list, recent sign-in) reviews at `/app/admin/takedowns` and can **disable** a page: it leaves the public view at once, is unpublished, and the publish trigger refuses to publish it again for any role until the platform restores it. `disabled_at` is not client-writable.
 
+## Referrals, analytics, dashboard and reminders (Phase 7)
+
+- **Referrals** are inserted by the token-authenticated finish endpoint only. Every member can read them; editors and above can change `status` (column grant); nobody can change the name or contact. The workspace owners and admins get a plain-text email; the referred person never does.
+- **Analytics** (`page_events`) is append-only and has no column for an address, user agent or visitor id. `record_page_event()` (service role only, called by the same-origin `/[slug]/event` endpoint) keeps type, page, hostname-only referrer and time. De-duplication uses an in-memory key salted with a random value that is replaced every UTC day and never written anywhere.
+- **Dashboard** reads only through the signed-in user's client: `page_event_daily`, `case_study_status_counts`, `referral_status_counts` and `request_funnel` are `security_invoker` views, so row-level security limits every number to the user's workspaces (tested across two workspaces, in SQL and in the browser). The service role is never used for the dashboard.
+- **Reminders**: `proof_requests.sent_at` and `do_not_contact_at`. `auto_remind_candidates`, `auto_remind_request`, `auto_remind_revert` and `mark_do_not_contact` are service-role only; the rules (day 3/7, max 2, active and unanswered only, do-not-contact, 25 per workspace per day) live in the database. The job rotates the link first and gives the reminder back if the email fails, and does nothing at all when email is not configured. `rotate_request_token` refuses send and remind for a do-not-contact request.
+- **Unsubscribe token**: `<request id>.<HMAC>` derived from `IP_HASH_SECRET` (or the service role key), so it survives link rotation; the page needs a confirming click so an email scanner cannot unsubscribe anyone.
+
 ## Running the tests
 
 ```bash

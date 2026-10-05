@@ -51,6 +51,15 @@ const nextConfig: NextConfig = {
           { key: "Cache-Control", value: "private, no-store" },
         ],
       },
+      // Unsubscribe links carry a signed token.
+      {
+        source: "/unsubscribe/:path*",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "Cache-Control", value: "private, no-store" },
+        ],
+      },
       // Client approval links carry a secret and show unpublished work.
       {
         source: "/approve/:path*",

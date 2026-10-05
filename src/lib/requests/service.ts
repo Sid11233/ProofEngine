@@ -46,11 +46,13 @@ export interface Context {
   appUrl: string;
   workspaceName: string;
   sender: EmailSender | null;
+  /** Link that stops further emails about one request. Included in every email to the client. */
+  unsubscribeUrl?: (requestId: string) => string;
 }
 
 export const buildInterviewLink = (appUrl: string, rawToken: string) => new URL(`/i/${rawToken}`, appUrl).toString();
 
-function inviteEmail(kind: "send" | "remind", { clientName, workspaceName, link }: { clientName: string; workspaceName: string; link: string }) {
+function inviteEmail(kind: "send" | "remind", { clientName, workspaceName, link, unsubscribe }: { clientName: string; workspaceName: string; link: string; unsubscribe?: string }) {
   const first = clientName.trim().split(/\s+/)[0] || "there";
   const intro =
     kind === "send"
@@ -67,6 +69,7 @@ function inviteEmail(kind: "send" | "remind", { clientName, workspaceName, link 
       "",
       kind === "remind" ? "This link replaces the one in our earlier email." : "",
       "The link expires in 30 days. If you were not expecting this, you can ignore this email.",
+      unsubscribe ? `Do not want these emails? Stop them here: ${unsubscribe}` : "",
     ]
       .filter((line, index, all) => !(line === "" && all[index - 1] === ""))
       .join("\n"),
@@ -97,7 +100,7 @@ async function rotateAndEmail(
   if (purpose !== "regenerate" && ctx.sender) {
     const recipient = await loadForEmail(supabase, requestId);
     if (recipient) {
-      const message = inviteEmail(purpose, { clientName: recipient.clientName, workspaceName: ctx.workspaceName, link });
+      const message = inviteEmail(purpose, { clientName: recipient.clientName, workspaceName: ctx.workspaceName, link, unsubscribe: ctx.unsubscribeUrl?.(requestId) });
       emailSent = await ctx.sender.send({ to: recipient.clientEmail, ...message });
     }
   }
