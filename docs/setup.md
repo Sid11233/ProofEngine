@@ -88,3 +88,13 @@ Custom domains come later: the app on `app.<yourproduct>.com`, interview links o
 | Sentry | Phase 11 | added then |
 
 `IP_HASH_SECRET` and `CRON_SECRET` are random strings you generate yourself: `openssl rand -hex 32`.
+
+## 5. Branding (name and logo)
+
+The product name and logo live in one file, [src/lib/brand.ts](../src/lib/brand.ts). To rebrand:
+
+1. Set `name` (used in page titles, headers, emails and the authenticator app label).
+2. Put your logo in `/public` (SVG or PNG, square works best) and set `logo: "/your-logo.svg"` with a short `logoAlt`.
+3. Replace `src/app/favicon.ico`. The PWA icons (192, 512 and maskable 512) are added in Phase 9.
+
+Email sender name and domain are configured separately in Resend (`RESEND_FROM_EMAIL`).

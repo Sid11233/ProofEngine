@@ -5,8 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import { listPendingInvites, listTeam } from "@/lib/team/service";
 import { getCurrentWorkspace } from "@/lib/workspace/current";
 import { changeRoleAction, inviteMemberAction, removeMemberAction, revokeInviteAction } from "./actions";
+import { pageTitle } from "@/lib/brand";
 
-export const metadata = { title: "Team | Proof Engine" };
+export const metadata = { title: pageTitle("Team") };
 
 export default async function TeamPage() {
   const user = await requireUser();

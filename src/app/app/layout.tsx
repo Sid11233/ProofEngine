@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/session";
 import { getCurrentWorkspace } from "@/lib/workspace/current";
 import { signOutAction } from "@/app/(auth)/actions";
+import { BrandMark } from "@/components/brand-mark";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // Middleware already redirects anonymous visitors; this is the second lock.
@@ -25,7 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {showMfaBanner ? <MfaBanner /> : null}
       <header className="flex items-center justify-between gap-3 border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
         <div className="min-w-0">
-          <span className="font-semibold tracking-tight">Proof Engine</span>
+          <BrandMark />
           <span className="ml-3 truncate text-sm text-neutral-600 dark:text-neutral-400">{workspace.name}</span>
         </div>
         <form action={signOutAction} className="flex items-center gap-3 text-sm">

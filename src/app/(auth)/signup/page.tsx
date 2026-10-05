@@ -2,8 +2,9 @@ import Link from "next/link";
 import { safeNextPath } from "@/lib/auth/redirects";
 import { SignupForm } from "@/components/auth/auth-forms";
 import { signupAction } from "../actions";
+import { pageTitle } from "@/lib/brand";
 
-export const metadata = { title: "Create account | Proof Engine" };
+export const metadata = { title: pageTitle("Create account") };
 
 export default async function SignupPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const { next } = await searchParams;

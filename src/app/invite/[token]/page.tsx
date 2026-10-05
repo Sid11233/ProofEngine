@@ -3,9 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import { previewInvite } from "@/lib/team/service";
 import { signOutAction } from "@/app/(auth)/actions";
 import { acceptInviteAction } from "./actions";
+import { pageTitle } from "@/lib/brand";
+import { BrandMark } from "@/components/brand-mark";
 
 export const metadata = {
-  title: "Join a workspace | Proof Engine",
+  title: pageTitle("Join a workspace"),
   robots: { index: false, follow: false },
 };
 
@@ -23,7 +25,7 @@ export default async function InvitePage({
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-5 px-4 py-10">
-      <p className="text-center text-lg font-semibold tracking-tight">Proof Engine</p>
+      <p className="text-center text-lg"><BrandMark /></p>
       <div className="space-y-4 rounded-lg border border-neutral-200 p-6 dark:border-neutral-800">
         {error === "rate" && <p role="alert" className="text-sm text-red-800 dark:text-red-300">Too many attempts. Please wait a few minutes.</p>}
         {error === "invalid" && <p role="alert" className="text-sm text-red-800 dark:text-red-300">This invitation could not be accepted.</p>}
