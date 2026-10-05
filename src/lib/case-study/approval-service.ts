@@ -15,6 +15,7 @@ export interface ApprovalContext {
 }
 
 export const PUBLISH_BLOCK_MESSAGES: Record<string, string> = {
+  disabled: "This page was switched off by the platform after a report and cannot be published.",
   declined: "The client declined this case study, so it cannot be published.",
   not_approved: "The client has not approved this exact version yet.",
   empty: "The case study has no content.",

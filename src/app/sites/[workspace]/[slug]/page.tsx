@@ -67,11 +67,12 @@ export default async function PublicStudyPage({ params }: { params: Promise<Para
         theme={effectiveTheme(template, study.themeSettings)}
         logoUrl={study.logoPath ? `/${study.slug}/logo` : null}
       />
-      {study.showBadge && (
-        <footer className="px-4 py-6 text-center text-sm text-neutral-600">
-          Powered by <a href={publicEnv.NEXT_PUBLIC_APP_URL} rel="noopener" className="underline underline-offset-2">{brand.name}</a>
-        </footer>
-      )}
+      <footer className="space-x-4 px-4 py-6 text-center text-sm text-neutral-600">
+        <a href={`/${study.slug}/report`} className="underline underline-offset-2">Report this page</a>
+        {study.showBadge && (
+          <span>Powered by <a href={publicEnv.NEXT_PUBLIC_APP_URL} rel="noopener" className="underline underline-offset-2">{brand.name}</a></span>
+        )}
+      </footer>
     </>
   );
 }

@@ -11,6 +11,12 @@ const required = <T extends z.ZodType>(schema: T) => z.preprocess(blankToUndefin
 const optional = <T extends z.ZodType>(schema: T) =>
   z.preprocess(blankToUndefined, schema.optional());
 
+/** The lowercase emails in a comma-separated list, or null if any is invalid or there are more than 10. */
+export function parsePlatformAdmins(value: string | undefined): string[] | null {
+  const list = (value ?? "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+  return list.length <= 10 && list.every((e) => z.email().safeParse(e).success) ? list : null;
+}
+
 const secret = z.string().min(20, "looks too short to be a real key");
 
 /** Safe to ship to the browser. Every name MUST start with NEXT_PUBLIC_. */
@@ -58,6 +64,10 @@ export const serverEnvSchema = z.object({
   // Phase 6: domain public case study pages are served from, one subdomain per workspace
   // (e.g. "proofengine.page", or "localhost:3000" in development). Unset: public pages are off.
   PUBLIC_SITES_DOMAIN: optional(z.string().min(3).max(100).regex(/^[a-z0-9.:-]+$/i, "hostname and optional port only")),
+
+  // Phase 6: comma-separated emails of the platform operators. They are told about takedown reports and
+  // can open /app/admin/takedowns (after signing in with a verified account). Unset: nobody can.
+  PLATFORM_ADMIN_EMAILS: optional(z.string().refine((v) => parsePlatformAdmins(v) !== null, "comma-separated valid emails, at most 10")),
 
   // Phase 6: approval IP hashing
   IP_HASH_SECRET: optional(z.string().min(32)),

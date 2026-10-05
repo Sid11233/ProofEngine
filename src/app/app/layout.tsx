@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/auth/session";
 import { getCurrentWorkspace } from "@/lib/workspace/current";
 import { signOutAction } from "@/app/(auth)/actions";
 import { BrandMark } from "@/components/brand-mark";
+import { isPlatformAdminEmail } from "@/lib/takedown/admin";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // Middleware already redirects anonymous visitors; this is the second lock.
@@ -44,6 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           ["/app/settings/wall", "Wall of proof"],
           ["/app/settings/team", "Team"],
           ["/app/settings/security", "Security"],
+          ...(user.email_confirmed_at && isPlatformAdminEmail(user.email) ? [["/app/admin/takedowns", "Takedowns"]] : []),
         ].map(([href, label]) => (
           <Link key={href} href={href} className="inline-flex min-h-11 items-center px-3 hover:underline">
             {label}

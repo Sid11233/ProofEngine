@@ -73,7 +73,7 @@ describe("the REST surface as PostgREST publishes it", () => {
 
   it("shows an anonymous caller only the public view: no tables, no functions", async () => {
     const paths = await openApi(cfg.anonKey);
-    expect(paths.filter((p) => p !== "/"), `anonymous callers can see: ${paths.join(", ")}`).toEqual(["/public_case_studies", "/public_wall_settings"]);
+    expect(paths.filter((p) => p !== "/").sort(), `anonymous callers can see: ${paths.join(", ")}`).toEqual(["/public_case_studies", "/public_wall_settings"]);
   });
 
   it("shows a signed-in user only the reviewed functions, and none of the server-only ones", async () => {
@@ -89,7 +89,7 @@ describe("the REST surface as PostgREST publishes it", () => {
         "snapshot_case_study", "template_allowed", "unpublish_case_study", "write_audit_log",
       ].sort(),
     );
-    for (const serverOnly of ["start_interview", "record_client_message", "record_bot_message", "finish_interview", "record_upload", "check_ai_breaker", "audit", "approve_case_study", "request_case_study_changes", "decline_case_study", "lock_approval"]) {
+    for (const serverOnly of ["start_interview", "record_client_message", "record_bot_message", "finish_interview", "record_upload", "check_ai_breaker", "audit", "approve_case_study", "request_case_study_changes", "decline_case_study", "lock_approval", "create_takedown_request", "set_case_study_disabled", "resolve_takedown"]) {
       expect(functions).not.toContain(serverOnly);
     }
   });

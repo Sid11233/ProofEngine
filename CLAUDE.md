@@ -8,7 +8,7 @@ The build plan is `Proof Engine V1 Build Plan.pdf` in the repo root. Work phase 
 
 ## SECURITY RULES (non-negotiable)
 
-1. Never use the Supabase service role key in client code. It is only allowed in files starting with `import 'server-only'` and only for the interview-token endpoints and webhooks.
+1. Never use the Supabase service role key in client code. It is only allowed in files starting with `import 'server-only'` and only for the interview-token endpoints, webhooks, the public takedown report insert, the platform-admin takedown screen (after the `PLATFORM_ADMIN_EMAILS` check) and signed logo URLs for pages the public view shows.
 2. Every new table must enable RLS in the same migration, with explicit policies. Never create a table without RLS.
 3. Never render user-provided or AI-generated text as raw HTML. No `dangerouslySetInnerHTML` (ESLint enforces this).
 4. Validate all inputs on the server with zod. Reject unknown fields.
@@ -70,6 +70,7 @@ Validated by `src/lib/security/env-schema.ts`, which `next.config.ts` runs on ev
 
 - Editing: autosave and review-save both go through `prepareEdit()` (schema, claim linkage, edited-claim set computed on the server). Approval must call `snapshot_case_study()` first. Logo storage uses the service role only after auth, role check and re-encoding (`src/lib/uploads/server.ts`).
 - Approval and publishing: `status` and `slug` on `case_studies` are never client-writable; use `request_client_approval`, `publish_case_study`, `unpublish_case_study`. Client decisions (`/approve/[token]`) go through `approval-access-core.ts` and the service-role-only `approve_case_study` / `request_case_study_changes` / `decline_case_study`. Publish rules live in the `enforce_publish_rules` trigger, not in app code.
+- Public pages: read only through the `public_case_studies` / `public_wall_settings` views with the anon client (`createPublicClient`); never add a column to a view without reviewing that it is public. The `/sites/*` tree is reachable only through a workspace subdomain (middleware). The `/embed` widget is script-free and builds HTML only via `esc()`/`safeHref()`; new HTML-string output must do the same. Takedown writes go through the service-role-only functions; a report never removes a page by itself.
 - Anything served by a secret link (`/i`, `/preview`, `/approve`) resolves through its own `*-access-core` resolver and gets noindex, no-referrer and no-store headers in `next.config.ts`.
 
 ## Security audit rules (see docs/security-audit.md)
