@@ -63,6 +63,11 @@ Validated by `src/lib/security/env-schema.ts`, which `next.config.ts` runs on ev
 - Interview state changes only through the service-role-only SQL functions; add new ones the same way and cover them in `supabase/tests`.
 - Local database without `supabase start` (e.g. restricted Codespaces): `scripts/local-stack/up.sh`, then `source scripts/local-stack/env.sh`.
 
+## Case studies
+
+- Anything shown as a number or quote must trace to a claim: use `verifyContent`/`redactUnverified` (`src/lib/case-study/claim-check.ts`) and never persist model output that has not passed. Never let the model choose names.
+- Case study content changes only through `save_case_study_edit`; creation only through `create_generated_case_study`. Cookie-authenticated POST route handlers must call `isSameOrigin`.
+
 ## Commands
 
 `npm run dev` · `npm run build` · `npm run lint` · `npm run typecheck` · `npm test`

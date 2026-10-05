@@ -26,9 +26,9 @@ R = read, W = write. "Server" means service role, used only in token-authenticat
 | question_flows | R (system flows: any signed-in user) | | | | no client writes |
 | templates | any signed-in user R | | | | no client writes |
 | template_entitlements, subscriptions, usage_counters, page_events | R | R | R | R | no client writes |
-| case_studies | R | create draft; edit non-published; set draft / awaiting approval / unpublished | also edit live pages; delete | same | `approved` is server-only; `published` arrives in Phase 6.2 with its trigger |
+| case_studies | R | generate (function); edit content only through `save_case_study_edit`; set draft / awaiting approval / unpublished | delete | same | content, version and status-on-edit cannot be written directly; `approved` is server-only; `published` arrives in Phase 6.2 with its trigger |
 | case_study_versions | R | append (as self) | same | same | append-only |
-| claims | R | insert (unconfirmed, quote must be verbatim) | same | same | `client_confirmed` is server-only |
+| claims | R | none directly | same | same | created only with the case study by `create_generated_case_study` (unconfirmed, quote must be verbatim, enforced by trigger); `client_confirmed` is server-only; `edited` is set by `save_case_study_edit` |
 | approvals | R | R | R | R | server insert only; append-only |
 | takedown_requests | | | R | R | server insert only |
 | audit_log | | | R | R | via `write_audit_log()` (editor+) or server; append-only |
@@ -66,6 +66,14 @@ R = read, W = write. "Server" means service role, used only in token-authenticat
 - The private `uploads` and `exports` buckets are created by a migration (skipped where Storage is not installed). No storage policies exist on purpose: with RLS on and no policy, only the service role can touch files, and users get 60-second signed URLs from the server. No public bucket is allowed.
 - `record_upload` (service role only) caps an interview at 4 files and only accepts a path under that workspace and interview.
 - `ai_daily_usage` holds platform-wide token totals for the circuit breaker. RLS is on with no policy and no grants, so no client can read it. Limits are listed in [limits.md](limits.md).
+
+## Case studies (Phase 4)
+
+- **Generation** (`src/lib/case-study/generator.ts`, `POST /api/case-studies/generate`): editor+, only for a completed interview with consent (also enforced in `create_generated_case_study`, so a bypassed app cannot write about a client who did not consent). Three checked steps: extract the client's claims and keep only those whose quote is word for word in the cited message; draft from verified claims only; verify every metric value, quote and stray number in code, retry once, and if it still fails **remove what cannot be verified before saving** (the removals are listed on the case study). A fabricated figure can never be persisted.
+- **Who is named** follows the client's publishing permission; the model never chooses names or attributions.
+- Claims are saved unconfirmed with the case study in one transaction; version 1 is written with it.
+- **Editing** only through `save_case_study_edit`: it makes the next version, returns the study to draft, and sets `claims.edited` for any number or quote that no longer matches the client's words (computed on the server), clearing `client_confirmed` on those. Editors cannot write content, version or confirmation directly.
+- Generation counts against the workspace's AI usage and respects the monthly cap (a clear error, since the owner chose to spend it).
 
 ## Running the tests
 

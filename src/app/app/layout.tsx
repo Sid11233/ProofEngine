@@ -40,6 +40,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {[
           ["/app/dashboard", "Dashboard"],
           ["/app/requests", "Requests"],
+          ["/app/case-studies", "Case studies"],
           ["/app/settings/team", "Team"],
           ["/app/settings/security", "Security"],
         ].map(([href, label]) => (
