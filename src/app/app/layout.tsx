@@ -36,7 +36,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </button>
         </form>
       </header>
-      <nav aria-label="Main" className="flex gap-1 border-b border-neutral-200 px-4 text-sm dark:border-neutral-800">
+      <nav aria-label="Main" className="flex gap-1 overflow-x-auto whitespace-nowrap border-b border-neutral-200 px-4 text-sm dark:border-neutral-800">
         {[
           ["/app/dashboard", "Dashboard"],
           ["/app/requests", "Requests"],
@@ -49,7 +49,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </Link>
         ))}
       </nav>
-      <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+      <main className="mx-auto max-w-7xl px-4 py-8">{children}</main>
     </div>
   );
 }

@@ -25,7 +25,7 @@ export default async function CaseStudiesPage() {
             const headline = typeof row.content === "object" && row.content && "headline" in row.content ? String((row.content as { headline: unknown }).headline) : "Untitled";
             return (
               <li key={row.id}>
-                <Link href={`/app/case-studies/${row.id}/review`} className="flex min-h-11 flex-wrap items-center justify-between gap-2 px-3 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-900">
+                <Link href={`/app/case-studies/${row.id}/edit`} className="flex min-h-11 flex-wrap items-center justify-between gap-2 px-3 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-900">
                   <span className="min-w-0 truncate font-medium">{headline}</span>
                   <span className="text-xs text-neutral-600 dark:text-neutral-400">v{row.current_version} · {row.status}</span>
                 </Link>

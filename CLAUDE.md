@@ -68,6 +68,9 @@ Validated by `src/lib/security/env-schema.ts`, which `next.config.ts` runs on ev
 - Anything shown as a number or quote must trace to a claim: use `verifyContent`/`redactUnverified` (`src/lib/case-study/claim-check.ts`) and never persist model output that has not passed. Never let the model choose names.
 - Case study content changes only through `save_case_study_edit`; creation only through `create_generated_case_study`. Cookie-authenticated POST route handlers must call `isSameOrigin`.
 
+- Editing: autosave and review-save both go through `prepareEdit()` (schema, claim linkage, edited-claim set computed on the server). Approval must call `snapshot_case_study()` first. Logo storage uses the service role only after auth, role check and re-encoding (`src/lib/uploads/server.ts`).
+- Anything served by a secret link (`/i`, `/preview`) resolves through its own `*-access-core` resolver and gets noindex, no-referrer and no-store headers in `next.config.ts`.
+
 ## Commands
 
 `npm run dev` · `npm run build` · `npm run lint` · `npm run typecheck` · `npm test`

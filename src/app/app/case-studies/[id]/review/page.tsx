@@ -25,11 +25,12 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
     <div className="max-w-3xl space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Review case study</h1>
-        <Link href={`/app/case-studies/${study.id}/template`} className="inline-flex min-h-11 items-center text-sm underline underline-offset-2">Change template</Link>
+        <div className="flex gap-4 text-sm">
+          <Link href={`/app/case-studies/${study.id}/edit`} className="inline-flex min-h-11 items-center underline underline-offset-2">Edit and preview</Link>
+          <Link href={`/app/case-studies/${study.id}/template`} className="inline-flex min-h-11 items-center underline underline-offset-2">Change template</Link>
+        </div>
       </div>
       <ReviewEditor
-        // Remount on a new version so the editor starts from what was saved.
-        key={study.version}
         id={study.id}
         version={study.version}
         status={study.status}
