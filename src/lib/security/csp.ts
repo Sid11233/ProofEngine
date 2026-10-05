@@ -20,6 +20,10 @@ export function buildCsp({
     // React dev tooling needs eval; production does not.
     "script-src": ["'self'", `'nonce-${nonce}'`, "'strict-dynamic'", ...(isDev ? ["'unsafe-eval'"] : [])],
     "style-src": ["'self'", ...(isDev ? ["'unsafe-inline'"] : [`'nonce-${nonce}'`])],
+    // Style ATTRIBUTES only (the case study theme is applied as CSS variables on an element).
+    // <style> elements still need the nonce. An attribute cannot run script, and all user text is
+    // rendered as plain text nodes, so there is no way to inject one.
+    "style-src-attr": ["'unsafe-inline'"],
     "img-src": ["'self'", "data:", "blob:", supabaseOrigin],
     "font-src": ["'self'"],
     "connect-src": ["'self'", supabaseOrigin, supabaseWs, ...(isDev ? ["ws:", "http:"] : [])],

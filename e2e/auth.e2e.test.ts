@@ -102,7 +102,7 @@ describe("authentication in a real browser", () => {
     const res = await fetch(`${BASE}/login`);
     const csp = res.headers.get("content-security-policy") ?? "";
     expect(csp).toMatch(/script-src 'self' 'nonce-[^']+' 'strict-dynamic'/);
-    expect(csp).not.toContain("unsafe-inline");
+    expect(csp.replace("style-src-attr 'unsafe-inline'", "")).not.toContain("unsafe-inline");
     expect(res.headers.get("x-frame-options")).toBe("DENY");
     expect(res.headers.get("x-powered-by")).toBeNull();
   });

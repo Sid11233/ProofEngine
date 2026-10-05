@@ -26,7 +26,9 @@ export type SectionType = (typeof SECTION_TYPES)[number];
 
 const claimId = z.string().min(1).max(64);
 
-export const metricSchema = z.object({ label: safeText(80, { min: 1 }), value: safeText(40, { min: 1 }), claimId }).strict();
+export const metricSchema = z
+  .object({ label: safeText(80, { min: 1 }), value: safeText(40, { min: 1 }), claimId, hidden: z.boolean().optional() })
+  .strict();
 export const quoteSchema = z.object({ text: safeText(500, { min: 1 }), attribution: safeText(120), claimId }).strict();
 
 export const sectionSchema = z

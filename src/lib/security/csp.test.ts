@@ -8,7 +8,8 @@ describe("buildCsp", () => {
 
   it("uses the nonce and no unsafe directives in production", () => {
     expect(prod).toContain("script-src 'self' 'nonce-abc123' 'strict-dynamic'");
-    expect(prod).not.toContain("unsafe-inline");
+    // The only 'unsafe-inline' is for style attributes (see the style-src-attr test below).
+    expect(prod.replace("style-src-attr 'unsafe-inline'", "")).not.toContain("unsafe-inline");
     expect(prod).not.toContain("unsafe-eval");
   });
 
@@ -18,6 +19,13 @@ describe("buildCsp", () => {
     expect(prod).toContain("base-uri 'self'");
     expect(prod).toContain("form-action 'self'");
     expect(prod).toContain("upgrade-insecure-requests");
+  });
+
+  it("allows inline style attributes only, while style elements still need the nonce", () => {
+    expect(prod).toContain("style-src-attr 'unsafe-inline'");
+    expect(prod).toContain("style-src 'self' 'nonce-abc123'");
+    expect(prod).not.toMatch(/style-src(?!-attr) [^;]*unsafe-inline/);
+    expect(prod).not.toContain("style-src-elem");
   });
 
   it("allows framing only Cloudflare's Turnstile", () => {

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ReviewEditor } from "@/components/case-study/review-editor";
 import { requireUser } from "@/lib/auth/session";
@@ -22,7 +23,10 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="max-w-3xl space-y-4">
-      <h1 className="text-2xl font-semibold">Review case study</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold">Review case study</h1>
+        <Link href={`/app/case-studies/${study.id}/template`} className="inline-flex min-h-11 items-center text-sm underline underline-offset-2">Change template</Link>
+      </div>
       <ReviewEditor
         // Remount on a new version so the editor starts from what was saved.
         key={study.version}
