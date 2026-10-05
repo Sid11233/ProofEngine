@@ -26,7 +26,8 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = `/sites/${workspace}${pathname === "/" ? "" : pathname}`;
     const rewritten = NextResponse.rewrite(url, { request: { headers: requestHeaders } });
-    rewritten.headers.set("Content-Security-Policy", csp);
+    // The embed widget sets its own CSP (frame-ancestors is the workspace's allowlist).
+    if (pathname !== "/embed") rewritten.headers.set("Content-Security-Policy", csp);
     // Short shared-cache window: an unpublished page disappears from the CDN within a minute.
     rewritten.headers.set("Cache-Control", "public, max-age=0, s-maxage=60");
     return rewritten;

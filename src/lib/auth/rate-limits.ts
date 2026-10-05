@@ -18,7 +18,8 @@ export type AuthAction =
   | "invite-accept"
   | "request-manage"
   | "generate"
-  | "case-study-edit";
+  | "case-study-edit"
+  | "wall-settings";
 
 interface Limit {
   limit: number;
@@ -35,6 +36,7 @@ const OVERRIDES: Partial<Record<AuthAction, { subject: Limit; ip: Limit }>> = {
   "request-manage": { subject: { limit: 60, windowSec: 60 * 60 }, ip: { limit: 120, windowSec: 60 * 60 } },
   generate: { subject: { limit: 10, windowSec: 60 * 60 }, ip: { limit: 30, windowSec: 60 * 60 } },
   "case-study-edit": { subject: { limit: 120, windowSec: 60 * 60 }, ip: { limit: 240, windowSec: 60 * 60 } },
+  "wall-settings": { subject: { limit: 30, windowSec: 60 * 60 }, ip: { limit: 60, windowSec: 60 * 60 } },
   "team-manage": { subject: { limit: 60, windowSec: 15 * 60 }, ip: { limit: 120, windowSec: 60 * 60 } },
 };
 

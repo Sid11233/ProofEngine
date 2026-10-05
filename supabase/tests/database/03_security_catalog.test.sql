@@ -31,25 +31,25 @@ select is(
 
 select is(
   (select count(*)::int from pg_class c join pg_namespace n on n.oid = c.relnamespace
-   where n.nspname = 'public' and c.relkind = 'v' and c.relname <> 'public_case_studies'
+   where n.nspname = 'public' and c.relkind = 'v' and c.relname not in ('public_case_studies', 'public_wall_settings')
      and coalesce((select option_value from pg_options_to_table(c.reloptions) where option_name = 'security_invoker'), 'false') <> 'true'),
   0, 'every public view except the reviewed public one runs with the caller''s privileges (security_invoker)');
 
 select is(
   (select array_agg(c.relname::text order by c.relname) from pg_class c join pg_namespace n on n.oid = c.relnamespace
    where n.nspname = 'public' and c.relkind = 'v' and coalesce((select option_value from pg_options_to_table(c.reloptions) where option_name = 'security_invoker'), 'false') <> 'true'),
-  array['public_case_studies'], 'the only view that bypasses row-level security is public_case_studies');
+  array['public_case_studies', 'public_wall_settings'], 'the only views that bypass row-level security are the two reviewed public ones');
 
 select is(
   (select array_agg(c.relname::text) from pg_class c join pg_namespace n on n.oid = c.relnamespace
-   where n.nspname = 'public' and c.relkind = 'v' and c.relname = 'public_case_studies' and c.reloptions::text like '%security_barrier=true%'),
-  array['public_case_studies'], 'the public view is a security barrier');
+   where n.nspname = 'public' and c.relkind = 'v' and c.relname in ('public_case_studies', 'public_wall_settings') and c.reloptions::text like '%security_barrier=true%'),
+  array['public_case_studies', 'public_wall_settings'], 'the public views are security barriers');
 
 -- Anonymous access ------------------------------------------------------------------------------
 select is(
   (select coalesce(array_agg(table_name::text || ':' || privilege_type order by table_name, privilege_type), '{}')
    from information_schema.role_table_grants where grantee = 'anon' and table_schema = 'public'),
-  array['public_case_studies:SELECT'], 'anon can only SELECT the public_case_studies view and holds nothing else');
+  array['public_case_studies:SELECT', 'public_wall_settings:SELECT'], 'anon can only SELECT the two reviewed public views and holds nothing else');
 
 select is(
   (select count(*)::int from information_schema.columns
@@ -84,7 +84,7 @@ select set_eq(
             ('create_generated_case_study'), ('create_invite'), ('create_preview_link'), ('create_proof_request'),
             ('create_workspace'), ('get_invite_preview'), ('is_member'), ('is_reserved_slug'), ('list_team_members'),
             ('plan_interview_limit'), ('publish_case_study'), ('remove_member'), ('request_client_approval'), ('revoke_invite'), ('revoke_preview_link'), ('revoke_request'),
-            ('role_rank'), ('rotate_request_token'), ('save_case_study_edit'), ('snapshot_case_study'),
+            ('role_rank'), ('rotate_request_token'), ('save_case_study_edit'), ('save_wall_settings'), ('snapshot_case_study'),
             ('template_allowed'), ('unpublish_case_study'), ('write_audit_log') $$,
   'the RPC surface for signed-in users is exactly the reviewed list (a new function must be added here on purpose)');
 

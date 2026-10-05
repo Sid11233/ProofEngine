@@ -172,6 +172,7 @@ async function seedTenant(ws: string, ownerId: string): Promise<Tenant> {
   await admin.from("case_studies").update({ current_version: 2 }).eq("id", caseStudy.id);
   const changes = await admin.rpc("request_case_study_changes", { token_hash: feedbackToken, note: "Seed note", ip_hash: hex64() });
   if (changes.error) throw new Error(`seed feedback: ${changes.error.message}`);
+  await must(admin.from("wall_settings").insert({ workspace_id: ws, enabled: false }).select(), "wall_settings");
   await must(
     admin
       .from("takedown_requests")
@@ -384,6 +385,13 @@ const SPECS: Spec[] = [
     appendOnly: true,
     patch: { message: "edited" },
     insert: (t) => ({ case_study_id: t.caseStudyId, workspace_id: t.ws, version: 1, kind: "declined", message: "x" }),
+  },
+  {
+    table: "wall_settings",
+    tenantCol: "workspace_id",
+    readRole: "admin",
+    patch: { enabled: true },
+    insert: (t) => ({ workspace_id: t.ws, enabled: false }),
   },
   {
     table: "takedown_requests",
