@@ -58,7 +58,7 @@ async function post<T>(path: string, body: unknown): Promise<{ ok: true; data: T
 const buttonPrimary =
   "inline-flex min-h-11 w-full items-center justify-center rounded-md bg-neutral-900 px-5 py-2 text-base font-medium text-white outline-none hover:bg-neutral-700 focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300";
 const inputClass =
-  "block w-full rounded-md border border-neutral-300 bg-transparent px-3 py-2 text-base outline-none focus-visible:border-neutral-900 focus-visible:ring-2 focus-visible:ring-neutral-900/20 dark:border-neutral-700 dark:focus-visible:border-neutral-100";
+  "block min-h-11 w-full rounded-md border border-neutral-300 bg-transparent px-3 py-2 text-base outline-none focus-visible:border-neutral-900 focus-visible:ring-2 focus-visible:ring-neutral-900/20 dark:border-neutral-700 dark:focus-visible:border-neutral-100";
 
 export function InterviewApp(props: InterviewAppProps) {
   const { initial } = props;
@@ -106,7 +106,8 @@ export function InterviewApp(props: InterviewAppProps) {
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <main className="mx-auto min-h-dvh w-full max-w-lg px-4 py-8 pb-[max(2rem,env(safe-area-inset-bottom))]">{children}</main>;
+  // The page uses the full screen (viewport-fit=cover), so keep content clear of notches and the home bar.
+  return <main className="mx-auto min-h-dvh w-full max-w-lg px-[max(1rem,env(safe-area-inset-left))] pt-[max(2rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">{children}</main>;
 }
 
 function Alert({ message }: { message?: string }) {
@@ -207,8 +208,8 @@ function ChatScreen({
   }
 
   return (
-    <div className="mx-auto flex h-dvh w-full max-w-lg flex-col">
-      <header className="border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
+    <div className="mx-auto flex h-dvh w-full max-w-lg flex-col pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
+      <header className="border-b border-neutral-200 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] dark:border-neutral-800">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-medium" aria-live="polite">
             Question {progress.current} of {progress.total}

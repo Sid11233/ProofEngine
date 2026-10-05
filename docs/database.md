@@ -123,6 +123,11 @@ R = read, W = write. "Server" means service role, used only in token-authenticat
 - **Entitlements** (`src/lib/billing/entitlements.ts`): `canCreateInterview`, `canUseAI`, `templateAllowed`, `canRemoveBranding` are the one place app code asks. The database stays the authority (the interview limit under a lock in `create_proof_request`, `template_allowed()` in the publish trigger, the public view's badge flag) and tests keep the numbers equal.
 - **Downgrade**: published pages stay online (the public view does not look at the plan), cannot be edited (published pages are never editable) or republished on a template the plan no longer includes; the editor and billing page say so in plain words.
 
+## Push (Phase 9)
+
+- `push_subscriptions` and `notification_preferences` are per-user: row-level security lets a user see (and, for subscriptions, delete) only their own rows, they hang off the user's workspace membership (composite foreign key, so leaving removes them), the keys `p256dh` and `auth` are not granted to any client, and writes go through `save_push_subscription()` / `save_notification_preferences()` (members only; at most 10 devices per user).
+- `push_targets()` and `remove_push_subscription()` are service-role only, used by the sender after an event. See [pwa.md](pwa.md).
+
 ## Running the tests
 
 ```bash
