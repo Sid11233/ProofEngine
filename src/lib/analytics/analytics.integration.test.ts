@@ -12,7 +12,7 @@ let b: TestUser;
 let wsA: string;
 let wsB: string;
 let slugA: string;
-let slugB: string;
+let pageSlugA: string;
 let idA: string;
 let idB: string;
 
@@ -45,9 +45,10 @@ beforeAll(async () => {
   await admin.from("workspaces").update({ plan: "pro", subdomain_slug: sB }).eq("id", wsB);
   const pa = await published(a, wsA, "Story A");
   const pb = await published(b, wsB, "Story B");
-  slugA = sA; idA = pa.id; idB = pb.id; slugB = sB;
-  (globalThis as Record<string, unknown>).__pa = pa.slug;
-  (globalThis as Record<string, unknown>).__pb = pb.slug;
+  slugA = sA;
+  idA = pa.id;
+  idB = pb.id;
+  pageSlugA = pa.slug;
 }, 120_000);
 
 afterAll(async () => {
@@ -56,8 +57,7 @@ afterAll(async () => {
   for (const u of [a, b]) await admin.auth.admin.deleteUser(u.id);
 }, 120_000);
 
-const pageA = () => String((globalThis as Record<string, unknown>).__pa);
-const pageB = () => String((globalThis as Record<string, unknown>).__pb);
+const pageA = () => pageSlugA;
 
 describe("record_page_event", () => {
   it("stores only type, page, hostname-only referrer and time", async () => {
@@ -71,7 +71,7 @@ describe("record_page_event", () => {
 
   it("ignores pages that are not public and rejects unknown event types", async () => {
     expect(await recordPageEvent(admin, slugA, "no-such-page", { type: "view" })).toBe(false);
-    expect(await recordPageEvent(admin, slugB, pageA(), { type: "view" }), "a page under another workspace's address").toBe(false);
+    expect(await recordPageEvent(admin, `other-${slugA}`, pageA(), { type: "view" }), "a page under another workspace's address").toBe(false);
     expect((await admin.rpc("record_page_event", { ws_slug: slugA, study_slug: pageA(), event_type: "purchase", ref_host: null })).error).not.toBeNull();
   });
 
