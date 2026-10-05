@@ -87,3 +87,10 @@ export async function recordDecision(admin: SupabaseClient, rawToken: string, de
   if (!error) return { ok: true };
   return { ok: false, reason: error.code === "22023" ? "invalid" : "not_found" };
 }
+
+/** The workspace an approval link belongs to (for the "approval received" notification). Null for anything unknown. */
+export async function workspaceOfApprovalToken(admin: SupabaseClient, rawToken: string): Promise<string | null> {
+  if (typeof rawToken !== "string" || !isWellFormedToken(rawToken)) return null;
+  const { data } = await admin.from("case_study_approval_tokens").select("workspace_id").eq("token_hash", hashToken(rawToken)).maybeSingle();
+  return typeof data?.workspace_id === "string" ? data.workspace_id : null;
+}

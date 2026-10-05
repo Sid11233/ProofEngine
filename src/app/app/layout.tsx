@@ -47,6 +47,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           ["/app/case-studies", "Case studies"],
           ["/app/referrals", "Referrals"],
           ["/app/settings/wall", "Wall of proof"],
+          ["/app/settings/notifications", "Notifications"],
           ["/app/settings/team", "Team"],
           ["/app/billing", "Billing"],
           ["/app/settings/security", "Security"],

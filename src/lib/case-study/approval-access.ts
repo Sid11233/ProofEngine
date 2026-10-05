@@ -1,12 +1,14 @@
 import "server-only";
 import { headers } from "next/headers";
+import { after } from "next/server";
 import { getClientIp } from "@/lib/security/client-ip";
 import { serverEnv } from "@/lib/security/env.server";
 import { sha256Hex } from "@/lib/security/hash";
 import { hashIp, ipHashSecret } from "@/lib/security/ip-hash";
 import { createRateLimiter } from "@/lib/security/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createApprovalResolver, decisionSchema, recordDecision, type ApprovalResult, type DecisionResult } from "./approval-access-core";
+import { pushToWorkspace } from "@/lib/push/server";
+import { createApprovalResolver, decisionSchema, recordDecision, workspaceOfApprovalToken, type ApprovalResult, type DecisionResult } from "./approval-access-core";
 
 let resolver: ReturnType<typeof createApprovalResolver> | undefined;
 let decisionLimiter: ReturnType<typeof createRateLimiter> | undefined;
@@ -28,5 +30,10 @@ export async function submitDecision(rawToken: string, input: unknown): Promise<
   const ip = getClientIp(await headers());
   decisionLimiter ??= createRateLimiter({ prefix: "approve:decide", limit: 10, windowSec: 600 });
   if (!(await decisionLimiter.limit(sha256Hex(ip))).success) return { ok: false, reason: "rate_limited" };
-  return recordDecision(createAdminClient(), rawToken, parsed.data, hashIp(ipHashSecret(serverEnv), ip));
+  const admin = createAdminClient();
+  const workspaceId = parsed.data.kind === "approve" ? await workspaceOfApprovalToken(admin, rawToken) : null;
+  const result = await recordDecision(admin, rawToken, parsed.data, hashIp(ipHashSecret(serverEnv), ip));
+  // A generic "a client approved a case study" push, only to members who switched it on.
+  if (result.ok && workspaceId) after(() => pushToWorkspace(workspaceId, "approval_received").catch(() => undefined));
+  return result;
 }

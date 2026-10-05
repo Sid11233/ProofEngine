@@ -20,7 +20,8 @@ export type AuthAction =
   | "generate"
   | "case-study-edit"
   | "wall-settings"
-  | "billing";
+  | "billing"
+  | "notifications";
 
 interface Limit {
   limit: number;
@@ -39,6 +40,7 @@ const OVERRIDES: Partial<Record<AuthAction, { subject: Limit; ip: Limit }>> = {
   "case-study-edit": { subject: { limit: 120, windowSec: 60 * 60 }, ip: { limit: 240, windowSec: 60 * 60 } },
   "wall-settings": { subject: { limit: 30, windowSec: 60 * 60 }, ip: { limit: 60, windowSec: 60 * 60 } },
   billing: { subject: { limit: 10, windowSec: 60 * 60 }, ip: { limit: 30, windowSec: 60 * 60 } },
+  notifications: { subject: { limit: 60, windowSec: 60 * 60 }, ip: { limit: 120, windowSec: 60 * 60 } },
   "team-manage": { subject: { limit: 60, windowSec: 15 * 60 }, ip: { limit: 120, windowSec: 60 * 60 } },
 };
 

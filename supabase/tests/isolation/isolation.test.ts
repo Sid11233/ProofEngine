@@ -173,6 +173,8 @@ async function seedTenant(ws: string, ownerId: string): Promise<Tenant> {
   const changes = await admin.rpc("request_case_study_changes", { token_hash: feedbackToken, note: "Seed note", ip_hash: hex64() });
   if (changes.error) throw new Error(`seed feedback: ${changes.error.message}`);
   await must(admin.from("wall_settings").insert({ workspace_id: ws, enabled: false }).select(), "wall_settings");
+  await must(admin.from("push_subscriptions").insert({ user_id: ownerId, workspace_id: ws, endpoint: "https://fcm.googleapis.com/fcm/send/seedseedseedseedseed", p256dh: "A".repeat(87), auth: "z".repeat(22) }).select(), "push_subscriptions");
+  await must(admin.from("notification_preferences").insert({ user_id: ownerId, workspace_id: ws }).select(), "notification_preferences");
   await must(
     admin
       .from("takedown_requests")
@@ -266,7 +268,7 @@ interface Spec {
   tenantCol?: string;
   columns?: string;
   /** Lowest role that can read rows. */
-  readRole: "viewer" | "editor" | "admin";
+  readRole: "viewer" | "editor" | "admin" | "owner";
   /** A harmless-looking column change an attacker would try. */
   patch: Row;
   /** A payload that would be valid if the caller were allowed to insert into tenant `t`. */
@@ -385,6 +387,22 @@ const SPECS: Spec[] = [
     appendOnly: true,
     patch: { message: "edited" },
     insert: (t) => ({ case_study_id: t.caseStudyId, workspace_id: t.ws, version: 1, kind: "declined", message: "x" }),
+  },
+  {
+    table: "push_subscriptions",
+    tenantCol: "workspace_id",
+    columns: "id,user_id,workspace_id,endpoint",
+    // Per-user rows: only the user they belong to (the workspace owner A in the fixtures) can read them.
+    readRole: "owner",
+    patch: { endpoint: "https://evil.example/push/hijack-0000000000" },
+    insert: (t, actor) => ({ user_id: actor, workspace_id: t.ws, endpoint: "https://fcm.googleapis.com/fcm/send/xxxxxxxxxxxxxxxxxxxx", p256dh: "B".repeat(87), auth: "a".repeat(22) }),
+  },
+  {
+    table: "notification_preferences",
+    tenantCol: "workspace_id",
+    readRole: "owner",
+    patch: { client_completed: true },
+    insert: (t, actor) => ({ user_id: actor, workspace_id: t.ws, client_completed: true }),
   },
   {
     table: "wall_settings",
@@ -510,6 +528,15 @@ describe.each(SPECS)("tenant isolation: $table", (spec) => {
     it("3c. editor D can read these rows", async () => {
       const asEditor = await D.client.from(spec.table).select(cols(spec)).in(tenantCol(spec), [tenantA.ws]);
       expect(rowsOf(asEditor).length, `${spec.table}: editor cannot read rows they should see`).toBeGreaterThan(0);
+    });
+  }
+
+  if (spec.readRole === "owner") {
+    it("3d. only the row's own user can read it: not a viewer, editor, admin or owner of another account", async () => {
+      for (const [who, user] of [["viewer C", C], ["editor D", D], ["admin E", E]] as const) {
+        const res = await user.client.from(spec.table).select(cols(spec)).in(tenantCol(spec), [tenantA.ws]);
+        expect(rowsOf(res), `${spec.table}: ${who} read someone else's rows`).toHaveLength(0);
+      }
     });
   }
 
