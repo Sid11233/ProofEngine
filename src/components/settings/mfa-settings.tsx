@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { ReauthPrompt } from "@/components/auth/reauth-prompt";
 import type { EnrollResult } from "@/app/app/settings/security/actions";
 import type { FormState } from "@/lib/validation/form";
+import { brand } from "@/lib/brand";
 
 interface Props {
   verifiedFactorId: string | null;
@@ -94,7 +95,7 @@ export function MfaSettings({ verifiedFactorId, start, confirm, disable }: Props
         <form onSubmit={verify} className="space-y-4" noValidate>
           <p className="text-sm">1. Scan this code with your authenticator app.</p>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={enrolling.qrCode} alt="QR code to add Proof Engine to your authenticator app" width={192} height={192} className="rounded-md border border-neutral-200 bg-white p-2" />
+          <img src={enrolling.qrCode} alt={`QR code to add ${brand.name} to your authenticator app`} width={192} height={192} className="rounded-md border border-neutral-200 bg-white p-2" />
           <p className="text-sm">
             Cannot scan? Enter this key instead:{" "}
             <code data-testid="mfa-secret" className="break-all rounded bg-neutral-100 px-1.5 py-0.5 dark:bg-neutral-900">{enrolling.secret}</code>

@@ -6,8 +6,9 @@ import { requireUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentWorkspace } from "@/lib/workspace/current";
 import { regenerateLinkAction, revokeRequestAction, sendInviteAction, sendReminderAction } from "../actions";
+import { pageTitle } from "@/lib/brand";
 
-export const metadata = { title: "Request | Proof Engine" };
+export const metadata = { title: pageTitle("Request") };
 
 export default async function RequestPage({ params }: { params: Promise<{ id: string }> }) {
   await requireUser();

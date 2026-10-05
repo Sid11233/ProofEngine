@@ -3,8 +3,9 @@ import { NewRequestForm } from "@/components/requests/new-request-form";
 import { requireUser } from "@/lib/auth/session";
 import { getCurrentWorkspace } from "@/lib/workspace/current";
 import { createRequestAction } from "../actions";
+import { pageTitle } from "@/lib/brand";
 
-export const metadata = { title: "New request | Proof Engine" };
+export const metadata = { title: pageTitle("New request") };
 
 export default async function NewRequestPage() {
   await requireUser();

@@ -2,6 +2,7 @@ import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import type { EmailSender } from "@/lib/email/types";
 import { generateToken, hashToken, isWellFormedToken } from "@/lib/security/tokens";
 import type { InviteRole, MemberRole } from "./schemas";
+import { brand } from "@/lib/brand";
 
 // Team operations over the caller's own Supabase client, so the database (RLS and
 // the SECURITY DEFINER functions) is always the final judge. The application layer
@@ -82,9 +83,9 @@ export async function inviteMember(
   const emailSent =
     (await deps.sender?.send({
       to: input.email,
-      subject: `You have been invited to ${input.workspaceName} on Proof Engine`,
+      subject: `You have been invited to ${input.workspaceName} on ${brand.name}`,
       text: [
-        `You have been invited to join ${input.workspaceName} on Proof Engine as ${input.role}.`,
+        `You have been invited to join ${input.workspaceName} on ${brand.name} as ${input.role}.`,
         "",
         "Accept the invitation (sign in or create an account with this email address):",
         link,

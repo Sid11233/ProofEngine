@@ -1,6 +1,7 @@
 import { getCurrentWorkspace } from "@/lib/workspace/current";
+import { pageTitle } from "@/lib/brand";
 
-export const metadata = { title: "Dashboard | Proof Engine" };
+export const metadata = { title: pageTitle("Dashboard") };
 
 export default async function DashboardPage() {
   const workspace = await getCurrentWorkspace();

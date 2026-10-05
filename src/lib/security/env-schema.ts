@@ -18,6 +18,8 @@ export const publicEnvSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: required(z.url()),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: required(secret),
   NEXT_PUBLIC_APP_URL: required(z.url()),
+  // Cloudflare Turnstile site key (public). Optional until you configure Turnstile.
+  NEXT_PUBLIC_TURNSTILE_SITE_KEY: optional(z.string().min(1)),
 });
 
 /**
@@ -40,6 +42,14 @@ export const serverEnvSchema = z.object({
   ANTHROPIC_API_KEY: optional(z.string().min(1)),
   INTERVIEWER_MODEL: optional(z.string().min(1)),
   TURNSTILE_SECRET_KEY: optional(z.string().min(1)),
+
+  // Abuse and spend limits (defaults in src/lib/limits.ts, documented in docs/limits.md)
+  AI_MESSAGES_FREE: optional(z.coerce.number().int().min(0)),
+  AI_MESSAGES_PRO: optional(z.coerce.number().int().min(0)),
+  AI_MESSAGES_TEAM: optional(z.coerce.number().int().min(0)),
+  AI_DAILY_TOKEN_LIMIT: optional(z.coerce.number().int().min(1)),
+  INTERVIEW_STARTS_PER_IP_HOUR: optional(z.coerce.number().int().min(1)),
+  ALERT_EMAIL: optional(z.email()),
 
   // Phase 6: approval IP hashing
   IP_HASH_SECRET: optional(z.string().min(32)),

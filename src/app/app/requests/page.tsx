@@ -3,8 +3,9 @@ import { requireUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { listRequests } from "@/lib/requests/service";
 import { getCurrentWorkspace } from "@/lib/workspace/current";
+import { pageTitle } from "@/lib/brand";
 
-export const metadata = { title: "Requests | Proof Engine" };
+export const metadata = { title: pageTitle("Requests") };
 
 export default async function RequestsPage() {
   await requireUser();

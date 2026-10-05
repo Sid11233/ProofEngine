@@ -2,8 +2,9 @@ import Link from "next/link";
 import { safeNextPath } from "@/lib/auth/redirects";
 import { LoginForm } from "@/components/auth/auth-forms";
 import { loginAction, signInWithGoogleAction } from "../actions";
+import { pageTitle } from "@/lib/brand";
 
-export const metadata = { title: "Sign in | Proof Engine" };
+export const metadata = { title: pageTitle("Sign in") };
 
 const ERRORS: Record<string, string> = {
   auth: "That link is invalid or has expired. Please try again.",

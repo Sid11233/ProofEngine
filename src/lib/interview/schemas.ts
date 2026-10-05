@@ -4,7 +4,7 @@ import { CONSENT_VERSION } from "./consent";
 export const tokenSchema = z.string().regex(/^[A-Za-z0-9_-]{43}$/);
 
 export const startSchema = z
-  .object({ token: tokenSchema, consent: z.literal(true), consentVersion: z.literal(CONSENT_VERSION) })
+  .object({ token: tokenSchema, consent: z.literal(true), consentVersion: z.literal(CONSENT_VERSION), turnstileToken: z.string().max(2048).optional() })
   .strict();
 
 export const messageSchema = z

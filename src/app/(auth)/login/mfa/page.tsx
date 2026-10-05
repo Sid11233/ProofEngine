@@ -4,8 +4,10 @@ import { safeNextPath } from "@/lib/auth/redirects";
 import { requireUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { signOutAction, verifyMfaLoginAction } from "../../actions";
+import { pageTitle } from "@/lib/brand";
+import { brand } from "@/lib/brand";
 
-export const metadata = { title: "Two-factor code | Proof Engine" };
+export const metadata = { title: pageTitle("Two-factor code") };
 
 export default async function MfaLoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   await requireUser();
@@ -21,7 +23,7 @@ export default async function MfaLoginPage({ searchParams }: { searchParams: Pro
     <>
       <h1 className="text-xl font-semibold">Two-factor authentication</h1>
       <p className="text-sm text-neutral-600 dark:text-neutral-400">
-        Open your authenticator app and enter the 6-digit code for Proof Engine.
+        Open your authenticator app and enter the 6-digit code for {brand.name}.
       </p>
       <MfaLoginForm action={verifyMfaLoginAction} next={destination} />
       <form action={signOutAction}>

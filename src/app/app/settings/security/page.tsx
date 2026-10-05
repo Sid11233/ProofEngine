@@ -2,8 +2,9 @@ import { MfaSettings } from "@/components/settings/mfa-settings";
 import { requireUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { confirmMfaEnrollmentAction, disableMfaAction, startMfaEnrollmentAction } from "./actions";
+import { pageTitle } from "@/lib/brand";
 
-export const metadata = { title: "Security | Proof Engine" };
+export const metadata = { title: pageTitle("Security") };
 
 export default async function SecurityPage() {
   await requireUser();

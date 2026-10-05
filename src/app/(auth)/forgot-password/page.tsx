@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { ForgotPasswordForm } from "@/components/auth/auth-forms";
 import { forgotPasswordAction } from "../actions";
+import { pageTitle } from "@/lib/brand";
 
-export const metadata = { title: "Reset password | Proof Engine" };
+export const metadata = { title: pageTitle("Reset password") };
 
 export default function ForgotPasswordPage() {
   return (

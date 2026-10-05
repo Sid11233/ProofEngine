@@ -20,6 +20,10 @@ describe("buildCsp", () => {
     expect(prod).toContain("upgrade-insecure-requests");
   });
 
+  it("allows framing only Cloudflare's Turnstile", () => {
+    expect(prod).toContain("frame-src https://challenges.cloudflare.com");
+  });
+
   it("allows only the Supabase origin for data connections", () => {
     expect(prod).toContain("connect-src 'self' https://xyz.supabase.co wss://xyz.supabase.co");
   });
