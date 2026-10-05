@@ -6,6 +6,9 @@ import { requireUser } from "@/lib/auth/session";
 import { getCurrentWorkspace } from "@/lib/workspace/current";
 import { signOutAction } from "@/app/(auth)/actions";
 import { BrandMark } from "@/components/brand-mark";
+import { InstallPrompt } from "@/components/pwa/install-prompt";
+import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
+import { SignOutButton } from "@/components/pwa/sign-out-button";
 import { isPlatformAdminEmail } from "@/lib/takedown/admin";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -24,6 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-dvh">
+      <ServiceWorkerRegister />
       {showMfaBanner ? <MfaBanner /> : null}
       <header className="flex items-center justify-between gap-3 border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
         <div className="min-w-0">
@@ -32,9 +36,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
         <form action={signOutAction} className="flex items-center gap-3 text-sm">
           <span className="hidden text-neutral-600 sm:inline dark:text-neutral-400">{user.email}</span>
-          <button type="submit" className="min-h-11 rounded-md px-3 underline underline-offset-2">
-            Sign out
-          </button>
+          <InstallPrompt />
+          <SignOutButton />
         </form>
       </header>
       <nav aria-label="Main" className="flex gap-1 overflow-x-auto whitespace-nowrap border-b border-neutral-200 px-4 text-sm dark:border-neutral-800">
