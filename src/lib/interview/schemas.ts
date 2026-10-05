@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { referralSchema } from "@/lib/referrals/schemas";
 import { CONSENT_VERSION } from "./consent";
 
 export const tokenSchema = z.string().regex(/^[A-Za-z0-9_-]{43}$/);
@@ -9,13 +10,6 @@ export const startSchema = z
 
 export const messageSchema = z
   .object({ token: tokenSchema, message: z.string().trim().min(1, "Write an answer first").max(1000, "Please keep answers under 1000 characters") })
-  .strict();
-
-const referralSchema = z
-  .object({
-    name: z.string().trim().min(1).max(200),
-    contact: z.string().trim().min(1).max(320),
-  })
   .strict();
 
 export const finishSchema = z

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { workspaceAlertAddresses } from "@/lib/email/recipients";
 import type { EmailSender } from "@/lib/email/types";
 import type { ReportInput } from "./schemas";
 
@@ -29,15 +30,6 @@ export function reportEmail({ headline, workspaceName, reason, contact, reviewUr
       reviewUrl,
     ].join("\n"),
   };
-}
-
-/** Emails of the workspace's owners and admins. Server only: reads profiles with the service role. */
-async function workspaceAlertAddresses(admin: SupabaseClient, workspaceId: string): Promise<string[]> {
-  const { data: members } = await admin.from("workspace_members").select("user_id").eq("workspace_id", workspaceId).in("role", ["owner", "admin"]);
-  const ids = (members ?? []).map((m) => String(m.user_id));
-  if (ids.length === 0) return [];
-  const { data: profiles } = await admin.from("profiles").select("email").in("id", ids);
-  return (profiles ?? []).map((p) => String(p.email ?? "")).filter((e) => e.includes("@"));
 }
 
 export async function submitReport(ctx: ReportContext, input: ReportInput, ipHash: string): Promise<ReportOutcome> {

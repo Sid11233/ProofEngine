@@ -1,5 +1,6 @@
 "use client";
 
+import { isReachable } from "@/lib/referrals/schemas";
 import { TurnstileWidget } from "@/components/turnstile-widget";
 import { useEffect, useRef, useState } from "react";
 
@@ -288,10 +289,11 @@ function ClosingScreen({ token, workspaceName, onFinished }: { token: string; wo
   async function finish(event: React.FormEvent) {
     event.preventDefault();
     if (!permission) return setError("Please choose how we may credit you.");
-    setError(undefined);
-    setPending(true);
     // A referral needs both fields; half-filled rows are ignored rather than guessed at.
     const filled = referrals.filter((r) => r.name.trim() && r.contact.trim());
+    if (filled.some((r) => !isReachable(r.contact.trim()))) return setError("Please enter a valid email address or phone number for the person you are suggesting, or clear that row.");
+    setError(undefined);
+    setPending(true);
     const result = await post("/api/interview/finish", { token, publishPermission: permission, referrals: filled });
     setPending(false);
     if (!result.ok) return setError(result.error);
