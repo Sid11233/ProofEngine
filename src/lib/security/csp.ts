@@ -23,6 +23,8 @@ export function buildCsp({
     "img-src": ["'self'", "data:", "blob:", supabaseOrigin],
     "font-src": ["'self'"],
     "connect-src": ["'self'", supabaseOrigin, supabaseWs, ...(isDev ? ["ws:", "http:"] : [])],
+    // Cloudflare Turnstile (bot check on the interview intro) renders in an iframe.
+    "frame-src": ["https://challenges.cloudflare.com"],
     "object-src": ["'none'"],
     "base-uri": ["'self'"],
     "form-action": ["'self'"],

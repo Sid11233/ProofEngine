@@ -38,7 +38,6 @@ R = read, W = write. "Server" means service role, used only in token-authenticat
 - **Plan limits (8.3):** `plan_interview_limit()` holds placeholder numbers (free 3, pro 100, team 1000 per month) until plans are decided.
 - **Publishing (6.2):** the trigger that requires an approval for the current version, an allowed template, a valid slug and confirmed claims. Until then `published` is not settable from the client.
 - **Seeding:** system question flows (3.4) and templates (5.2).
-- **Storage buckets** `uploads` and `exports` (private) are created in the dashboard or a later migration.
 
 ## Team management (Phase 2.3)
 
@@ -61,6 +60,12 @@ R = read, W = write. "Server" means service role, used only in token-authenticat
 - **The server runs the interview, the model only phrases it.** Questions come from `question_flows`; the position, probe budget (max 2 per question) and the exact wording of every question are server-side. The model may write one short acknowledgement or one follow-up question, which `validateModelText` checks (no links, emails, markup, instructions-talk, or numbers the client did not say) and replaces with a canned line on any doubt. The client's words are stored exactly as typed and shown only as text.
 - Client text reaches the model only inside a single `<client_answer>` wrapper after tag-stripping. The model is never sent the token, the client's email or name, or any id.
 - Without `ANTHROPIC_API_KEY` (or if the provider fails) the interview runs on canned lines instead of failing.
+
+## Uploads and spend (Phase 3.5-3.6)
+
+- The private `uploads` and `exports` buckets are created by a migration (skipped where Storage is not installed). No storage policies exist on purpose: with RLS on and no policy, only the service role can touch files, and users get 60-second signed URLs from the server. No public bucket is allowed.
+- `record_upload` (service role only) caps an interview at 4 files and only accepts a path under that workspace and interview.
+- `ai_daily_usage` holds platform-wide token totals for the circuit breaker. RLS is on with no policy and no grants, so no client can read it. Limits are listed in [limits.md](limits.md).
 
 ## Running the tests
 

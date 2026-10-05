@@ -18,10 +18,13 @@ export interface InterviewAppProps {
   clientFirstName: string;
   consentText: string;
   consentVersion: string;
+  questions: Array<{ id: string; text: string }>;
+  turnstileSiteKey?: string;
+  nonce?: string;
   initial: { messages: Message[]; progress: Progress; done: boolean } | null;
 }
 
-type Phase = "intro" | "chat" | "closing" | "thanks";
+type Phase = "intro" | "chat" | "form" | "closing" | "thanks";
 
 const ERRORS: Record<string, string> = {
   rate_limited: "You are sending messages a little fast. Please wait a moment and try again.",
@@ -82,8 +85,12 @@ export function InterviewApp(props: InterviewAppProps) {
         onMessages={setMessages}
         onProgress={setProgress}
         onDone={() => setPhase("closing")}
+        onSwitchToForm={() => setPhase("form")}
       />
     );
+  }
+  if (phase === "form") {
+    return <FormScreen token={props.token} questions={props.questions} fromIndex={progress.current - 1} onBack={() => setPhase("chat")} onDone={() => setPhase("closing")} />;
   }
   if (phase === "closing") return <ClosingScreen token={props.token} workspaceName={props.workspaceName} onFinished={() => setPhase("thanks")} />;
   return (
@@ -109,18 +116,19 @@ function Alert({ message }: { message?: string }) {
 }
 
 function IntroScreen({
-  token, workspaceName, clientFirstName, consentText, consentVersion, onStarted,
+  token, workspaceName, clientFirstName, consentText, consentVersion, turnstileSiteKey, nonce, onStarted,
 }: InterviewAppProps & { onStarted: (s: { messages: Message[]; progress: Progress }) => void }) {
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
+  const [humanToken, setHumanToken] = useState<string>();
 
   async function start(event: React.FormEvent) {
     event.preventDefault();
-    if (!agreed) return;
+    if (!agreed || (turnstileSiteKey && !humanToken)) return;
     setError(undefined);
     setPending(true);
-    const result = await post<{ messages: Message[]; progress: Progress }>("/api/interview/start", { token, consent: true, consentVersion });
+    const result = await post<{ messages: Message[]; progress: Progress }>("/api/interview/start", { token, consent: true, consentVersion, turnstileToken: humanToken });
     setPending(false);
     if (!result.ok) return setError(result.error);
     onStarted(result.data);
@@ -142,8 +150,9 @@ function IntroScreen({
           <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-1 size-5 shrink-0" required />
           <span className="text-sm">{consentText}</span>
         </label>
+        {turnstileSiteKey ? <TurnstileWidget siteKey={turnstileSiteKey} nonce={nonce} onToken={setHumanToken} /> : null}
         <Alert message={error} />
-        <button type="submit" className={buttonPrimary} disabled={!agreed || pending}>
+        <button type="submit" className={buttonPrimary} disabled={!agreed || pending || Boolean(turnstileSiteKey && !humanToken)}>
           {pending ? "Starting..." : "Start the interview"}
         </button>
       </form>
@@ -152,8 +161,9 @@ function IntroScreen({
 }
 
 function ChatScreen({
-  token, messages, progress, onMessages, onProgress, onDone,
+  token, messages, progress, onMessages, onProgress, onDone, onSwitchToForm,
 }: {
+  onSwitchToForm: () => void;
   token: string;
   messages: Message[];
   progress: Progress;
@@ -197,9 +207,16 @@ function ChatScreen({
   return (
     <div className="mx-auto flex h-dvh w-full max-w-lg flex-col">
       <header className="border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
-        <p className="text-sm font-medium" aria-live="polite">
-          Question {progress.current} of {progress.total}
-        </p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-medium" aria-live="polite">
+            Question {progress.current} of {progress.total}
+          </p>
+          {!finished && (
+            <button type="button" className="min-h-11 text-sm underline underline-offset-2" onClick={onSwitchToForm} disabled={pending}>
+              Switch to a simple form
+            </button>
+          )}
+        </div>
         <div className="mt-2 h-1.5 rounded-full bg-neutral-200 dark:bg-neutral-800" role="progressbar" aria-valuemin={1} aria-valuemax={progress.total} aria-valuenow={progress.current} aria-label="Interview progress">
           <div className="h-full rounded-full bg-neutral-900 transition-all dark:bg-neutral-100" style={{ width: `${(progress.current / progress.total) * 100}%` }} />
         </div>
@@ -299,6 +316,13 @@ function ClosingScreen({ token, workspaceName, onFinished }: { token: string; wo
         </fieldset>
 
         <fieldset className="space-y-3">
+          <legend className="font-medium">Add your logo or a photo (optional)</legend>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">PNG, JPG or WebP, up to 2 MB. Used only if you approve the published page.</p>
+          <FileUpload token={token} kind="logo" label="Company logo" />
+          <FileUpload token={token} kind="headshot" label="Your headshot" />
+        </fieldset>
+
+        <fieldset className="space-y-3">
           <legend className="font-medium">Know someone who might want similar help? (optional)</legend>
           <p className="text-sm text-neutral-600 dark:text-neutral-400">We will not contact them. We only pass these details to {workspaceName}.</p>
           {referrals.map((referral, index) => (
@@ -324,5 +348,135 @@ function ClosingScreen({ token, workspaceName, onFinished }: { token: string; wo
         <button type="submit" className={buttonPrimary} disabled={pending}>{pending ? "Sending..." : "Finish"}</button>
       </form>
     </Shell>
+  );
+}
+
+type Declared = { turnstile?: { render: (el: HTMLElement, options: Record<string, unknown>) => string } };
+
+function TurnstileWidget({ siteKey, nonce, onToken }: { siteKey: string; nonce?: string; onToken: (token: string | undefined) => void }) {
+  const container = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const render = () => {
+      const api = (window as unknown as Declared).turnstile;
+      if (api && container.current && !container.current.hasChildNodes()) {
+        api.render(container.current, {
+          sitekey: siteKey,
+          callback: (value: string) => onToken(value),
+          "expired-callback": () => onToken(undefined),
+          "error-callback": () => onToken(undefined),
+        });
+      }
+    };
+    if ((window as unknown as Declared).turnstile) return render();
+    const script = document.createElement("script");
+    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+    script.async = true;
+    if (nonce) script.nonce = nonce;
+    script.onload = render;
+    document.head.appendChild(script);
+  }, [siteKey, nonce, onToken]);
+
+  return <div ref={container} aria-label="Verification" />;
+}
+
+function FormScreen({
+  token, questions, fromIndex, onBack, onDone,
+}: {
+  token: string;
+  questions: Array<{ id: string; text: string }>;
+  fromIndex: number;
+  onBack: () => void;
+  onDone: () => void;
+}) {
+  const remaining = questions.slice(fromIndex);
+  const [answers, setAnswers] = useState<string[]>(remaining.map(() => ""));
+  const [error, setError] = useState<string>();
+  const [pending, setPending] = useState(false);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (answers.some((a) => a.trim() === "")) return setError("Please answer every question, or go back to the chat.");
+    setError(undefined);
+    setPending(true);
+    const result = await post("/api/interview/form", { token, answers: remaining.map((q, i) => ({ questionId: q.id, answer: answers[i] })) });
+    setPending(false);
+    if (!result.ok) return setError(result.error);
+    onDone();
+  }
+
+  return (
+    <Shell>
+      <h1 className="text-xl font-semibold">Simple form</h1>
+      <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">Answer in your own words. Short answers are fine.</p>
+      <form onSubmit={submit} className="mt-5 space-y-5" noValidate>
+        {remaining.map((question, index) => (
+          <div key={question.id} className="space-y-1.5">
+            <label htmlFor={`q-${question.id}`} className="block font-medium">{question.text}</label>
+            <textarea
+              id={`q-${question.id}`}
+              className={`${inputClass} resize-y`}
+              rows={4}
+              maxLength={1000}
+              value={answers[index]}
+              onChange={(e) => setAnswers((current) => current.map((a, i) => (i === index ? e.target.value : a)))}
+            />
+            <p className="text-sm text-neutral-600 dark:text-neutral-400">{answers[index].length} / 1000</p>
+          </div>
+        ))}
+        <Alert message={error} />
+        <div className="flex gap-3">
+          <button type="button" className="min-h-11 rounded-md border border-neutral-300 px-5 text-base dark:border-neutral-700" onClick={onBack} disabled={pending}>Back to chat</button>
+          <button type="submit" className={buttonPrimary} disabled={pending}>{pending ? "Sending..." : "Submit answers"}</button>
+        </div>
+      </form>
+    </Shell>
+  );
+}
+
+const MAX_FILE_BYTES = 2 * 1024 * 1024;
+
+function FileUpload({ token, kind, label }: { token: string; kind: "logo" | "headshot"; label: string }) {
+  const [status, setStatus] = useState<"idle" | "uploading" | "done">("idle");
+  const [error, setError] = useState<string>();
+  const id = `file-${kind}`;
+
+  async function onChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setError(undefined);
+    // Quick feedback only: the server re-checks size, type and content.
+    if (file.size > MAX_FILE_BYTES) return setError("That file is larger than 2 MB.");
+
+    setStatus("uploading");
+    const body = new FormData();
+    body.set("token", token);
+    body.set("kind", kind);
+    body.set("file", file);
+    try {
+      const response = await fetch("/api/interview/upload", { method: "POST", body, credentials: "omit", referrerPolicy: "no-referrer" });
+      const data = (await response.json().catch(() => ({}))) as { message?: string };
+      if (!response.ok) {
+        setStatus("idle");
+        return setError(data.message ?? GENERIC_ERROR);
+      }
+      setStatus("done");
+    } catch {
+      setStatus("idle");
+      setError(GENERIC_ERROR);
+    }
+  }
+
+  return (
+    <div className="space-y-1">
+      <label htmlFor={id} className="block text-sm font-medium">{label}</label>
+      <input id={id} type="file" accept="image/png,image/jpeg,image/webp" onChange={onChange} disabled={status === "uploading"} className="block w-full text-base file:mr-3 file:min-h-11 file:rounded-md file:border file:border-neutral-300 file:bg-transparent file:px-3" />
+      <div role="status" aria-live="polite" className="text-sm">
+        {status === "uploading" && "Uploading..."}
+        {status === "done" && "Uploaded. Choose another file to replace it."}
+      </div>
+      <Alert message={error} />
+    </div>
   );
 }

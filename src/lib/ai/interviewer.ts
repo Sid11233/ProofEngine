@@ -30,6 +30,8 @@ export interface InterviewerDeps {
   ai: AiClient | null;
   /** 10 messages per minute per token. */
   messageLimiter: RateLimiter;
+  /** Monthly per-workspace AI cap. When it says no, canned lines are used and nothing is spent. */
+  canUseAi?: (access: InterviewAccess) => Promise<boolean>;
 }
 
 export interface Progress {
@@ -141,6 +143,7 @@ async function modelText(
   history: TranscriptLine[],
 ): Promise<{ text: string | null; tokens: number; called: boolean }> {
   if (!deps.ai) return { text: null, tokens: 0, called: false };
+  if (deps.canUseAi && !(await deps.canUseAi(access))) return { text: null, tokens: 0, called: false };
   try {
     const result = await deps.ai.complete({
       system: buildSystemPrompt(access.view.workspaceName),

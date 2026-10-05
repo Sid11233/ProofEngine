@@ -1,8 +1,12 @@
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { InterviewApp } from "@/components/interview/interview-app";
 import { CONSENT_TEXT } from "@/lib/interview/consent";
 import { resolveInterview } from "@/lib/interview-access";
+import { publicEnv } from "@/lib/security/env.public";
 import { loadInitialState } from "@/lib/interview/state";
+import { breakerTripped } from "@/lib/interview/server";
+import { MAINTENANCE_MESSAGE } from "@/lib/interview/breaker";
 
 // Every bad link gets the same 404, via resolveInterview(). Headers (noindex, no-referrer,
 // no-store) are set in next.config.ts for /i/*.
@@ -28,6 +32,15 @@ export default async function InterviewPage({ params }: { params: Promise<{ toke
     notFound();
   }
 
+  if (await breakerTripped()) {
+    return (
+      <main className="mx-auto max-w-md px-4 py-16">
+        <h1 className="text-xl font-semibold">Back soon</h1>
+        <p className="mt-2 text-neutral-600 dark:text-neutral-400">{MAINTENANCE_MESSAGE}</p>
+      </main>
+    );
+  }
+
   const { access } = result;
   const initial = await loadInitialState(access);
 
@@ -38,6 +51,9 @@ export default async function InterviewPage({ params }: { params: Promise<{ toke
       clientFirstName={access.view.clientFirstName}
       consentText={CONSENT_TEXT}
       consentVersion={access.view.consentVersion}
+      questions={access.view.questions}
+      turnstileSiteKey={publicEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+      nonce={(await headers()).get("x-nonce") ?? undefined}
       initial={initial}
     />
   );

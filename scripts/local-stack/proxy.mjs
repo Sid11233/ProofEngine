@@ -1,6 +1,6 @@
-// Presents GoTrue (:9999) and PostgREST (:3000) as one Supabase-style API on :54321.
+// Presents GoTrue (:9999), PostgREST (:3000) and Storage (:5000) as one Supabase-style API on :54321.
 import http from "node:http";
-const routes = [["/rest/v1", 3000], ["/auth/v1", 9999]];
+const routes = [["/rest/v1", 3000], ["/auth/v1", 9999], ["/storage/v1", 5000]];
 http.createServer((req, res) => {
   const route = routes.find(([p]) => req.url.startsWith(p));
   if (!route) { res.writeHead(404).end(); return; }
