@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { needsSession, resolveAuthRedirect } from "@/lib/auth/redirects";
+import { isSitesPath, siteSubdomain } from "@/lib/public/host";
 import { buildCsp } from "@/lib/security/csp";
 import { updateSession } from "@/lib/supabase/middleware";
 
@@ -17,6 +18,24 @@ export async function middleware(request: NextRequest) {
   requestHeaders.set("Content-Security-Policy", csp);
 
   const { pathname, search } = request.nextUrl;
+
+  // Public sites: a workspace subdomain is rewritten to /sites/<workspace>/... with no session and
+  // no cookies. The internal /sites tree is not reachable on the app host.
+  const workspace = siteSubdomain(request.headers.get("host"), process.env.PUBLIC_SITES_DOMAIN);
+  if (workspace) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/sites/${workspace}${pathname === "/" ? "" : pathname}`;
+    const rewritten = NextResponse.rewrite(url, { request: { headers: requestHeaders } });
+    // The embed widget sets its own CSP (frame-ancestors is the workspace's allowlist).
+    if (pathname !== "/embed") rewritten.headers.set("Content-Security-Policy", csp);
+    // Short shared-cache window: an unpublished page disappears from the CDN within a minute.
+    rewritten.headers.set("Cache-Control", "public, max-age=0, s-maxage=60");
+    return rewritten;
+  }
+  if (isSitesPath(pathname)) {
+    return new NextResponse("Not found", { status: 404, headers: { "Content-Security-Policy": csp } });
+  }
+
   let response = NextResponse.next({ request: { headers: requestHeaders } });
   let isAuthenticated = false;
   let mfaPending = false;

@@ -71,6 +71,15 @@ Then open **Security Advisor** in the dashboard and fix any warning (the gate is
 
 Custom domains come later: the app on `app.<yourproduct>.com`, interview links on `i.<yourproduct>.com`, and published pages on a **separate registrable domain**. Decide those names before Phase 3 and 6.
 
+### Public pages domain (Phase 6)
+
+Published case studies are served from their own domain so they never share an origin with the app.
+1. Buy or pick a domain for public pages (not the app domain), e.g. `proofengine.page`.
+2. In Vercel add the domain **and** a wildcard `*.proofengine.page` to the project (wildcards need the domain's nameservers on Vercel, or a wildcard DNS record pointing at it).
+3. Set `PUBLIC_SITES_DOMAIN=proofengine.page`. Unset means public pages are off.
+4. Set `PLATFORM_ADMIN_EMAILS` to your own email(s) to receive takedown reports and open `/app/admin/takedowns`.
+5. The CDN keeps a page for up to 60 seconds, so an unpublished or disabled page can stay visible that long. If you need it instant, purge by path from the Vercel dashboard.
+
 ## 3. Repo hygiene (GitHub)
 
 - Branch protection on `main`; require pull requests.

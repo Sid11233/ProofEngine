@@ -98,6 +98,13 @@ R = read, W = write. "Server" means service role, used only in token-authenticat
 - **Publish rules** (`enforce_publish_rules` trigger, so they hold for the owner through the API and for the service role): an approval exists for the CURRENT version and the stored version equals the content; the template is allowed (`template_allowed`); a valid, unreserved slug and a workspace address (`subdomain_slug`); every claim confirmed and every metric or quote on the page pointing at a confirmed claim of this study; the client has not declined. Changing the content of a published page puts it back to draft.
 - **Who**: `publish_case_study` and `unpublish_case_study` need admin or above. Approval is requested by editors and above.
 
+## Public pages, widget and takedowns (Phase 6.3-6.5)
+
+- **One anonymous read surface.** `anon` has `SELECT` on exactly two views, both `security_barrier` and owned by the migration role, so their `WHERE` is the guard: `public_case_studies` (published, not disabled, workspace has an address; public-safe columns only, the logo path is split out of the content, no ids of people, claims, interviews or approvals) and `public_wall_settings` (only workspaces that switched the widget on). pgTAP and `hardening.test.ts` fail if any other table, view or function becomes visible to `anon`.
+- **Separate origin.** Public pages are served from `<workspace>.<PUBLIC_SITES_DOMAIN>`: middleware rewrites those hosts to the internal `/sites/...` tree with no session and no cookies, and answers 404 for `/sites/*` on the app host, so published content never shares an origin with the signed-in app. App routes (`/app`, `/api`, `/i`, `/approve`) are 404 on a site host. Public pages are read with the anon key; only the logo redirect uses the service role, for a signed Storage URL, and only after the view confirms the page is public right now.
+- **Widget** (`/embed`): script-free HTML built with a tested `esc()`; its own CSP `default-src 'none'` and `frame-ancestors` = the admin's allowlist of https origins (validated in the app and by a database constraint). Off until an admin enables it with at least one origin. `save_wall_settings` is admin+ and audit-logged.
+- **Reports**: `create_takedown_request` (service role only) inserts for a published page; a report never removes anything by itself. Workspace owners/admins and `PLATFORM_ADMIN_EMAILS` are emailed in plain text. A platform admin (verified email on that list, recent sign-in) reviews at `/app/admin/takedowns` and can **disable** a page: it leaves the public view at once, is unpublished, and the publish trigger refuses to publish it again for any role until the platform restores it. `disabled_at` is not client-writable.
+
 ## Running the tests
 
 ```bash

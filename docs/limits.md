@@ -24,6 +24,16 @@ Every limit below is enforced on the server (in the database or in code), never 
 | Request body | 16 KB for JSON, 2 MB + overhead for uploads, read with a hard cap | `guardInterviewRequest` |
 | Model output | max 300 tokens, validated before display | `src/lib/ai` |
 
+## Approval, public pages and reports (Phase 6)
+
+| Control | Value | Where |
+| --- | --- | --- |
+| Approval links | single use, 14 days, tied to one version; 30 lookups per minute per IP, 60 per token | `case_study_approval_tokens`, `createApprovalResolver` |
+| Approval decisions | 10 per 10 minutes per IP | `submitDecision` |
+| Public page views | 120 per minute per IP; CDN cache `s-maxage=60`, so an unpublished page is gone within a minute | `/sites/[workspace]/[slug]`, middleware |
+| Wall of proof | 120 per minute per IP; 1 to 24 stories; up to 10 allowed https origins | `/embed`, `wall_settings` |
+| Reports | 5 per hour per IP, 20 per day per page, 20 open per page, one open report per contact and page; Turnstile when configured | `handleReport`, `create_takedown_request` |
+
 ## Uploads
 
 | Control | Value |
