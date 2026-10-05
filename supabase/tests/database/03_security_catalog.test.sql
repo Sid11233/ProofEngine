@@ -16,8 +16,8 @@ select is(
   (select array_agg(c.relname::text order by c.relname) from pg_class c join pg_namespace n on n.oid = c.relnamespace
    where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity
      and not exists (select 1 from pg_policy p where p.polrelid = c.oid)),
-  array['ai_daily_usage'],
-  'the only table with RLS and no policy is the server-only ai_daily_usage');
+  array['ai_daily_usage', 'stripe_events'],
+  'the only tables with RLS and no policy are the server-only ai_daily_usage and stripe_events');
 
 select is(
   (select array_agg(distinct polrelid::regclass::text order by polrelid::regclass::text) from pg_policy
