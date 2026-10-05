@@ -1,5 +1,6 @@
 import { isIP } from "node:net";
 import { z } from "zod";
+import { plainLine } from "@/lib/validation/text";
 
 /** https only, no credentials, a real hostname (not an IP or localhost). Stored normalised. */
 const websiteSchema = z
@@ -36,11 +37,11 @@ export const businessTypeSchema = z.enum(["agency", "saas"]);
 export const onboardingSchema = z
   .object({
     type: businessTypeSchema,
-    name: z.string().trim().min(1, "Enter your business name").max(100, "Keep it under 100 characters"),
-    niche: z.string().trim().min(1, "Tell us your niche").max(100, "Keep it under 100 characters"),
-    audience: z.string().trim().min(1, "Tell us who you serve").max(200, "Keep it under 200 characters"),
+    name: plainLine(100, { min: 1 }, "Enter your business name"),
+    niche: plainLine(100, { min: 1 }, "Tell us your niche"),
+    audience: plainLine(200, { min: 1 }, "Tell us who you serve"),
     website: websiteSchema,
-    description: z.string().trim().min(1, "Add a one-line description").max(300, "Keep it under 300 characters"),
+    description: plainLine(300, { min: 1 }, "Add a one-line description"),
   })
   .strict();
 

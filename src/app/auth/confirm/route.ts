@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isIpAttemptAllowed } from "@/lib/auth/rate-limits";
 import { otpTypeSchema } from "@/lib/auth/schemas";
+import { getClientIp } from "@/lib/security/client-ip";
 import { safeNextPath } from "@/lib/auth/redirects";
 import { publicEnv } from "@/lib/security/env.public";
 import { createClient } from "@/lib/supabase/server";
@@ -13,6 +15,9 @@ export async function GET(request: NextRequest) {
   const fallback = type.success && type.data === "recovery" ? "/reset-password" : "/app/dashboard";
   const next = safeNextPath(searchParams.get("next"), fallback);
 
+  if (!(await isIpAttemptAllowed("callback", getClientIp(request.headers)))) {
+    return NextResponse.redirect(new URL("/login?error=rate", base));
+  }
   if (tokenHash && tokenHash.length <= 512 && type.success) {
     const supabase = await createClient();
     const { error } = await supabase.auth.verifyOtp({ type: type.data, token_hash: tokenHash });

@@ -691,21 +691,26 @@ describe("workspace roles", () => {
 describe("case study integrity", () => {
   let draftId: string;
 
-  it("an editor can create a draft but not an approved or published case study", async () => {
-    const draft = await D.client
+  beforeAll(async () => {
+    // Case studies are created by the server (create_generated_case_study); no client can insert one.
+    const draft = await admin
       .from("case_studies")
       .insert({ workspace_id: tenantA.ws, interview_id: tenantA.interviewId, content: {}, slug: slug() })
       .select()
       .single();
-    expect(draft.error, "case_studies: editor cannot create a draft").toBeNull();
     draftId = String(draft.data?.id);
+  });
 
-    for (const status of ["approved", "published"]) {
-      const res = await D.client
-        .from("case_studies")
-        .insert({ workspace_id: tenantA.ws, content: {}, slug: slug(), status })
-        .select();
-      expect(wasBlocked(res), `case_studies: editor created a ${status} case study`).toBe(true);
+  it("nobody can create a case study, version or claim directly, whatever the status or role", async () => {
+    for (const [who, user] of [["owner", A], ["admin", E], ["editor", D]] as const) {
+      for (const status of ["draft", "approved", "published"]) {
+        const res = await user.client.from("case_studies").insert({ workspace_id: tenantA.ws, content: {}, slug: slug(), status }).select();
+        expect(wasBlocked(res), `case_studies: ${who} inserted a ${status} case study directly`).toBe(true);
+      }
+      const version = await user.client.from("case_study_versions").insert({ case_study_id: tenantA.caseStudyId, workspace_id: tenantA.ws, version: 50, content: {}, created_by: user.id }).select();
+      expect(wasBlocked(version), `case_study_versions: ${who} appended a version directly`).toBe(true);
+      const claim = await user.client.from("claims").insert({ case_study_id: tenantA.caseStudyId, workspace_id: tenantA.ws, text: "x", source_message_id: tenantA.messageId, source_quote: CLIENT_QUOTE }).select();
+      expect(wasBlocked(claim), `claims: ${who} inserted a claim directly`).toBe(true);
     }
   });
 
@@ -723,13 +728,11 @@ describe("case study integrity", () => {
     expect(wasBlocked(res), "case_studies: admin published without the Phase 6.2 guard").toBe(true);
   });
 
-  it("a claim needs a verbatim client quote and cannot be pre-confirmed", async () => {
+  it("the database rejects a claim without a verbatim client quote, for every role including the server", async () => {
     const base = { case_study_id: tenantA.caseStudyId, workspace_id: tenantA.ws, text: "Costs fell", source_message_id: tenantA.messageId };
-    const invented = await D.client.from("claims").insert({ ...base, source_quote: "cut costs by 90 percent" }).select();
+    const invented = await admin.from("claims").insert({ ...base, source_quote: "cut costs by 90 percent" }).select();
     expect(invented.error, "claims: an invented number was accepted").not.toBeNull();
-    const confirmed = await D.client.from("claims").insert({ ...base, source_quote: CLIENT_QUOTE, client_confirmed: true }).select();
-    expect(wasBlocked(confirmed), "claims: editor created a pre-confirmed claim").toBe(true);
-    const valid = await D.client.from("claims").insert({ ...base, source_quote: CLIENT_QUOTE }).select();
+    const valid = await admin.from("claims").insert({ ...base, source_quote: CLIENT_QUOTE }).select();
     expect(rowsOf(valid), "claims: valid claim rejected").toHaveLength(1);
   });
 
@@ -737,35 +740,28 @@ describe("case study integrity", () => {
     const res = await D.client.from("claims").update({ client_confirmed: true }).eq("case_study_id", tenantA.caseStudyId).select();
     expect(wasBlocked(res), "claims: editor set client_confirmed").toBe(true);
   });
-
-  it("versions: an editor can append one as themselves, not as someone else", async () => {
-    const own = await D.client
-      .from("case_study_versions")
-      .insert({ case_study_id: tenantA.caseStudyId, workspace_id: tenantA.ws, version: 3, content: {}, created_by: D.id })
-      .select();
-    expect(rowsOf(own), "case_study_versions: editor cannot append").toHaveLength(1);
-    const forged = await D.client
-      .from("case_study_versions")
-      .insert({ case_study_id: tenantA.caseStudyId, workspace_id: tenantA.ws, version: 4, content: {}, created_by: A.id })
-      .select();
-    expect(wasBlocked(forged), "case_study_versions: editor forged created_by").toBe(true);
-  });
 });
 
 describe("audit log", () => {
-  it("only editor+ can write through write_audit_log, and always as themselves", async () => {
-    const viewer = await C.client.rpc("write_audit_log", { ws: tenantA.ws, action: "viewer.spam" });
+  it("only editor+ can write through write_audit_log, only known UI actions, and always as themselves", async () => {
+    const viewer = await C.client.rpc("write_audit_log", { ws: tenantA.ws, action: "case_study.template" });
     expect(viewer.error, "audit_log: viewer can write").not.toBeNull();
 
     const bad = await D.client.rpc("write_audit_log", { ws: tenantA.ws, action: "Bad Action!" });
     expect(bad.error, "audit_log: free-form action accepted").not.toBeNull();
 
-    const outsider = await B.client.rpc("write_audit_log", { ws: tenantA.ws, action: "outsider.spam" });
+    const outsider = await B.client.rpc("write_audit_log", { ws: tenantA.ws, action: "case_study.template" });
     expect(outsider.error, "audit_log: another tenant can write").not.toBeNull();
 
-    const ok = await D.client.rpc("write_audit_log", { ws: tenantA.ws, action: "token.revoke", target: "request" });
+    // An editor must not be able to fabricate security-relevant history.
+    for (const action of ["token.revoke", "member.remove", "member.role_change", "invite.accept", "case_study.publish", "interview.complete"]) {
+      const forged = await D.client.rpc("write_audit_log", { ws: tenantA.ws, action, target: "x" });
+      expect(forged.error, `audit_log: editor forged ${action}`).not.toBeNull();
+    }
+
+    const ok = await D.client.rpc("write_audit_log", { ws: tenantA.ws, action: "case_study.template", target: "request" });
     expect(ok.error, "audit_log: editor cannot write").toBeNull();
-    const { data } = await admin.from("audit_log").select("actor").eq("workspace_id", tenantA.ws).eq("action", "token.revoke");
+    const { data } = await admin.from("audit_log").select("actor").eq("workspace_id", tenantA.ws).eq("action", "case_study.template");
     expect(data?.[0]?.actor, "audit_log: actor was not the caller").toBe(D.id);
   });
 });

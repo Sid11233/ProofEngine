@@ -71,6 +71,14 @@ Validated by `src/lib/security/env-schema.ts`, which `next.config.ts` runs on ev
 - Editing: autosave and review-save both go through `prepareEdit()` (schema, claim linkage, edited-claim set computed on the server). Approval must call `snapshot_case_study()` first. Logo storage uses the service role only after auth, role check and re-encoding (`src/lib/uploads/server.ts`).
 - Anything served by a secret link (`/i`, `/preview`) resolves through its own `*-access-core` resolver and gets noindex, no-referrer and no-store headers in `next.config.ts`.
 
+## Security audit rules (see docs/security-audit.md)
+
+- Session cookies are HttpOnly (`hardenCookie`); never add a browser-side Supabase client. Password and other account-takeover actions need `checkRecentAuth()`.
+- Case studies, versions and claims have **no direct client INSERT**; add new write paths as functions. `write_audit_log` is an allowlist: security events are written only by the function that performs the action.
+- Every new function: `set search_path = ''` with schema-qualified names, `revoke ... from public, anon`, and an entry in the RPC allowlist in `supabase/tests/database/03_security_catalog.test.sql` and `hardening.test.ts` (those tests fail on an unreviewed function, table without RLS, or anon access).
+- Client IP only through `getClientIp()` (it ignores forwarded headers unless a trusted proxy is declared). Single-line user text goes through `plainLine()`.
+- Pin new GitHub Actions to commit SHAs.
+
 ## Commands
 
 `npm run dev` · `npm run build` · `npm run lint` · `npm run typecheck` · `npm test`

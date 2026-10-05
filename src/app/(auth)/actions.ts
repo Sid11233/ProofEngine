@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { hasPasswordLogin } from "@/lib/auth/recent-auth";
+import { checkRecentAuth, hasPasswordLogin } from "@/lib/auth/recent-auth";
 import { needsSecondFactor, verifyTotpCode } from "@/lib/auth/mfa";
 import {
   forgotPasswordSchema,
@@ -113,6 +113,15 @@ export async function resetPasswordAction(_prev: FormState, formData: FormData):
   const user = await requireUser();
   if (!(await isAuthAttemptAllowed("reset", { ip: await callerIp(), subject: user.id }))) {
     return { ok: false, message: RATE_LIMITED_MESSAGE };
+  }
+
+  // Changing the password is the most valuable thing a stolen session could do (it locks the
+  // owner out and makes the takeover permanent), so a live session is not enough: the user must
+  // have just proved who they are, which opening a fresh reset link or signing in does.
+  const reauth = await checkRecentAuth();
+  if (reauth === "mfa") redirect("/login/mfa?next=/reset-password");
+  if (reauth) {
+    return { ok: false, message: "For your security this session is too old to change the password. Request a new reset link, or sign in again." };
   }
 
   const supabase = await createClient();

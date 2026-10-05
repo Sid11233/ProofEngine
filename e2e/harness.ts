@@ -24,6 +24,8 @@ export async function startStack(extraEnv: Record<string, string> = {}): Promise
       NEXT_PUBLIC_SUPABASE_ANON_KEY: cfg.anonKey,
       SUPABASE_SERVICE_ROLE_KEY: cfg.serviceKey,
       NEXT_PUBLIC_APP_URL: BASE,
+      // The tests give each browser its own client IP through this header.
+      TRUST_PROXY_HEADERS: "1",
       ...extraEnv,
     },
     stdio: "ignore",

@@ -70,11 +70,14 @@ export async function isAuthAttemptAllowed(
 
 const ipOnly = new Map<string, RateLimiter>();
 
+// One-time-code exchanges happen once per sign-in, so a shared office network needs more headroom.
+const IP_ONLY_OVERRIDES: Record<string, Limit> = { callback: { limit: 200, windowSec: 60 * 60 } };
+
 /** IP-only check, for flows that have no email yet (e.g. starting Google sign-in). */
 export async function isIpAttemptAllowed(action: string, ip: string): Promise<boolean> {
   let limiter = ipOnly.get(action);
   if (!limiter) {
-    limiter = createRateLimiter({ prefix: `auth:${action}:ip`, ...IP_LIMIT });
+    limiter = createRateLimiter({ prefix: `auth:${action}:ip`, ...(IP_ONLY_OVERRIDES[action] ?? IP_LIMIT) });
     ipOnly.set(action, limiter);
   }
   return (await limiter.limit(sha256Hex(ip))).success;

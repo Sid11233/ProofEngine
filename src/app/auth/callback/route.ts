@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isIpAttemptAllowed } from "@/lib/auth/rate-limits";
 import { safeNextPath } from "@/lib/auth/redirects";
+import { getClientIp } from "@/lib/security/client-ip";
 import { publicEnv } from "@/lib/security/env.public";
 import { createClient } from "@/lib/supabase/server";
 
@@ -10,6 +12,9 @@ export async function GET(request: NextRequest) {
   const next = safeNextPath(searchParams.get("next"));
   const base = publicEnv.NEXT_PUBLIC_APP_URL;
 
+  if (!(await isIpAttemptAllowed("callback", getClientIp(request.headers)))) {
+    return NextResponse.redirect(new URL("/login?error=rate", base));
+  }
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);

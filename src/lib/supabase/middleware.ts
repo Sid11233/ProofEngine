@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { publicEnv } from "@/lib/security/env.public";
+import { hardenCookie } from "./cookie-options";
 
 /**
  * Refreshes the Supabase session for a request and reports who the user is.
@@ -21,7 +22,7 @@ export async function updateSession(request: NextRequest, requestHeaders: Header
           requestHeaders.set("cookie", request.headers.get("cookie") ?? "");
           response = NextResponse.next({ request: { headers: requestHeaders } });
           for (const { name, value, options } of cookiesToSet) {
-            response.cookies.set(name, value, options);
+            response.cookies.set(name, value, hardenCookie(options));
           }
         },
       },
