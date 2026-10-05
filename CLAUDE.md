@@ -56,6 +56,13 @@ Validated by `src/lib/security/env-schema.ts`, which `next.config.ts` runs on ev
 - Rate limits: `isAuthAttemptAllowed(action, ...)` in `src/lib/auth/rate-limits.ts`; add new actions there. Upstash when configured, in-memory fallback otherwise.
 - Membership changes only through the SECURITY DEFINER functions (they audit-log). Never re-grant direct writes on `workspace_members`.
 
+## Interview and AI
+
+- Interview endpoints start with `guardInterviewRequest()` (bounded body, then `resolveInterview()`, then strict zod). Never read an interview, request or token any other way.
+- AI calls only go through `src/lib/ai/interviewer.ts`. Model output must pass `validateModelText`; never show raw model text. Never send a token, email, name or id to the model.
+- Interview state changes only through the service-role-only SQL functions; add new ones the same way and cover them in `supabase/tests`.
+- Local database without `supabase start` (e.g. restricted Codespaces): `scripts/local-stack/up.sh`, then `source scripts/local-stack/env.sh`.
+
 ## Commands
 
 `npm run dev` · `npm run build` · `npm run lint` · `npm run typecheck` · `npm test`

@@ -35,7 +35,6 @@ R = read, W = write. "Server" means service role, used only in token-authenticat
 
 ## Left for later phases (deliberately)
 
-- **Interview state (3.3/3.4):** `started`/`completed` transitions and interview rows are written by the server with the service role; add those functions with the interview endpoints.
 - **Plan limits (8.3):** `plan_interview_limit()` holds placeholder numbers (free 3, pro 100, team 1000 per month) until plans are decided.
 - **Publishing (6.2):** the trigger that requires an approval for the current version, an allowed template, a valid slug and confirmed claims. Until then `published` is not settable from the client.
 - **Seeding:** system question flows (3.4) and templates (5.2).
@@ -54,6 +53,14 @@ R = read, W = write. "Server" means service role, used only in token-authenticat
 - Reminders: only for `sent` requests, max 3, at least 48 hours apart. Links live 30 days (the database caps it at 90).
 - `resolveInterview()` (`src/lib/interview-access.ts`) is the only way an interview page or endpoint learns who is calling. It rate limits by IP (30/min) and token (60/min), compares hashes in constant time, and returns the same "not found" for unknown, malformed, expired, revoked and completed links.
 - Interview pages and `/api/interview/*` send `X-Robots-Tag: noindex`, `Referrer-Policy: no-referrer` and `Cache-Control: no-store`.
+
+## Interviews (Phase 3.3-3.4)
+
+- Interview rows, transcripts, usage counters and the question position are written only by the interview endpoints (service role) through `start_interview`, `record_client_message`, `record_bot_message` and `finish_interview`. These are executable by `service_role` only; signed-in users and anonymous clients cannot call them (tested).
+- The database enforces the caps under a row lock: 40 messages and 100k tokens per interview, one reply in flight at a time (`awaiting_since`, 60 s stale timeout), no answers after the last question, and finishing only after all questions were answered.
+- **The server runs the interview, the model only phrases it.** Questions come from `question_flows`; the position, probe budget (max 2 per question) and the exact wording of every question are server-side. The model may write one short acknowledgement or one follow-up question, which `validateModelText` checks (no links, emails, markup, instructions-talk, or numbers the client did not say) and replaces with a canned line on any doubt. The client's words are stored exactly as typed and shown only as text.
+- Client text reaches the model only inside a single `<client_answer>` wrapper after tag-stripping. The model is never sent the token, the client's email or name, or any id.
+- Without `ANTHROPIC_API_KEY` (or if the provider fails) the interview runs on canned lines instead of failing.
 
 ## Running the tests
 

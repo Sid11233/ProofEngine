@@ -1,12 +1,15 @@
 import { notFound } from "next/navigation";
+import { InterviewApp } from "@/components/interview/interview-app";
+import { CONSENT_TEXT } from "@/lib/interview/consent";
 import { resolveInterview } from "@/lib/interview-access";
+import { loadInitialState } from "@/lib/interview/state";
 
-// The interview UI arrives in Phase 3.3. This page already goes through the one
-// door (resolveInterview) so every bad link gets the same 404.
+// Every bad link gets the same 404, via resolveInterview(). Headers (noindex, no-referrer,
+// no-store) are set in next.config.ts for /i/*.
 export const metadata = {
   title: "Your interview",
   robots: { index: false, follow: false },
-  referrer: "no-referrer",
+  referrer: "no-referrer" as const,
 };
 
 export default async function InterviewPage({ params }: { params: Promise<{ token: string }> }) {
@@ -25,11 +28,17 @@ export default async function InterviewPage({ params }: { params: Promise<{ toke
     notFound();
   }
 
-  const { view } = result.access;
+  const { access } = result;
+  const initial = await loadInitialState(access);
+
   return (
-    <main className="mx-auto max-w-md px-4 py-16">
-      <h1 className="text-xl font-semibold">Hi {view.clientFirstName}</h1>
-      <p className="mt-2 text-neutral-600 dark:text-neutral-400">{view.workspaceName} would like to hear about your experience.</p>
-    </main>
+    <InterviewApp
+      token={token}
+      workspaceName={access.view.workspaceName}
+      clientFirstName={access.view.clientFirstName}
+      consentText={CONSENT_TEXT}
+      consentVersion={access.view.consentVersion}
+      initial={initial}
+    />
   );
 }
