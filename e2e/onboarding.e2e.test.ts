@@ -49,7 +49,7 @@ describe("signup and onboarding in a real browser", () => {
 
     await page.waitForURL(`${BASE}/app/dashboard`);
     await page.getByRole("heading", { name: "Dashboard" }).waitFor();
-    await page.getByText("Admin · owner").waitFor();
+    await page.getByText("Admin · free plan").waitFor();
 
     // The reserved name "Admin" must not have become the subdomain.
     const { data: user } = await stack.admin.from("profiles").select("id").eq("email", email).single();
