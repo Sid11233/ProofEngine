@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
+import { GenerateButton } from "@/components/case-study/generate-button";
 import { RequestActions } from "@/components/requests/request-actions";
 import { requestIdSchema } from "@/lib/requests/schemas";
 import { getRequest } from "@/lib/requests/service";
@@ -20,6 +22,13 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   if (!request) notFound();
   const workspace = await getCurrentWorkspace();
 
+  // A finished interview can be turned into a case study (once).
+  const supabase = await createClient();
+  const { data: interview } = await supabase.from("interviews").select("id, status").eq("request_id", request.id).maybeSingle();
+  const { data: existing } = interview
+    ? await supabase.from("case_studies").select("id").eq("interview_id", interview.id).maybeSingle()
+    : { data: null };
+
   return (
     <div className="max-w-xl space-y-6">
       <div>
@@ -40,6 +49,18 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
           </div>
         ))}
       </dl>
+      {interview?.status === "completed" && (
+        <section aria-labelledby="cs-heading" className="space-y-3 rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
+          <h2 id="cs-heading" className="font-semibold">Case study</h2>
+          {existing ? (
+            <Link href={`/app/case-studies/${existing.id}/review`} className="inline-flex min-h-11 items-center underline underline-offset-2">Open the case study</Link>
+          ) : workspace?.role !== "viewer" ? (
+            <GenerateButton interviewId={String(interview.id)} />
+          ) : (
+            <p className="text-sm text-neutral-600 dark:text-neutral-400">Only editors and above can generate a case study.</p>
+          )}
+        </section>
+      )}
       <RequestActions
         requestId={request.id}
         status={request.status}

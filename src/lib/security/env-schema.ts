@@ -41,6 +41,7 @@ export const serverEnvSchema = z.object({
   // Phase 3: AI interviewer
   ANTHROPIC_API_KEY: optional(z.string().min(1)),
   INTERVIEWER_MODEL: optional(z.string().min(1)),
+  GENERATOR_MODEL: optional(z.string().min(1)),
   TURNSTILE_SECRET_KEY: optional(z.string().min(1)),
 
   // Abuse and spend limits (defaults in src/lib/limits.ts, documented in docs/limits.md)

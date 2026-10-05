@@ -2,14 +2,13 @@ import "server-only";
 import { createAnthropicClient } from "@/lib/ai/client";
 import type { InterviewerDeps } from "@/lib/ai/interviewer";
 import { getEmailSender } from "@/lib/email/resend";
-import { aiMessageLimitFor, resolveLimits } from "@/lib/limits";
+import { aiMessageLimitFor } from "@/lib/limits";
+import { limits } from "@/lib/limits.server";
 import { createRateLimiter, type RateLimiter } from "@/lib/security/rate-limit";
 import { serverEnv } from "@/lib/security/env.server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseStore, type UploadStore } from "@/lib/uploads/store";
 import { isBreakerTripped } from "./breaker";
-
-export const limits = resolveLimits(serverEnv);
 
 interface Wiring {
   deps: InterviewerDeps;
