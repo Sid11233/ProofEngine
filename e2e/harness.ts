@@ -55,6 +55,13 @@ export async function stopStack(stack: Stack | undefined) {
   } catch {
     stack.server.kill("SIGTERM");
   }
+  // The next test file starts its own server on the same port with its own environment. If this one is
+  // still listening, that file would silently talk to it, so wait until the port is really free.
+  for (let i = 0; i < 40; i++) {
+    const alive = await fetch(BASE, { redirect: "manual", signal: AbortSignal.timeout(1000) }).then(() => true, () => false);
+    if (!alive) return;
+    await new Promise((r) => setTimeout(r, 250));
+  }
 }
 
 let ipCounter = 0;
