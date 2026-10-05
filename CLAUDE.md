@@ -29,7 +29,7 @@ TypeScript strict, small functions, no `any`, server code in `/src/lib` and rout
 
 ## Layout
 
-- `src/app` routes; `src/middleware.ts` sets the per-request CSP nonce
+- `src/app` routes; `src/proxy.ts` (Next 16 "proxy", formerly middleware) sets the per-request CSP nonce and routes public site hosts
 - `src/lib/supabase` server, browser and middleware clients (anon key + user JWT, so RLS applies)
 - `src/lib/security` env validation, CSP builder; rate limit, token utils and sanitizers land here in later phases
 - `src/lib/ai` Claude API wrapper and prompts

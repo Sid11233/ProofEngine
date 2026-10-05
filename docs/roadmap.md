@@ -12,3 +12,10 @@ Do this as its own PR, before Phase 7. Nothing else ships in it.
 - Ask before adding or changing any dependency, per CLAUDE.md.
 - Gate: lint, typecheck, unit, isolation, pgTAP, build and the full e2e suite pass. Re-check CSP nonce handling, middleware, the `next.config.ts` headers (`/i`, `/preview`, `/approve`) and server action behaviour, since these are the likeliest to change.
 - Finish with `npm audit` and `npm outdated` and record the result.
+
+### Result (done)
+
+- Next 15.5.27 to 16.3.8 (Turbopack builds), React and React DOM 19.1.0 to 19.3.0, `eslint-config-next` 16.3.8. ESLint 9, TypeScript 5.9 and `@types/node` 24 were kept on purpose (ESLint 10, TypeScript 7 and `@types/node` 26 are available; take them in a separate PR).
+- `src/middleware.ts` became `src/proxy.ts` (Next 16 renamed it); behaviour is unchanged. `eslint.config.mjs` uses the native flat configs instead of `FlatCompat`. Two new React lint rules (no ref reads during render, no setState in an effect) required small fixes in `case-study-editor.tsx` and `reauth-prompt.tsx`.
+- `npm audit` still reports 5 high findings, all dev-only, in the lint toolchain (`braces`, `micromatch`, `fast-glob`, `@next/eslint-plugin-next`, `eslint-config-next`). The advisory covers every published `braces` version, so there is no patched release to move to; the only "fix" npm offers is downgrading to Next 14. They do not ship to production. Re-check when `braces` publishes a fix.
+- Gate: lint, typecheck, 427 unit, 305 isolation, pgTAP, build and every e2e file pass.
