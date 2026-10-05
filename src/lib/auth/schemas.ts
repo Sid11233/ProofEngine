@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { plainLine } from "@/lib/validation/text";
 
 // Every schema is strict: unknown fields are rejected, never silently kept.
 
@@ -23,7 +24,7 @@ export const loginSchema = z
 
 export const signupSchema = z
   .object({
-    fullName: z.string().trim().min(1, "Enter your name").max(100, "Name is too long"),
+    fullName: plainLine(100, { min: 1 }, "Enter your name"),
     email: emailSchema,
     password: newPasswordSchema,
     next: nextSchema,

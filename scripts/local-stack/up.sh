@@ -11,7 +11,7 @@ for i in $(seq 1 40); do docker exec pe-pg pg_isready -U postgres -h 127.0.0.1 >
 sleep 3
 docker exec pe-pg psql -U supabase_admin -h 127.0.0.1 -d postgres -q -c "alter role authenticator with password 'postgres'" -c "alter role supabase_auth_admin with password 'postgres'"
 docker exec pe-pg psql -U supabase_admin -h 127.0.0.1 -d postgres -q -c "alter role supabase_storage_admin with password 'postgres'" 2>/dev/null || true
-docker exec pe-pg psql -U postgres -h 127.0.0.1 -q -c "create extension if not exists pgtap"
+docker exec pe-pg psql -U postgres -h 127.0.0.1 -q -c "create extension if not exists pgtap with schema extensions"
 docker run -d --name pe-auth --network host \
  -e GOTRUE_API_HOST=127.0.0.1 -e GOTRUE_API_PORT=9999 -e API_EXTERNAL_URL=http://127.0.0.1:54321 \
  -e GOTRUE_DB_DRIVER=postgres -e GOTRUE_DB_DATABASE_URL="postgres://supabase_auth_admin:postgres@127.0.0.1:54399/postgres" \

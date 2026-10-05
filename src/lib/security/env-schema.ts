@@ -44,6 +44,9 @@ export const serverEnvSchema = z.object({
   GENERATOR_MODEL: optional(z.string().min(1)),
   TURNSTILE_SECRET_KEY: optional(z.string().min(1)),
 
+  // "1" when a proxy you control overwrites X-Forwarded-For (Vercel does this automatically)
+  TRUST_PROXY_HEADERS: optional(z.enum(["0", "1"])),
+
   // Abuse and spend limits (defaults in src/lib/limits.ts, documented in docs/limits.md)
   AI_MESSAGES_FREE: optional(z.coerce.number().int().min(0)),
   AI_MESSAGES_PRO: optional(z.coerce.number().int().min(0)),

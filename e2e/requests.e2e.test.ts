@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { randomBytes } from "node:crypto";
 import { BASE, createUser, newPage, signIn, startStack, stopStack, watchConsole, type Stack } from "./harness";
 
 let stack: Stack;
@@ -91,7 +92,7 @@ describe("requests and interview links in a real browser", () => {
     const wsA = await proWorkspaceOf(ownerA.id);
     const { data: made } = await stack.admin.from("proof_requests").insert({
       workspace_id: wsA, created_by: ownerA.id, client_name: "Private Client", client_email: "p@example.test", flow_type: "agency",
-      token_hash: "a".repeat(64), expires_at: new Date(Date.now() + 86_400_000).toISOString(),
+      token_hash: randomBytes(32).toString("hex"), expires_at: new Date(Date.now() + 86_400_000).toISOString(),
     }).select("id").single();
 
     const other = await createUser(stack.admin, "req-b");

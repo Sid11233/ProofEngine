@@ -1,5 +1,8 @@
 name: CI
 
+# Third-party actions are pinned to commit SHAs (a tag can be moved), and the Supabase CLI to an exact
+# version, so a compromised upstream release cannot change what CI runs. Dependabot updates both.
+
 on:
   pull_request:
   push:
@@ -13,8 +16,8 @@ jobs:
     name: Lint, types, unit tests, build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: npm
@@ -34,15 +37,15 @@ jobs:
     name: RLS isolation and schema tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: npm
       - run: npm ci
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
         with:
-          version: latest
+          version: 2.119.0
       # Local Supabase: applies every migration in supabase/migrations.
       - name: Start local Supabase
         run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,mailpit,postgres-meta,supavisor

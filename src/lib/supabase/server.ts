@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient as createJsClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { publicEnv } from "@/lib/security/env.public";
+import { hardenCookie } from "./cookie-options";
 
 /**
  * Supabase client acting as the signed-in user (anon key + their JWT), so RLS
@@ -20,7 +21,7 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             for (const { name, value, options } of cookiesToSet) {
-              cookieStore.set(name, value, options);
+              cookieStore.set(name, value, hardenCookie(options));
             }
           } catch {
             // Called from a Server Component, where cookies are read-only.

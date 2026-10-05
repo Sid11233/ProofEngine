@@ -53,6 +53,10 @@ Every limit below is enforced on the server (in the database or in code), never 
 | Invitations | 20 per hour per user |
 | Recent sign-in for sensitive actions | 10 minutes (**env** `REAUTH_MAX_AGE_SECONDS`) |
 
+## Client address
+
+Forwarded IP headers (`X-Forwarded-For`, `X-Real-IP`) are believed only on Vercel, in development, or when `TRUST_PROXY_HEADERS=1`. Anywhere else in production they are ignored (every client then shares one bucket), because otherwise a client could rotate the header to dodge every per-IP limit.
+
 ## Rate limiting backend
 
 Limits use Upstash Redis when `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are set. Without them they are counted per server instance, which slows an attacker down but does not stop one on a multi-instance deployment. **Configure Upstash before launch.**

@@ -2,7 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { headers } from "next/headers";
+import { isAuthAttemptAllowed, RATE_LIMITED_MESSAGE } from "@/lib/auth/rate-limits";
 import { requireUser } from "@/lib/auth/session";
+import { getClientIp } from "@/lib/security/client-ip";
 import { loadCaseStudy } from "@/lib/case-study/load";
 import { loadTemplate } from "@/lib/templates/load";
 import { createClient } from "@/lib/supabase/server";
@@ -19,9 +22,10 @@ export interface SelectTemplateResult {
  * can be selected to preview with a watermark; publishing them is blocked by the database.
  */
 export async function selectTemplateAction(studyId: string, templateId: string): Promise<SelectTemplateResult> {
-  await requireUser();
+  const user = await requireUser();
   const workspace = await getCurrentWorkspace();
   if (!workspace || workspace.role === "viewer") return { ok: false, message: "You do not have permission to do that." };
+  if (!(await isAuthAttemptAllowed("case-study-edit", { ip: getClientIp(await headers()), subject: user.id }))) return { ok: false, message: RATE_LIMITED_MESSAGE };
 
   const ids = z.object({ studyId: z.uuid(), templateId: z.uuid() }).strict().safeParse({ studyId, templateId });
   if (!ids.success) return { ok: false, message: "That template could not be used." };

@@ -22,9 +22,9 @@ const content = (headline: string, extra: Record<string, unknown> = {}) => ({
 });
 
 /** A case study with version 1 created `ageSeconds` ago. */
-async function study({ ageSeconds = 0, status = "draft", workspace = ws }: { ageSeconds?: number; status?: string; workspace?: string } = {}) {
+async function study({ ageSeconds = 0, status = "draft", workspace = ws, interviewId }: { ageSeconds?: number; status?: string; workspace?: string; interviewId?: string } = {}) {
   const base = content("Original");
-  const { data } = await admin.from("case_studies").insert({ workspace_id: workspace, content: base, status }).select("id").single();
+  const { data } = await admin.from("case_studies").insert({ workspace_id: workspace, content: base, status, interview_id: interviewId }).select("id").single();
   const id = String(data?.id);
   await admin.from("case_study_versions").insert({
     case_study_id: id, workspace_id: workspace, version: 1, content: base, created_at: new Date(Date.now() - ageSeconds * 1000).toISOString(),
@@ -124,8 +124,9 @@ describe("autosave_case_study", () => {
   });
 
   it("sets edited flags on claims and revokes their confirmation, and clears them on revert", async () => {
-    const id = await study({ ageSeconds: 600 });
     const { data: interview } = await admin.from("interviews").insert({ request_id: (await admin.from("proof_requests").insert({ workspace_id: ws, client_name: "C", client_email: "c@e.test", flow_type: "agency", token_hash: hex64(), expires_at: new Date(Date.now() + 86_400_000).toISOString() }).select("id").single()).data?.id, workspace_id: ws, status: "completed", consent_given: true }).select("id").single();
+    // The case study must belong to the interview the claim quotes.
+    const id = await study({ ageSeconds: 600, interviewId: String(interview?.id) });
     const { data: msg } = await admin.from("interview_messages").insert({ interview_id: interview?.id, workspace_id: ws, role: "client", content: "We cut time by 40 percent" }).select("id").single();
     const { data: claim } = await admin.from("claims").insert({ case_study_id: id, workspace_id: ws, text: "t", source_message_id: msg?.id, source_quote: "cut time by 40 percent", client_confirmed: true }).select("id").single();
 

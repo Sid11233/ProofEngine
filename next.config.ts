@@ -14,6 +14,8 @@ const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
   // Send only the origin to other sites, nothing from the path or query.
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  // Keep other sites from holding a reference to our windows (tabnabbing, cross-window attacks).
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
   // Deny powerful browser features the app does not use.
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
 ];
@@ -23,6 +25,8 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
+      // API responses can hold private data: never let a browser or shared cache keep them.
+      { source: "/api/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
       // Interview pages carry a secret in the URL: keep them out of search engines and never leak them in Referer.
       {
         source: "/i/:path*",

@@ -1,11 +1,9 @@
 import { z } from "zod";
+import { plainLine } from "@/lib/validation/text";
 import { emailSchema } from "@/lib/auth/schemas";
 
 const optionalText = (max: number) =>
-  z
-    .string()
-    .trim()
-    .max(max, `Keep it under ${max} characters`)
+  plainLine(max)
     .transform((value) => (value === "" ? undefined : value))
     .optional();
 
@@ -13,7 +11,7 @@ export const TONES = ["friendly", "professional", "casual"] as const;
 
 export const createRequestSchema = z
   .object({
-    clientName: z.string().trim().min(1, "Enter the client's name").max(200, "Keep it under 200 characters"),
+    clientName: plainLine(200, { min: 1 }, "Enter the client's name"),
     clientEmail: emailSchema,
     projectType: optionalText(200),
     flowType: z.enum(["agency", "saas"]),
