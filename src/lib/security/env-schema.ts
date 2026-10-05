@@ -55,6 +55,10 @@ export const serverEnvSchema = z.object({
   INTERVIEW_STARTS_PER_IP_HOUR: optional(z.coerce.number().int().min(1)),
   ALERT_EMAIL: optional(z.email()),
 
+  // Phase 6: domain public case study pages are served from, one subdomain per workspace
+  // (e.g. "proofengine.page", or "localhost:3000" in development). Unset: public pages are off.
+  PUBLIC_SITES_DOMAIN: optional(z.string().min(3).max(100).regex(/^[a-z0-9.:-]+$/i, "hostname and optional port only")),
+
   // Phase 6: approval IP hashing
   IP_HASH_SECRET: optional(z.string().min(32)),
 

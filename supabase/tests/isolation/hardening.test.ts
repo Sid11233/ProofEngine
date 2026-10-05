@@ -71,9 +71,9 @@ describe("the REST surface as PostgREST publishes it", () => {
     return Object.keys(spec.paths ?? {});
   };
 
-  it("shows an anonymous caller nothing: no tables, no functions", async () => {
+  it("shows an anonymous caller only the public view: no tables, no functions", async () => {
     const paths = await openApi(cfg.anonKey);
-    expect(paths.filter((p) => p !== "/"), `anonymous callers can see: ${paths.join(", ")}`).toEqual([]);
+    expect(paths.filter((p) => p !== "/"), `anonymous callers can see: ${paths.join(", ")}`).toEqual(["/public_case_studies"]);
   });
 
   it("shows a signed-in user only the reviewed functions, and none of the server-only ones", async () => {
