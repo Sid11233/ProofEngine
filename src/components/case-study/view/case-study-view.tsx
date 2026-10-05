@@ -39,7 +39,7 @@ function BeforeAfter({ sections }: { sections: Section[] }) {
   return stack(
     <>
       {before || after ? (
-        <div className="grid gap-[var(--cs-gap)] md:grid-cols-2">
+        <div className="grid gap-[var(--cs-gap)] @md:grid-cols-2">
           {before ? <div className="p-5" style={{ background: "var(--cs-surface)", borderRadius: "var(--cs-radius)" }}><p className="mb-2 text-xs font-bold uppercase tracking-widest" style={{ color: "var(--cs-muted)" }}>Before</p><SectionFor section={before} /></div> : null}
           {after ? <div className="p-5" style={{ border: "2px solid var(--cs-primary)", borderRadius: "var(--cs-radius)" }}><p className="mb-2 text-xs font-bold uppercase tracking-widest" style={{ color: "var(--cs-primary)" }}>After</p><SectionFor section={after} /></div> : null}
         </div>
@@ -64,7 +64,7 @@ function Timeline({ sections }: { sections: Section[] }) {
 
 function Frame({ layout, children }: { layout: Template["layout"]; children: React.ReactNode }) {
   const width = layout === "minimal" ? "max-w-xl" : layout === "timeline" ? "max-w-2xl" : "max-w-3xl";
-  return <div className={`mx-auto w-full ${width} px-5 py-10 sm:px-8 sm:py-14`}>{children}</div>;
+  return <div className={`mx-auto w-full ${width} px-5 py-10 @sm:px-8 @sm:py-14`}>{children}</div>;
 }
 
 /**
@@ -82,12 +82,12 @@ export function CaseStudyView({ content, template, theme, watermark, logoUrl }: 
     : <Sections sections={content.sections} />;
 
   return (
-    <article className={`relative ${fonts.className}`} style={style} data-layout={template.layout}>
+    <article className={`@container relative ${fonts.className}`} style={style} data-layout={template.layout}>
       {watermark ? <Watermark text={watermark} /> : null}
       <Frame layout={template.layout}>
         <div className="space-y-[var(--cs-gap)]">
           {band ? (
-            <div className="p-6 sm:p-8" style={{ background: "var(--cs-primary)", color: "var(--cs-on-primary)", borderRadius: "var(--cs-radius)" }}>
+            <div className="p-6 @sm:p-8" style={{ background: "var(--cs-primary)", color: "var(--cs-on-primary)", borderRadius: "var(--cs-radius)" }}>
               <Hero headline={content.headline} client={content.client} tags={content.tags} logoUrl={logoUrl} onBand />
             </div>
           ) : (

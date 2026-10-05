@@ -11,7 +11,7 @@ export function Hero({ headline, client, tags, logoUrl, onBand = false }: { head
   return (
     <header className="space-y-4">
       {logoUrl ? <LogoStrip logoUrl={logoUrl} name={client.company ?? client.name} /> : null}
-      <h1 className="text-3xl font-bold leading-tight sm:text-4xl" style={headingFont}>{headline}</h1>
+      <h1 className="text-3xl font-bold leading-tight @sm:text-4xl" style={headingFont}>{headline}</h1>
       {who ? <p className="text-base" style={{ color: onBand ? "inherit" : "var(--cs-muted)", opacity: onBand ? 0.85 : 1 }}>{who}</p> : null}
       {tags.length > 0 ? (
         <ul className="flex flex-wrap gap-2" aria-label="Topics">
@@ -55,7 +55,7 @@ export function Results({ section }: { section: Section }) {
       <h2 className="text-xl font-semibold" style={headingFont}>{section.title}</h2>
       {section.body ? <p className="whitespace-pre-line text-base leading-relaxed">{section.body}</p> : null}
       {metrics.length > 0 ? (
-        <ul className="grid gap-3 sm:grid-cols-2">
+        <ul className="grid gap-3 @sm:grid-cols-2">
           {metrics.map((metric, i) => (
             <li key={i} className="p-4" style={{ background: "var(--cs-surface)", border: "1px solid var(--cs-border)", borderRadius: "var(--cs-radius)" }}>
               <p className="text-3xl font-bold" style={{ ...headingFont, color: "var(--cs-primary)" }}>{metric.value}</p>

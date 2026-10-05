@@ -82,6 +82,13 @@ R = read, W = write. "Server" means service role, used only in token-authenticat
 - Theme input is validated: a hex colour, one of six font pairs, and fixed radius, spacing and mode values. Unknown keys are rejected, so no arbitrary CSS or URL can be stored.
 - The CSP allows `style-src-attr 'unsafe-inline'` (style attributes only) because the theme is applied as CSS variables on one element. `<style>` elements and scripts still need the nonce.
 
+## Editor, versions and preview links (Phase 5.3-5.4)
+
+- **Autosave** (`autosave_case_study`): the case study's `content` is always current, but a new `case_study_versions` row is created at most once a minute for a draft (and always when the study was awaiting or had approval, since the client may be looking at the old one). Because edits inside a minute change content without a new version row, `snapshot_case_study()` brings the stored versions up to date; **the client approval step (Phase 6) must call it first**, so an approval is always tied to a version whose stored content is exactly what the client was shown.
+- Logo paths must be `{workspace_id}/logos/{uuid}.webp`; the function rejects anything else (other workspaces, `..`, other extensions, URLs).
+- **Preview links** (`case_study_previews`): unlisted, 14-day maximum (a check constraint), revocable, at most 10 active per case study, only a SHA-256 stored. Created and revoked only through `create_preview_link()` / `revoke_preview_link()` (audit-logged); editors and above can list them (never the hash). `/preview/[token]` goes through `createPreviewResolver`: IP and token rate limits, constant-time hash check, one generic 404 for unknown, malformed, revoked, expired and published; it reads only that case study's content, template and theme, and refuses content that does not pass the schema.
+- Private-bucket writes for logos use the service role **only after the route has authenticated the user, checked their role in the study's workspace, and validated and re-encoded the file**; no storage policy lets a client write directly.
+
 ## Running the tests
 
 ```bash
