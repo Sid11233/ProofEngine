@@ -76,9 +76,13 @@ export function CaseStudyEditor(props: Props) {
 
   // Refs let the 5 second timer see the latest values without restarting.
   const latest = useRef({ content, theme, valid: validation.success, themeValid: themeValidation.success });
-  latest.current = { content, theme, valid: validation.success, themeValid: themeValidation.success };
+  useEffect(() => {
+    latest.current = { content, theme, valid: validation.success, themeValid: themeValidation.success };
+  });
+  // The last saved JSON lives in a ref (for the timer) and in state (so "unsaved" can be shown while rendering).
   const savedContent = useRef(JSON.stringify(props.initialContent));
   const savedTheme = useRef(JSON.stringify(props.initialTheme));
+  const [savedJson, setSavedJson] = useState(() => ({ content: JSON.stringify(props.initialContent), theme: JSON.stringify(props.initialTheme) }));
   const busy = useRef(false);
 
   const flush = useCallback(async () => {
@@ -97,12 +101,14 @@ export function CaseStudyEditor(props: Props) {
         const result = await actions.autosave(id, c);
         if (!result.ok) return setSave({ state: "error", message: result.message });
         savedContent.current = contentJson;
+        setSavedJson((s) => ({ ...s, content: contentJson }));
         if (result.version) setVersion(result.version);
       }
       if (themeDirty) {
         const result = await actions.saveTheme(id, t);
         if (!result.ok) return setSave({ state: "error", message: result.message });
         savedTheme.current = themeJson;
+        setSavedJson((s) => ({ ...s, theme: themeJson }));
       }
       setSave({ state: "saved", at: new Date().toLocaleTimeString() });
     } catch {
@@ -117,7 +123,7 @@ export function CaseStudyEditor(props: Props) {
     return () => clearInterval(timer);
   }, [flush]);
 
-  const unsaved = JSON.stringify(content) !== savedContent.current || JSON.stringify(theme) !== savedTheme.current;
+  const unsaved = JSON.stringify(content) !== savedJson.content || JSON.stringify(theme) !== savedJson.theme;
   useEffect(() => {
     if (!unsaved) return;
     const warn = (event: BeforeUnloadEvent) => event.preventDefault();

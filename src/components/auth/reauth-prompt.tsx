@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { reauthMfaAction, reauthPasswordAction, signInWithGoogleAction } from "@/app/(auth)/actions";
 import type { FormState } from "@/lib/validation/form";
@@ -14,11 +14,12 @@ type Needed = "password" | "mfa" | "oauth";
  * accounts. Calls `onDone` once they have, so the caller can retry the action.
  */
 export function ReauthPrompt({ needed, onDone }: { needed: Needed; onDone: () => void }) {
-  const [stage, setStage] = useState<Needed>(needed);
   const pathname = usePathname();
 
   const [passwordState, passwordAction] = useActionState(reauthPasswordAction, undefined as unknown as FormState);
   const [mfaState, mfaAction] = useActionState(reauthMfaAction, undefined as unknown as FormState);
+  // The password step can ask for a second factor; otherwise stay on what the caller asked for.
+  const stage: Needed = passwordState?.reauth ?? needed;
 
   // The caller's callback changes on every render; keep the latest in a ref and
   // fire it exactly once, so the sensitive action is never retried in a loop.
@@ -32,8 +33,6 @@ export function ReauthPrompt({ needed, onDone }: { needed: Needed; onDone: () =>
     if (passwordState?.ok && !doneRef.current) {
       doneRef.current = true;
       onDoneRef.current();
-    } else if (passwordState?.reauth) {
-      setStage(passwordState.reauth);
     }
   }, [passwordState]);
 

@@ -4,7 +4,7 @@ import { isSitesPath, siteSubdomain } from "@/lib/public/host";
 import { buildCsp } from "@/lib/security/csp";
 import { updateSession } from "@/lib/supabase/middleware";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const nonce = btoa(crypto.randomUUID());
   const csp = buildCsp({
     nonce,
