@@ -166,6 +166,18 @@ describe("publish rules (hold even for the owner, through the API)", () => {
     expect((await editor.client.rpc("unpublish_case_study", { study: id })).error).not.toBeNull();
   });
 
+  it("lets an owner change the template and theme of an approved study, without being able to set its status", async () => {
+    const { id } = await approved();
+    const { data: templates } = await admin.from("templates").select("id").eq("tier", "free").limit(1);
+    const templateId = String(templates?.[0]?.id);
+    const changed = await owner.client.from("case_studies").update({ template_id: templateId, theme_settings: {} }).eq("id", id).select("id");
+    expect(changed.error).toBeNull();
+    expect(changed.data).toHaveLength(1);
+    expect(await statusOf(id)).toBe("approved");
+    expect(wasBlocked(await owner.client.from("case_studies").update({ status: "published" }).eq("id", id).select())).toBe(true);
+    expect(wasBlocked(await owner.client.from("case_studies").update({ status: "draft" }).eq("id", id).select())).toBe(true);
+  });
+
   it("blocks a study that was never approved", async () => {
     const { id } = await draft();
     expect((await publish(owner, id)).error).not.toBeNull();
