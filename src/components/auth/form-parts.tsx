@@ -1,5 +1,6 @@
 "use client";
 
+import { MagnetSpinner } from "@/components/motion/magnet-spinner";
 import { useFormStatus } from "react-dom";
 import type { FormState } from "@/lib/validation/form";
 
@@ -68,7 +69,7 @@ export function SubmitButton({ children, pendingLabel }: { children: React.React
       disabled={pending}
       className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-neutral-900 px-4 py-2 text-base font-medium text-white outline-none hover:bg-neutral-700 focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300 dark:focus-visible:ring-neutral-100"
     >
-      {pending ? (pendingLabel ?? "Working...") : children}
+      {pending ? (<span className="inline-flex items-center gap-2"><MagnetSpinner size={20} />{pendingLabel ?? "Working..."}</span>) : children}
     </button>
   );
 }

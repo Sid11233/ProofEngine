@@ -2,6 +2,7 @@
 
 import { useId, useState, useTransition } from "react";
 import type { RefineActionResult } from "@/app/app/case-studies/[id]/edit/actions";
+import { MagnetSpinner } from "@/components/motion/magnet-spinner";
 import { diffWords } from "@/lib/case-study/diff";
 import { INSTRUCTION_MAX, PRESETS, PRESET_LABELS, type Preset } from "@/lib/case-study/refine-core";
 
@@ -104,7 +105,7 @@ export function RefineControl({ caseStudyId, fieldPath, currentText, refined, di
         </div>
       )}
 
-      <div role="status" aria-live="polite" className="text-sm text-neutral-700">{pending ? "Working…" : ""}</div>
+      <div role="status" aria-live="polite" className="flex items-center gap-2 text-sm text-neutral-700">{pending ? (<><MagnetSpinner size={20} />Working…</>) : ""}</div>
       {message && <p role="alert" className="rounded-md border border-red-700/30 bg-red-50 px-3 py-2 text-sm text-red-900">{message}</p>}
 
       {suggestion && (

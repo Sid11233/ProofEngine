@@ -170,3 +170,38 @@ describe("the overlay and navigation animations", () => {
     await reduced.close();
   }, 120_000);
 });
+
+describe("the Attract Studio loader", () => {
+  it("plays in the lab, and stands still with reduced motion", async () => {
+    const page = await newPage(stack);
+    await signIn(page, platform.email, platform.password);
+    await page.waitForURL(/\/app\/|\/onboarding/);
+    await page.goto(`${BASE}/dev/motion`);
+    const loader = page.locator('[data-anim="S-02"][role="status"]').first();
+    await loader.waitFor();
+    expect(await loader.locator(".as-Min").count()).toBe(1);
+    expect(await loader.locator(".as-LT").count()).toBe(7);
+    expect(await loader.evaluate((el) => getComputedStyle(el.querySelector(".as-Min")!).animationName)).toBe("as-in");
+
+    await page.getByRole("radio", { name: /^Reduce motion/ }).check();
+    expect(await loader.evaluate((el) => getComputedStyle(el.querySelector(".as-Min")!).animationName)).toBe("none");
+    expect(await loader.evaluate((el) => getComputedStyle(el.querySelector(".as-LV")!).animationName)).toBe("none");
+  }, 120_000);
+
+  it("shows while a clicked link waits for its page, never blocks clicks, and goes away", async () => {
+    const user = await createUser(stack.admin, "motion-loader");
+    const page = await newPage(stack);
+    await signIn(page, user.email, user.password);
+    await page.waitForURL(`${BASE}/app/dashboard`);
+    // Make a page without its own loading state slow: hold back its data for a moment.
+    await page.route("**/app/billing**", async (route) => { await new Promise((r) => setTimeout(r, 1500)); await route.continue(); });
+    await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Billing" }).click();
+    const loader = page.getByRole("status").filter({ hasText: "Opening the page" });
+    await loader.waitFor();
+    // It does not intercept the pointer.
+    expect(await page.locator('[data-anim="S-02"]').first().evaluate((el) => getComputedStyle(el).pointerEvents)).toBe("none");
+    await page.waitForURL(`${BASE}/app/billing`);
+    await page.getByRole("heading", { name: /Billing|Plan/ }).first().waitFor();
+    await loader.waitFor({ state: "detached" });
+  }, 120_000);
+});

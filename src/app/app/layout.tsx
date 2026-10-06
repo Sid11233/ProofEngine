@@ -14,6 +14,7 @@ import { cookies } from "next/headers";
 import { AppNav } from "@/components/motion/app-nav";
 import { BottomTabBar } from "@/components/motion/bottom-tab-bar";
 import { MotionProvider } from "@/components/motion/motion-provider";
+import { NavigationLoader } from "@/components/motion/navigation-loader";
 import { ToastProvider } from "@/components/motion/toast";
 import { MOTION_COOKIE, parsePreference } from "@/lib/motion/preference";
 
@@ -89,6 +90,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <Link href="/subprocessors" className="inline-flex min-h-11 items-center underline underline-offset-2">Subprocessors</Link>
         <Link href="/dpa" className="inline-flex min-h-11 items-center underline underline-offset-2">DPA</Link>
       </footer>
+      <NavigationLoader />
       <BottomTabBar items={tabItems} />
     </div>
     </ToastProvider>
