@@ -84,6 +84,7 @@ Set `SENTRY_DSN` (server side only, no browser SDK) and `ALERT_EMAIL`, then add 
 | Variable | What it does | Default |
 | --- | --- | --- |
 | `ANTHROPIC_API_KEY`, `INTERVIEWER_MODEL`, `GENERATOR_MODEL` | The AI interviewer and case study drafting. Unset: canned questions, no AI drafting | off |
+| `AI_PROVIDER=openrouter`, `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` | TEST ONLY: free models instead of Anthropic; made-up data only ([ai-test-provider.md](ai-test-provider.md)) | off |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile on the interview start and the report form. Unset: no bot check (set both before launch) | off |
 | `AI_MESSAGES_FREE`, `AI_MESSAGES_PRO`, `AI_MESSAGES_TEAM` | Monthly AI messages per plan | 100, 3000, 20000 |
 | `AI_DAILY_TOKEN_LIMIT` | Platform wide AI tokens per UTC day before interviews pause (spend circuit breaker) | 2,000,000 |

@@ -1,7 +1,7 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createAnthropicClient } from "@/lib/ai/client";
+import { createAiClient } from "@/lib/ai/factory";
 import { isAuthAttemptAllowed } from "@/lib/auth/rate-limits";
 import { getUser } from "@/lib/auth/session";
 import { generateCaseStudy, type GenerateError } from "@/lib/case-study/generator";
@@ -17,7 +17,6 @@ import { getCurrentWorkspace } from "@/lib/workspace/current";
 export const maxDuration = 60;
 
 const bodySchema = z.object({ interviewId: z.uuid() }).strict();
-const DEFAULT_GENERATOR_MODEL = "claude-sonnet-5-5";
 /** Extraction, one draft and one retry. */
 const CALLS_PER_GENERATION = 3;
 
@@ -51,7 +50,8 @@ export async function POST(request: Request) {
   if (!(await isAuthAttemptAllowed("generate", { ip: getClientIp(request.headers), subject: user.id }))) {
     return json({ error: "rate_limited", message: "Too many generations. Please wait a while." }, 429);
   }
-  if (!serverEnv.ANTHROPIC_API_KEY) {
+  const ai = createAiClient(serverEnv, "generator", { timeoutMs: 50_000 });
+  if (!ai) {
     return json({ error: "ai_not_configured", message: "AI is not configured on this server yet." }, 503);
   }
 
@@ -64,11 +64,6 @@ export async function POST(request: Request) {
     return json({ error: "ai_limit", message: "Your workspace has used its AI allowance for this month." }, 429);
   }
 
-  const ai = createAnthropicClient({
-    apiKey: serverEnv.ANTHROPIC_API_KEY,
-    model: serverEnv.GENERATOR_MODEL ?? DEFAULT_GENERATOR_MODEL,
-    timeoutMs: 50_000,
-  });
   const result = await generateCaseStudy({ supabase, ai }, { workspaceId: workspace.id, interviewId: parsed.data.interviewId });
   if (!result.ok) return json({ error: result.error, message: MESSAGES[result.error] }, STATUS[result.error]);
   return json({ caseStudyId: result.caseStudyId, issues: result.issues.length });
