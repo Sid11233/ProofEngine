@@ -20,6 +20,8 @@ export interface CaseStudyView {
   themeSettings: unknown;
   content: CaseStudyContent;
   issues: Issue[];
+  /** Field paths whose text was rewritten with AI and no longer matches the client's words. */
+  refinedFields: string[];
   claims: ClaimView[];
 }
 
@@ -27,7 +29,7 @@ export interface CaseStudyView {
 export async function loadCaseStudy(supabase: SupabaseClient, id: string): Promise<CaseStudyView | null> {
   const { data: study } = await supabase
     .from("case_studies")
-    .select("id, workspace_id, status, slug, client_declined_at, current_version, content, generation_issues, template_id, theme_settings")
+    .select("id, workspace_id, status, slug, client_declined_at, current_version, content, generation_issues, template_id, theme_settings, refined_fields")
     .eq("id", id)
     .maybeSingle();
   if (!study) return null;
@@ -55,6 +57,7 @@ export async function loadCaseStudy(supabase: SupabaseClient, id: string): Promi
     templateId: typeof study.template_id === "string" ? study.template_id : null,
     themeSettings: study.theme_settings ?? {},
     content: content.data,
+    refinedFields: Array.isArray(study.refined_fields) ? study.refined_fields.map(String) : [],
     issues: Array.isArray(study.generation_issues) ? (study.generation_issues as Issue[]) : [],
     claims: (claimRows ?? []).map((c) => ({
       id: String(c.id),

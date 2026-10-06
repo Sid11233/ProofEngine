@@ -58,6 +58,13 @@ describe("the plan table and the database agree", () => {
     expect((await admin.rpc("plan_interview_limit", { plan: "made-up" })).data).toBe(0);
   });
 
+  it("refinement allowances match plan_refinement_limit() for every plan", async () => {
+    for (const plan of Object.values(PLANS)) {
+      expect((await admin.rpc("plan_refinement_limit", { plan: plan.id })).data, plan.id).toBe(plan.refinementsPerMonth);
+    }
+    expect((await admin.rpc("plan_refinement_limit", { plan: "made-up" })).data).toBe(10);
+  });
+
   it("AI allowances match the limits defaults", () => {
     const l = resolveLimits({});
     for (const plan of Object.values(PLANS)) expect(l.aiMessagesPerMonth[plan.id], plan.id).toBe(plan.aiMessagesPerMonth);

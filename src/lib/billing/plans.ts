@@ -10,6 +10,8 @@ export interface PlanConfig {
   interviewsPerMonth: number;
   /** AI messages per month (the defaults in limits.ts; env overrides apply). */
   aiMessagesPerMonth: number;
+  /** "Refine with AI" rewrites per month (the SQL function plan_refinement_limit must match). */
+  refinementsPerMonth: number;
   /** Templates: free ones for everyone, "pro" ones included from this plan up. */
   proTemplates: boolean;
   /** Whether the "Powered by" line is removed from public pages. */
@@ -19,9 +21,9 @@ export interface PlanConfig {
 }
 
 export const PLANS: Record<PlanId, PlanConfig> = {
-  free: { id: "free", label: "Free", interviewsPerMonth: 3, aiMessagesPerMonth: 100, proTemplates: false, removesBranding: false, purchasable: false },
-  pro: { id: "pro", label: "Pro", interviewsPerMonth: 100, aiMessagesPerMonth: 3000, proTemplates: true, removesBranding: true, purchasable: true },
-  team: { id: "team", label: "Team", interviewsPerMonth: 1000, aiMessagesPerMonth: 20000, proTemplates: true, removesBranding: true, purchasable: false },
+  free: { id: "free", label: "Free", interviewsPerMonth: 3, aiMessagesPerMonth: 100, refinementsPerMonth: 10, proTemplates: false, removesBranding: false, purchasable: false },
+  pro: { id: "pro", label: "Pro", interviewsPerMonth: 100, aiMessagesPerMonth: 3000, refinementsPerMonth: 300, proTemplates: true, removesBranding: true, purchasable: true },
+  team: { id: "team", label: "Team", interviewsPerMonth: 1000, aiMessagesPerMonth: 20000, refinementsPerMonth: 2000, proTemplates: true, removesBranding: true, purchasable: false },
 };
 
 /** Unknown or tampered plan values are treated as free: the safe default. */

@@ -12,7 +12,7 @@ import { effectiveTheme } from "@/lib/templates/model";
 import { createClient } from "@/lib/supabase/server";
 import { signedLogoUrl } from "@/lib/uploads/server";
 import { getCurrentWorkspace } from "@/lib/workspace/current";
-import { autosaveContentAction, createPreviewLinkAction, publishAction, requestApprovalAction, revokePreviewLinkAction, saveThemeAction, unpublishAction } from "./actions";
+import { acceptRefinementAction, autosaveContentAction, createPreviewLinkAction, publishAction, requestApprovalAction, refineTextAction, restoreOriginalAction, revokePreviewLinkAction, saveThemeAction, unpublishAction } from "./actions";
 
 export const metadata = { title: pageTitle("Edit case study") };
 
@@ -89,6 +89,8 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
         slug={study.slug}
         declined={study.declined}
         clientNote={latest?.kind === "changes_requested" && typeof latest.message === "string" ? latest.message : null}
+        refinedFields={study.refinedFields}
+        refine={{ refine: refineTextAction, accept: acceptRefinementAction, restore: restoreOriginalAction }}
         actions={{ autosave: autosaveContentAction, saveTheme: saveThemeAction, createPreview: createPreviewLinkAction, revokePreview: revokePreviewLinkAction, requestApproval: requestApprovalAction, publish: publishAction, unpublish: unpublishAction }}
       />
     </div>

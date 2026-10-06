@@ -10,6 +10,7 @@ import { FONT_PAIR_LABELS, FONT_PAIRS, MODES, RADII, SPACINGS, themeSchema, type
 import type { Blocker } from "@/lib/case-study/publish-check";
 import type { Template } from "@/lib/templates/model";
 import { Flag, Source, type ReviewClaim } from "./claim-parts";
+import { RefineControl, RefinedBadge, type RefineActions } from "./refine-control";
 import { CaseStudyView } from "./view/case-study-view";
 
 interface Props {
@@ -30,6 +31,9 @@ interface Props {
   declined: boolean;
   /** What the client last asked to change, shown as plain text. */
   clientNote: string | null;
+  /** Field paths rewritten with AI, from the database. */
+  refinedFields: string[];
+  refine: RefineActions;
   actions: {
     autosave: (id: string, content: unknown) => Promise<AutosaveResult>;
     saveTheme: (id: string, theme: unknown) => Promise<AutosaveResult>;
@@ -69,6 +73,7 @@ export function CaseStudyEditor(props: Props) {
   const [save, setSave] = useState<{ state: "saved" | "saving" | "unsaved" | "error"; at?: string; message?: string }>({ state: "saved" });
   const [, setDragFrom] = useState<number | null>(null);
   const [logoMessage, setLogoMessage] = useState<string>();
+  const [refined, setRefined] = useState(() => new Set(props.refinedFields));
   const claimOf = useMemo(() => new Map(claims.map((c) => [c.id, c] as const)), [claims]);
 
   const validation = useMemo(() => caseStudyContentSchema.safeParse(content), [content]);
@@ -117,6 +122,27 @@ export function CaseStudyEditor(props: Props) {
       busy.current = false;
     }
   }, [actions, canEdit, id]);
+
+  /** Saves pending edits and says whether the server now has exactly what is on screen. */
+  const ensureSaved = useCallback(async () => {
+    await flush();
+    return JSON.stringify(latest.current.content) === savedContent.current;
+  }, [flush]);
+
+  /** The server changed one field (accepted or restored). Mirror it here without marking the page as unsaved. */
+  const applyServerText = useCallback((fieldPath: string, text: string, newVersion: number, restored: boolean) => {
+    const base = latest.current.content;
+    const next = fieldPath === "headline"
+      ? { ...base, headline: text }
+      : { ...base, sections: base.sections.map((s, i) => (`sections.${i}.body` === fieldPath ? { ...s, body: text } : s)) };
+    const json = JSON.stringify(next);
+    savedContent.current = json;
+    latest.current = { ...latest.current, content: next };
+    setContent(next);
+    setSavedJson((s) => ({ ...s, content: json }));
+    setVersion(newVersion);
+    setRefined((set) => { const copy = new Set(set); if (restored) copy.delete(fieldPath); else copy.add(fieldPath); return copy; });
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => void flush(), AUTOSAVE_MS);
@@ -234,6 +260,8 @@ export function CaseStudyEditor(props: Props) {
           <div className="space-y-1">
             <label htmlFor="ed-headline" className="block text-sm font-medium">Headline</label>
             <input id="ed-headline" className={field} maxLength={120} value={content.headline} onChange={(e) => edit({ ...content, headline: e.target.value })} />
+            {canEdit && <RefineControl caseStudyId={id} fieldPath="headline" currentText={content.headline} refined={refined.has("headline")} disabled={status === "published" || !validation.success} actions={props.refine} ensureSaved={ensureSaved} onApplied={applyServerText} />}
+            {!canEdit && refined.has("headline") && <RefinedBadge />}
           </div>
 
           <ol className="space-y-4">
@@ -275,6 +303,8 @@ export function CaseStudyEditor(props: Props) {
                   <div className="space-y-1">
                     <label htmlFor={`ed-body-${sectionIds[index]}`} className="block text-sm font-medium">Text</label>
                     <textarea id={`ed-body-${sectionIds[index]}`} className={field} rows={4} maxLength={2000} value={section.body} onChange={(e) => patchSection(index, { body: e.target.value })} />
+                    {canEdit && section.type !== "quote" && <RefineControl caseStudyId={id} fieldPath={`sections.${index}.body`} currentText={section.body} refined={refined.has(`sections.${index}.body`)} disabled={status === "published" || !validation.success} actions={props.refine} ensureSaved={ensureSaved} onApplied={applyServerText} />}
+                    {!canEdit && refined.has(`sections.${index}.body`) && <RefinedBadge />}
                   </div>
                 )}
                 {section.metrics?.map((metric, mIndex) => {

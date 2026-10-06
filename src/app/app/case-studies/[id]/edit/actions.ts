@@ -4,10 +4,12 @@ import "server-only";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { aiModelName, createAiClient } from "@/lib/ai/factory";
 import { isAuthAttemptAllowed, RATE_LIMITED_MESSAGE } from "@/lib/auth/rate-limits";
 import { requireUser } from "@/lib/auth/session";
 import { publishStudy, requestApproval, unpublishStudy } from "@/lib/case-study/approval-service";
 import { prepareEdit } from "@/lib/case-study/edit";
+import { acceptRefinement, REFINE_MESSAGES, refineText, restoreOriginal, type RefineDeps, type RefineError } from "@/lib/case-study/refine";
 import { isValidSlug } from "@/lib/case-study/slug";
 import { getEmailSender } from "@/lib/email/resend";
 import { themeSchema } from "@/lib/case-study/theme";
@@ -164,4 +166,69 @@ export async function unpublishAction(studyId: string): Promise<LifecycleResult>
   const result = await unpublishStudy(await createClient(), id.data);
   if (result.ok) revalidatePath(`/app/case-studies/${id.data}/edit`);
   return result;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Refine with AI. Suggesting saves nothing; accepting and restoring write a new version through the database.
+// ---------------------------------------------------------------------------------------------------------------------
+
+export interface RefineActionResult {
+  ok: boolean;
+  error?: RefineError | "rate_limited" | "not_configured";
+  message?: string;
+  original?: string;
+  suggested?: string;
+  ticket?: string;
+  version?: number;
+  text?: string;
+}
+
+const fail = (error: RefineError | "rate_limited" | "not_configured", message?: string): RefineActionResult => ({
+  ok: false,
+  error,
+  message: message ?? (error === "rate_limited" ? RATE_LIMITED_MESSAGE : error === "not_configured" ? "AI is not configured on this server yet." : REFINE_MESSAGES[error]),
+});
+
+async function refineDeps(): Promise<RefineDeps | RefineActionResult> {
+  const user = await requireUser();
+  const workspace = await getCurrentWorkspace();
+  if (!workspace || workspace.role === "viewer") return fail("forbidden");
+  if (!(await isAuthAttemptAllowed("refine", { ip: getClientIp(await headers()), subject: user.id }))) return fail("rate_limited");
+  const ai = createAiClient(serverEnv, "generator", { timeoutMs: 40_000 });
+  return { supabase: await createClient(), ai: ai ?? { complete: async () => { throw new Error("not configured"); } }, workspace, userId: user.id, model: aiModelName(serverEnv, "generator"), secret: removalSecret(serverEnv) };
+}
+const isDeps = (value: RefineDeps | RefineActionResult): value is RefineDeps => "supabase" in value;
+
+export async function refineTextAction(input: unknown): Promise<RefineActionResult> {
+  if (!createAiClient(serverEnv, "generator")) return fail("not_configured");
+  const deps = await refineDeps();
+  if (!isDeps(deps)) return deps;
+  const result = await refineText(deps, input);
+  return result.ok ? { ok: true, ...result.suggestion } : fail(result.error);
+}
+
+const acceptSchema = z.object({ caseStudyId: z.uuid(), fieldPath: z.string().max(40), suggested: z.string().max(4000), ticket: z.string().max(2000) }).strict();
+
+export async function acceptRefinementAction(input: unknown): Promise<RefineActionResult> {
+  const parsed = acceptSchema.safeParse(input);
+  const deps = await refineDeps();
+  if (!isDeps(deps)) return deps;
+  if (!parsed.success) return fail("invalid");
+  const result = await acceptRefinement(deps, parsed.data);
+  if (!result.ok) return fail(result.error);
+  revalidatePath(`/app/case-studies/${parsed.data.caseStudyId}/edit`);
+  return { ok: true, version: result.version, text: result.text };
+}
+
+const restoreSchema = z.object({ caseStudyId: z.uuid(), fieldPath: z.string().max(40) }).strict();
+
+export async function restoreOriginalAction(input: unknown): Promise<RefineActionResult> {
+  const parsed = restoreSchema.safeParse(input);
+  const deps = await refineDeps();
+  if (!isDeps(deps)) return deps;
+  if (!parsed.success) return fail("invalid");
+  const result = await restoreOriginal(deps, parsed.data);
+  if (!result.ok) return fail(result.error);
+  revalidatePath(`/app/case-studies/${parsed.data.caseStudyId}/edit`);
+  return { ok: true, version: result.version, text: result.text };
 }

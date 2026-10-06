@@ -20,6 +20,7 @@ export type AuthAction =
   | "generate"
   | "case-study-edit"
   | "social-drafts"
+  | "refine"
   | "wall-settings"
   | "billing"
   | "notifications"
@@ -41,6 +42,7 @@ const OVERRIDES: Partial<Record<AuthAction, { subject: Limit; ip: Limit }>> = {
   "team-invite": { subject: { limit: 20, windowSec: 60 * 60 }, ip: { limit: 60, windowSec: 60 * 60 } },
   "request-manage": { subject: { limit: 60, windowSec: 60 * 60 }, ip: { limit: 120, windowSec: 60 * 60 } },
   generate: { subject: { limit: 10, windowSec: 60 * 60 }, ip: { limit: 30, windowSec: 60 * 60 } },
+  refine: { subject: { limit: 20, windowSec: 60 }, ip: { limit: 60, windowSec: 60 } },
   "social-drafts": { subject: { limit: 10, windowSec: 60 * 60 }, ip: { limit: 30, windowSec: 60 * 60 } },
   "case-study-edit": { subject: { limit: 120, windowSec: 60 * 60 }, ip: { limit: 240, windowSec: 60 * 60 } },
   "wall-settings": { subject: { limit: 30, windowSec: 60 * 60 }, ip: { limit: 60, windowSec: 60 * 60 } },
