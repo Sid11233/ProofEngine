@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createHash, randomBytes } from "node:crypto";
 import type { Page } from "playwright";
-import { BASE, PORT, createUser, newPage, signIn, startStack, stopStack, type Stack } from "./harness";
+import { BASE, PORT, createUser, newPage, signIn, startStack, stopStack, type Stack, signStudy } from "./harness";
 
 // Pre-launch checklist: "Manual XSS test (10 payloads) on testimonials, names and metrics", automated.
 // Every stored field is filled with a hostile payload straight in the database (so no input validation
@@ -102,6 +102,7 @@ describe("hostile text everywhere", () => {
     const previewRaw = randomBytes(32).toString("base64url");
     await stack.admin.from("case_study_previews").insert({ case_study_id: id, workspace_id: ws, token_hash: createHash("sha256").update(previewRaw).digest("hex"), expires_at: new Date(Date.now() + 86_400_000).toISOString() });
     await stack.admin.from("approvals").insert({ case_study_id: id, workspace_id: ws, version: 1, approver_email: "d@example.test", method: "email_link" });
+    await signStudy(stack.admin, String(id));
     expect((await stack.admin.from("case_studies").update({ status: "published", slug: "hostile-story" }).eq("id", id)).error).toBeNull();
     await stack.admin.from("wall_settings").insert({ workspace_id: ws, enabled: true, allowed_origins: ["https://example.com"], layout: "grid", max_items: 6 });
     await stack.admin.from("workspace_communities").insert({ workspace_id: ws, community_id: "b0000000-0000-4000-8000-000000000001", status: "saved", notes: PAYLOADS.join(" ") });

@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomBytes } from "node:crypto";
-import { BASE, PORT, createUser, newPage, startStack, stopStack, type Stack } from "./harness";
+import { BASE, PORT, createUser, newPage, startStack, stopStack, type Stack, signStudy } from "./harness";
 
 let stack: Stack;
 
@@ -34,6 +34,7 @@ async function publishedStudy({ plan = "pro", slug = "great-result", headline = 
   const id = String(study?.id);
   await stack.admin.from("case_study_versions").insert({ case_study_id: id, workspace_id: ws, version: 1, content });
   await stack.admin.from("approvals").insert({ case_study_id: id, workspace_id: ws, version: 1, approver_email: "d@example.test", method: "email_link" });
+  await signStudy(stack.admin, String(id));
   const res = await stack.admin.from("case_studies").update({ status: "published", slug }).eq("id", id);
   if (res.error) throw new Error(res.error.message);
   return { id, workspace, slug, ws };
