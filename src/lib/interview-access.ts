@@ -2,6 +2,7 @@ import "server-only";
 import { headers } from "next/headers";
 import { getClientIp } from "@/lib/security/client-ip";
 import { createRateLimiter } from "@/lib/security/rate-limit";
+import { signal } from "@/lib/monitoring/signals";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sha256Hex } from "@/lib/security/hash";
 import { createResolver, type ResolveResult } from "./interview-access-core";
@@ -27,5 +28,8 @@ function getResolver(): Resolver {
  */
 export async function resolveInterview(rawToken: string): Promise<ResolveResult> {
   const ip = getClientIp(await headers());
-  return getResolver()(rawToken, { ip: sha256Hex(ip) });
+  const result = await getResolver()(rawToken, { ip: sha256Hex(ip) });
+  // A burst of unknown links is how link guessing looks from the server's side.
+  if (!result.ok && result.reason === "not_found") signal("interview_token_miss");
+  return result;
 }
