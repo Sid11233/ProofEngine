@@ -56,7 +56,7 @@ export function AnimatedTabs({ tabs, label }: { tabs: TabDef[]; label: string })
             className="relative inline-flex min-h-11 items-center px-4 text-sm"
           >
             <span className={index === active ? "font-medium" : "text-neutral-600"}>{tab.label}</span>
-            {index === active && <m.span layoutId={`${base}-indicator`} transition={spring("default")} className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[var(--signal)]" />}
+            {index === active && <m.span layoutId={`${base}-indicator`} transition={spring("default")} className="absolute inset-x-2 bottom-0 h-[3px] rounded-full bg-[var(--signal-strong)]" />}
           </button>
         ))}
       </div>

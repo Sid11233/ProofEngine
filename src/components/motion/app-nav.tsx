@@ -24,7 +24,7 @@ export function AppNav({ items }: { items: NavItem[] }) {
         const active = isActive(pathname, item.href);
         return (
           <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className="relative inline-flex min-h-11 items-center px-3 hover:underline">
-            {active && <m.span layoutId="app-nav-pill" transition={spring("default")} className="absolute inset-x-1 bottom-1 top-1 -z-0 rounded-md bg-black/[0.06]" />}
+            {active && <m.span layoutId="app-nav-pill" transition={spring("default")} className="absolute inset-x-1 bottom-1 top-1 -z-0 rounded-md border-b-2 border-[var(--signal-strong)] bg-[var(--signal-soft)]" />}
             <span className={`relative ${active ? "font-medium" : ""}`}>{item.label}</span>
           </Link>
         );

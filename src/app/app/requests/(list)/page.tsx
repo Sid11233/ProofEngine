@@ -31,7 +31,7 @@ export default async function RequestsPage() {
         <ListStagger
           className="divide-y divide-neutral-200 rounded-md border border-neutral-200"
           items={items.map((item) => (
-            <Link key={item.id} href={`/app/requests/${item.id}`} className="flex min-h-11 flex-wrap items-center justify-between gap-2 px-3 py-2 hover:bg-black/[0.03]">
+            <Link key={item.id} href={`/app/requests/${item.id}`} className="flex min-h-11 flex-wrap items-center justify-between gap-2 px-3 py-2 anim-row">
               <span className="min-w-0">
                 <span className="block truncate font-medium">{item.clientName}</span>
                 <span className="block truncate text-sm text-neutral-600">{item.projectType ?? "No project type"}</span>

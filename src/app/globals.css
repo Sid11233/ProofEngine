@@ -12,6 +12,11 @@
   --foreground: #1a1a1a;
   /* Signal orange from the Attract Studio brand: shapes, progress and accents, never small body text. */
   --signal: #ff5a1f;
+  /* A slightly deeper orange for thin lines and icons, which need more contrast on cream than a fill does. */
+  --signal-strong: #e24a10;
+  /* Tints on the cream background: a soft fill (pills, hovers, skeletons) and a faint wash. */
+  --signal-soft: color-mix(in srgb, var(--signal) 16%, var(--background));
+  --signal-wash: color-mix(in srgb, var(--signal) 7%, var(--background));
 
   /* Motion tokens (src/lib/motion/tokens.ts keeps the same numbers). */
   --motion-instant: 90ms;
@@ -81,7 +86,7 @@ button, [role="button"] {
 /* G-27 Skeleton shimmer: brand-tint pulse, opacity 0.5 to 0.9, 1.4 s loop. Static tint when reduced (safety net above
    stops the loop). */
 .anim-skeleton {
-  background: color-mix(in srgb, var(--signal) 9%, #e4dfd2);
+  background: color-mix(in srgb, var(--signal) 18%, #e8e0d0);
   animation: anim-skeleton-pulse 1.4s ease-in-out infinite alternate;
 }
 @keyframes anim-skeleton-pulse {
@@ -165,3 +170,13 @@ html[data-motion="reduce"] .anim-route {
 @keyframes anim-icon-bounce {
   50% { transform: scale(1.15); }
 }
+
+/* Orange a little more present on the cream: form controls, keyboard focus (G-36), text selection and row hovers.
+   Never body text. */
+input, select, textarea { accent-color: var(--signal-strong); }
+::selection { background: var(--signal-soft); }
+:focus-visible {
+  outline: 2px solid var(--signal-strong);
+  outline-offset: 2px;
+}
+.anim-row:hover { background: var(--signal-wash); }
