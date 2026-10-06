@@ -54,6 +54,25 @@ Every limit below is enforced on the server (in the database or in code), never 
 | Checkout and portal | owner only, recent sign-in, 10 per hour per user | `billing` rate limit |
 | Payment grace | 7 days from the first failed payment, then free | `billing_effective_plan`, `/api/cron/billing` |
 
+## Push and offline (Phase 9)
+
+| Control | Value | Where |
+| --- | --- | --- |
+| Devices | at most 10 push subscriptions per user | `save_push_subscription` |
+| Endpoints | only Google, Mozilla, Apple and Windows push hosts, on save and on send | `isAllowedPushEndpoint` |
+| Settings changes | 60 per hour per user | `notifications` rate limit |
+| Push payload | title, one fixed generic sentence and an in-app path; nothing else | `PUSH_MESSAGES` |
+| Service worker | scope `/app/`; caches only static build files, icons and the offline page; cleared on sign out | `public/sw.js` |
+| Interview JavaScript | 260 KB transferred cap (measured about 230 KB; plan target of 100 KB not reachable, see roadmap) | `e2e/mobile.e2e.test.ts` |
+
+## Light finder (Phase 10)
+
+| Control | Value | Where |
+| --- | --- | --- |
+| Tracker notes | 2000 characters, plain text | `workspace_communities`, `trackerInputSchema` |
+| Tracker changes | 200 per hour per user | `finder` rate limit |
+| Who can track | editors and above, own workspace only; viewers can browse the list | RLS, `saveTrackerAction` |
+
 ## Uploads
 
 | Control | Value |

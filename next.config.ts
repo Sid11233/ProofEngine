@@ -33,6 +33,8 @@ const nextConfig: NextConfig = {
       },
       // API responses can hold private data: never let a browser or shared cache keep them.
       { source: "/api/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
+      // The service worker must always be re-checked by the browser so a fixed worker reaches everyone.
+      { source: "/sw.js", headers: [{ key: "Cache-Control", value: "no-cache, max-age=0, must-revalidate" }, { key: "Service-Worker-Allowed", value: "/app/" }] },
       // Interview pages carry a secret in the URL: keep them out of search engines and never leak them in Referer.
       {
         source: "/i/:path*",

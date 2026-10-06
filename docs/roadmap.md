@@ -19,3 +19,7 @@ Do this as its own PR, before Phase 7. Nothing else ships in it.
 - `src/middleware.ts` became `src/proxy.ts` (Next 16 renamed it); behaviour is unchanged. `eslint.config.mjs` uses the native flat configs instead of `FlatCompat`. Two new React lint rules (no ref reads during render, no setState in an effect) required small fixes in `case-study-editor.tsx` and `reauth-prompt.tsx`.
 - `npm audit` still reports 5 high findings, all dev-only, in the lint toolchain (`braces`, `micromatch`, `fast-glob`, `@next/eslint-plugin-next`, `eslint-config-next`). The advisory covers every published `braces` version, so there is no patched release to move to; the only "fix" npm offers is downgrading to Next 14. They do not ship to production. Re-check when `braces` publishes a fix.
 - Gate: lint, typecheck, 427 unit, 305 isolation, pgTAP, build and every e2e file pass.
+
+## Open: interview page JavaScript budget (Phase 9.4)
+
+The plan asks for under 100 KB of JavaScript on `/i/[token]`. It is about 230 KB (about 200 KB is the React and Next.js client runtime, about 33 KB is our code), so Lighthouse mobile performance sits at 78 to 87 in the development sandbox. Options if you want it under 100 KB: rewrite the interview as a server-rendered page with a small vanilla script (no React on that route), or accept the current numbers. A test guards against growth (260 KB cap). See `docs/pwa.md`.

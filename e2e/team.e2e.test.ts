@@ -58,7 +58,7 @@ describe("team management in a real browser", () => {
     await guest.getByText("editor", { exact: true }).waitFor();
     await guest.getByRole("button", { name: "Accept invitation" }).click();
     await guest.waitForURL(`${BASE}/app/dashboard`);
-    await guest.getByText(/E2E team-owner · editor/).waitFor();
+    await guest.locator("header").getByText(/E2E team-owner/).waitFor();
 
     // The link is now spent.
     await guest.goto(link);

@@ -123,6 +123,18 @@ R = read, W = write. "Server" means service role, used only in token-authenticat
 - **Entitlements** (`src/lib/billing/entitlements.ts`): `canCreateInterview`, `canUseAI`, `templateAllowed`, `canRemoveBranding` are the one place app code asks. The database stays the authority (the interview limit under a lock in `create_proof_request`, `template_allowed()` in the publish trigger, the public view's badge flag) and tests keep the numbers equal.
 - **Downgrade**: published pages stay online (the public view does not look at the plan), cannot be edited (published pages are never editable) or republished on a template the plan no longer includes; the editor and billing page say so in plain words.
 
+## Push (Phase 9)
+
+- `push_subscriptions` and `notification_preferences` are per-user: row-level security lets a user see (and, for subscriptions, delete) only their own rows, they hang off the user's workspace membership (composite foreign key, so leaving removes them), the keys `p256dh` and `auth` are not granted to any client, and writes go through `save_push_subscription()` / `save_notification_preferences()` (members only; at most 10 devices per user).
+- `push_targets()` and `remove_push_subscription()` are service-role only, used by the sender after an event. See [pwa.md](pwa.md).
+
+## Light finder (Phase 10)
+
+- `communities` is global reference data. Any signed-in user reads the active rows; **no client can write** (no insert, update or delete grant or policy), so the list is changed only by migrations or an admin script run with the service role. URLs must be `https://`, text fields and tags are bounded by check constraints.
+- The 40 seeded rows are **placeholders** (`needs_verification = true`, `example.com` links, names starting `[Placeholder]`). To replace them, add a migration that deletes the placeholder rows (`name like '[Placeholder]%'`) and inserts researched entries with `needs_verification = false` and `last_verified_at` set. Nothing scrapes or monitors any platform.
+- `workspace_communities` is each workspace's tracker: editors and above read and write their own workspace's rows only (RLS), only `status` and `notes` are updatable (column grant), only active communities can be added, notes are at most 2000 characters and are rendered as text only. It is in the isolation SPECS and has a dedicated cross-workspace test.
+- Matching is tag overlap (`src/lib/finder/match.ts`): 3 points per shared niche tag, 1 per shared audience word, ties to verified entries. Links render only if they parse as plain https and always open with `target=_blank rel="noopener noreferrer"`.
+
 ## Running the tests
 
 ```bash

@@ -71,6 +71,10 @@ Then open **Security Advisor** in the dashboard and fix any warning (the gate is
 
 Custom domains come later: the app on `app.<yourproduct>.com`, interview links on `i.<yourproduct>.com`, and published pages on a **separate registrable domain**. Decide those names before Phase 3 and 6.
 
+### Install and notifications (Phase 9)
+
+The app is installable and has an optional offline page: nothing to configure, except the icons come from the brand name until you provide a logo (`public/logo.png`, then `node scripts/generate-pwa-assets.mjs`). For push notifications run `npx web-push generate-vapid-keys` once and set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` (`mailto:you@example.com`) in Vercel. Details and the manual offline checklist: [pwa.md](pwa.md).
+
 ### Stripe billing (Phase 8)
 
 Plan names and prices are placeholders: change `src/lib/billing/plans.ts` (and the matching number in the SQL function `plan_interview_limit`, which a test keeps in step) when you decide them.

@@ -65,6 +65,12 @@ export const serverEnvSchema = z.object({
   // (e.g. "proofengine.page", or "localhost:3000" in development). Unset: public pages are off.
   PUBLIC_SITES_DOMAIN: optional(z.string().min(3).max(100).regex(/^[a-z0-9.:-]+$/i, "hostname and optional port only")),
 
+  // Phase 9: web push. The private key is server-only; the subject is a mailto: or https: contact for push services.
+  // The public half is not secret, but it is read on the server at runtime and passed to the page as a prop.
+  VAPID_PUBLIC_KEY: optional(z.string().regex(/^[A-Za-z0-9_-]{80,100}$/, "a base64url VAPID public key")),
+  VAPID_PRIVATE_KEY: optional(z.string().regex(/^[A-Za-z0-9_-]{40,60}$/, "a base64url VAPID private key")),
+  VAPID_SUBJECT: optional(z.string().regex(/^(mailto:[^\s@]+@[^\s@]+|https:\/\/[^\s]+)$/, "mailto:you@example.com or an https URL")),
+
   // Phase 6: comma-separated emails of the platform operators. They are told about takedown reports and
   // can open /app/admin/takedowns (after signing in with a verified account). Unset: nobody can.
   PLATFORM_ADMIN_EMAILS: optional(z.string().refine((v) => parsePlatformAdmins(v) !== null, "comma-separated valid emails, at most 10")),
