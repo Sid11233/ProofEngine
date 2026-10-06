@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { ReauthPrompt } from "@/components/auth/reauth-prompt";
+import { Dialog } from "@/components/motion/dialog";
 
 type Result = { ok: boolean; message?: string; reauth?: "password" | "mfa" | "oauth" };
 
@@ -28,15 +29,16 @@ export function DeleteInterviewButton({ interviewId, remove }: { interviewId: st
       {retry && <ReauthPrompt needed={retry.needed} onDone={() => retry.run()} />}
       {!interviewId ? null : !armed ? (
         <button type="button" className="inline-flex min-h-11 items-center rounded-md border border-red-700/40 px-4 text-sm font-medium text-red-900 dark:text-red-200" onClick={() => setArmed(true)}>Delete this interview</button>
-      ) : (
-        <div role="alertdialog" aria-label="Delete this interview" className="space-y-2 rounded-md border border-red-700/30 bg-red-50 p-3 text-sm text-red-950">
+      ) : null}
+      <Dialog open={armed && interviewId !== null} onClose={() => { if (!pending) setArmed(false); }} title="Delete this interview?">
+        <div className="space-y-3 text-sm">
           <p>This permanently deletes the transcript, uploaded files, claims and referrals of this interview, and takes any case study built on it offline. It cannot be undone.</p>
           <div className="flex gap-2">
             <button type="button" disabled={pending} className="inline-flex min-h-11 items-center rounded-md bg-red-800 px-4 font-medium text-white disabled:opacity-50" onClick={run}>Yes, delete it</button>
             <button type="button" disabled={pending} className="inline-flex min-h-11 items-center rounded-md border border-neutral-400 px-4" onClick={() => setArmed(false)}>Keep it</button>
           </div>
         </div>
-      )}
+      </Dialog>
       <div role="status" aria-live="polite">{message ? <p className={message.ok ? "text-sm text-green-800" : "text-sm text-red-700"}>{message.message}</p> : null}</div>
     </div>
   );

@@ -11,6 +11,8 @@ import type { Blocker } from "@/lib/case-study/publish-check";
 import type { Template } from "@/lib/templates/model";
 import { Flag, Source, type ReviewClaim } from "./claim-parts";
 import { RefineControl, RefinedBadge, type RefineActions } from "./refine-control";
+import { CopyButton } from "@/components/motion/copy-button";
+import { LoadingButton, type ButtonPhase } from "@/components/motion/loading-button";
 import { CaseStudyView } from "./view/case-study-view";
 
 interface Props {
@@ -491,13 +493,17 @@ function PublishPanel({ id, status, role, canEdit, headline, slug, declined, cli
   const [link, setLink] = useState<string>();
   const [message, setMessage] = useState<{ ok: boolean; text: string }>();
   const [pending, setPending] = useState(false);
+  const [phase, setPhase] = useState<{ which: "request" | "publish" | null; value: ButtonPhase }>({ which: null, value: "idle" });
   const canPublish = role === "admin" || role === "owner";
 
-  async function run(action: () => Promise<LifecycleResult>) {
+  async function run(action: () => Promise<LifecycleResult>, which: "request" | "publish" | null = null) {
     setPending(true);
     setMessage(undefined);
+    setPhase({ which, value: "loading" });
     const result = await action();
     setPending(false);
+    setPhase({ which, value: result.ok ? "success" : "idle" });
+    if (result.ok) setTimeout(() => setPhase({ which: null, value: "idle" }), 1200);
     setMessage({ ok: result.ok, text: result.message ?? (result.ok ? "Done." : "Something went wrong.") });
     if (result.link) setLink(result.link);
     if (result.ok) router.refresh();
@@ -516,9 +522,9 @@ function PublishPanel({ id, status, role, canEdit, headline, slug, declined, cli
           <p className="text-sm text-neutral-600 dark:text-neutral-400">
             {status === "draft" ? "Your client approves this exact version by email. Editing afterwards cancels the request." : "Waiting for your client. A new link replaces the previous one."}
           </p>
-          <button type="button" disabled={pending} onClick={() => run(() => actions.requestApproval(id))} className={smallButton}>
+          <LoadingButton type="button" phase={phase.which === "request" ? phase.value : "idle"} disabled={pending} onClick={() => run(() => actions.requestApproval(id), "request")} className={smallButton}>
             {status === "draft" ? "Request client approval and signature" : "Send a new signing link"}
-          </button>
+          </LoadingButton>
         </div>
       )}
 
@@ -526,7 +532,7 @@ function PublishPanel({ id, status, role, canEdit, headline, slug, declined, cli
         <div className="space-y-2">
           <label htmlFor="ed-slug" className="block text-sm font-medium">Page address</label>
           <input id="ed-slug" value={address} onChange={(e) => setAddress(e.target.value)} maxLength={60} className={`${field} font-mono`} />
-          <button type="button" disabled={pending || blockers.length > 0} onClick={() => run(() => actions.publish(id, address, headline))} className="inline-flex min-h-11 items-center rounded-md bg-neutral-900 px-5 text-base font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900">Publish</button>
+          <LoadingButton type="button" phase={phase.which === "publish" ? phase.value : "idle"} disabled={pending || blockers.length > 0} onClick={() => run(() => actions.publish(id, address, headline), "publish")} className="min-h-11 rounded-md bg-neutral-900 px-5 text-base font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900">Publish</LoadingButton>
         </div>
       )}
       {(status === "approved" || status === "unpublished") && !canPublish && <p className="text-sm text-neutral-600 dark:text-neutral-400">Approved by your client. An admin or owner can publish it.</p>}
@@ -539,6 +545,7 @@ function PublishPanel({ id, status, role, canEdit, headline, slug, declined, cli
         <div className="space-y-1 text-sm">
           <p className="font-medium">Approval link (shown once)</p>
           <input readOnly value={link} aria-label="Approval link" onFocus={(e) => e.currentTarget.select()} className={`${field} font-mono text-sm`} />
+          <CopyButton text={link} label="Copy link" />
         </div>
       )}
       {blockers.length > 0 && status !== "published" && (

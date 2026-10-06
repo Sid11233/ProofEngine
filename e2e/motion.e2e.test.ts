@@ -79,3 +79,94 @@ describe("the motion foundation", () => {
     await context.close();
   }, 120_000);
 });
+
+describe("the overlay and navigation animations", () => {
+  async function lab(label: string) {
+    const page = await newPage(stack);
+    const problems = watchConsole(page);
+    await signIn(page, platform.email, platform.password);
+    await page.waitForURL(/\/app\/|\/onboarding/);
+    await page.goto(`${BASE}/dev/motion`);
+    await page.getByRole("heading", { name: "Motion lab" }).waitFor();
+    void label;
+    return { page, problems };
+  }
+
+  it("a dialog moves focus in, keeps Tab inside, closes on Escape and gives focus back", async () => {
+    const { page, problems } = await lab("dialog");
+    const opener = page.getByRole("button", { name: "Open dialog" });
+    await opener.click();
+    const dialog = page.getByRole("dialog", { name: "A dialog" });
+    await dialog.waitFor();
+    expect(await dialog.evaluate((el) => el.contains(document.activeElement))).toBe(true);
+    for (let i = 0; i < 4; i++) {
+      await page.keyboard.press("Tab");
+      expect(await dialog.evaluate((el) => el.contains(document.activeElement))).toBe(true);
+    }
+    await page.keyboard.press("Escape");
+    await dialog.waitFor({ state: "detached" });
+    expect(await opener.evaluate((el) => el === document.activeElement)).toBe(true);
+    expect(problems).toEqual([]);
+  }, 120_000);
+
+  it("tabs follow the arrow keys, and a popover closes on Escape", async () => {
+    const { page } = await lab("tabs");
+    const tabs = page.getByRole("tab");
+    await tabs.first().focus();
+    await page.keyboard.press("ArrowRight");
+    await page.getByText("Second panel").waitFor();
+    expect(await page.getByRole("tab", { name: "Second" }).getAttribute("aria-selected")).toBe("true");
+    await page.keyboard.press("End");
+    await page.getByText("Third panel").waitFor();
+    await page.keyboard.press("Home");
+    await page.getByText("First panel").waitFor();
+
+    const trigger = page.getByRole("button", { name: "Open popover" });
+    await trigger.click();
+    await page.getByText("Hello from a popover.").waitFor();
+    expect(await trigger.getAttribute("aria-expanded")).toBe("true");
+    await page.keyboard.press("Escape");
+    await page.getByText("Hello from a popover.").waitFor({ state: "detached" });
+    expect(await trigger.getAttribute("aria-expanded")).toBe("false");
+  }, 120_000);
+
+  it("toasts are announced, dismiss themselves and can be closed; the button shows loading then done", async () => {
+    const { page } = await lab("toast");
+    await page.getByRole("button", { name: "Success toast" }).click();
+    const toast = page.getByRole("status").filter({ hasText: "Saved your changes" });
+    await toast.waitFor();
+    await toast.getByRole("button", { name: "Dismiss" }).click();
+    await toast.waitFor({ state: "detached" });
+    await page.getByRole("button", { name: "Error toast" }).click();
+    await page.getByRole("alert").filter({ hasText: "That did not work" }).waitFor();
+
+    await page.getByRole("button", { name: "Save" }).click();
+    await page.locator('[data-anim="G-16"][aria-busy="true"]').waitFor();
+    await page.locator('[data-anim="G-16"][aria-busy="false"]').waitFor();
+  }, 120_000);
+
+  it("the app has the nav pill, a bottom bar on phones, and honours reduced motion on route changes", async () => {
+    const user = await createUser(stack.admin, "motion-nav");
+    const context = await stack.browser.newContext({ viewport: { width: 390, height: 800 }, extraHTTPHeaders: { "x-forwarded-for": "198.51.100.88" } });
+    const page = await context.newPage();
+    await signIn(page, user.email, user.password);
+    await page.waitForURL(`${BASE}/app/dashboard`);
+    await page.locator('nav[data-anim="G-06"]').waitFor();
+    await page.locator('nav[data-anim="G-06"] a[aria-current="page"]').waitFor();
+    await page.locator('nav[data-anim="G-05"] a[aria-current="page"]').waitFor();
+    await page.locator('nav[data-anim="G-06"]').getByRole("link", { name: "Requests" }).click();
+    await page.waitForURL(`${BASE}/app/requests`);
+    expect(await page.locator('nav[data-anim="G-06"] a[aria-current="page"]').innerText()).toContain("Requests");
+    // The page itself carries the route transition.
+    expect(await page.locator('[data-anim="G-01"]').count()).toBe(1);
+    await context.close();
+
+    const reduced = await stack.browser.newContext({ reducedMotion: "reduce", extraHTTPHeaders: { "x-forwarded-for": "198.51.100.89" } });
+    const rp = await reduced.newPage();
+    await signIn(rp, user.email, user.password);
+    await rp.waitForURL(`${BASE}/app/dashboard`);
+    const animation = await rp.evaluate(() => { const el = document.querySelector('[data-anim="G-01"]'); return el ? getComputedStyle(el).animationName + " " + getComputedStyle(el).animationDuration : ""; });
+    expect(animation).toBe("anim-route-fade 0.12s");
+    await reduced.close();
+  }, 120_000);
+});

@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
+import { CopyButton } from "@/components/motion/copy-button";
+import { useToast } from "@/components/motion/toast";
 
 export interface DraftView {
   id: string;
@@ -22,24 +24,14 @@ const btn = "inline-flex min-h-11 items-center justify-center rounded-md border 
 const primary = "inline-flex min-h-11 items-center justify-center rounded-md bg-neutral-900 px-4 text-sm font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 disabled:opacity-50";
 
 export function SocialDrafts({ drafts, canEdit, actions }: { drafts: DraftView[]; canEdit: boolean; actions: Actions }) {
-  const [message, setMessage] = useState<string | null>(null);
-  const [copied, setCopied] = useState<string | null>(null);
+  const toast = useToast();
   const [pending, start] = useTransition();
 
   const run = (fn: () => Promise<{ ok: boolean; message?: string }>) =>
     start(async () => {
       const result = await fn();
-      setMessage(result.ok ? null : (result.message ?? "Something went wrong."));
+      if (!result.ok) toast.show(result.message ?? "Something went wrong.", "error");
     });
-
-  const copy = async (draft: DraftView) => {
-    try {
-      await navigator.clipboard.writeText(draft.body);
-      setCopied(draft.id);
-    } catch {
-      setMessage("Your browser blocked copying. Select the text and copy it yourself.");
-    }
-  };
 
   const groups = [...new Set(drafts.map((d) => d.network))];
 
@@ -50,7 +42,6 @@ export function SocialDrafts({ drafts, canEdit, actions }: { drafts: DraftView[]
           {pending ? "Working…" : drafts.length > 0 ? "Write new drafts" : "Write drafts"}
         </button>
       )}
-      {message && <p role="alert" className="rounded-md border border-red-700/30 bg-red-50 px-3 py-2 text-sm text-red-900">{message}</p>}
       {groups.map((network) => (
         <section key={network} className="space-y-3">
           <h2 className="text-lg font-semibold">{drafts.find((d) => d.network === network)?.label}</h2>
@@ -59,7 +50,7 @@ export function SocialDrafts({ drafts, canEdit, actions }: { drafts: DraftView[]
               <p className="whitespace-pre-wrap text-base">{d.body}</p>
               <p className="text-xs text-neutral-600">{d.body.length} / {d.maxChars} characters{d.status !== "draft" && ` · ${d.status === "saved" ? "Saved" : "Posted"}`}</p>
               <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={() => copy(d)} className={btn}>{copied === d.id ? "Copied" : "Copy text"}</button>
+                <CopyButton text={d.body} label="Copy text" onError={(text) => toast.show(text, "error")} />
                 <a href={d.openHref} target="_blank" rel="noopener noreferrer" className={btn}>Open {d.label}</a>
                 {canEdit && d.status === "draft" && <button type="button" disabled={pending} onClick={() => run(() => actions.setStatus({ id: d.id, status: "saved" }))} className={btn}>Save this version</button>}
                 {canEdit && d.status !== "posted" && <button type="button" disabled={pending} onClick={() => run(() => actions.setStatus({ id: d.id, status: "posted" }))} className={btn}>Mark as posted</button>}
