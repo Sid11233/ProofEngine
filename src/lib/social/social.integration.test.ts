@@ -1,7 +1,7 @@
 /** Social drafts against the real database (npm run test:isolation): consent, publish state, roles. */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createTestUser, hex64, loadLocalConfig, makeClient, wasBlocked, type TestUser } from "../../../supabase/tests/isolation/harness";
+import { createTestUser, signCurrent, hex64, loadLocalConfig, makeClient, wasBlocked, type TestUser } from "../../../supabase/tests/isolation/harness";
 import { generateToken } from "@/lib/security/tokens";
 
 let admin: SupabaseClient;
@@ -37,6 +37,7 @@ async function story({ social, publish }: { social: boolean; publish: boolean })
   const approved = await admin.rpc("approve_case_study", { token_hash: token.hash, ip_hash: hex64(), social });
   if (approved.error) throw new Error(approved.error.message);
   if (publish) {
+    await signCurrent(admin, id, { social });
     const res = await owner.client.rpc("publish_case_study", { study: id, new_slug: `s-${hex64().slice(0, 8)}` });
     if (res.error) throw new Error(res.error.message);
   }

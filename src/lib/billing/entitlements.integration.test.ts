@@ -1,7 +1,7 @@
 /** Limits and entitlements enforced by the server and database, called directly with a valid session (npm run test:isolation). */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createTestUser, hex64, loadLocalConfig, makeClient, wasBlocked, type TestUser } from "../../../supabase/tests/isolation/harness";
+import { createTestUser, signCurrent, hex64, loadLocalConfig, makeClient, wasBlocked, type TestUser } from "../../../supabase/tests/isolation/harness";
 import { createRequest } from "@/lib/requests/service";
 import { generateToken } from "@/lib/security/tokens";
 import { loadPublishedStudy } from "@/lib/public/load";
@@ -30,6 +30,7 @@ async function approved(user: TestUser, ws: string, template: string | null) {
   const token = generateToken();
   await user.client.rpc("request_client_approval", { study: id, hash: token.hash });
   await admin.rpc("approve_case_study", { token_hash: token.hash, ip_hash: hex64() });
+  await signCurrent(admin, id);
   return id;
 }
 

@@ -1,7 +1,7 @@
 /** Deletion, retention and erasure against the real database and Storage (npm run test:isolation). */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createTestUser, hex64, loadLocalConfig, makeClient, wasBlocked, type TestUser } from "../../../supabase/tests/isolation/harness";
+import { createTestUser, signCurrent, hex64, loadLocalConfig, makeClient, wasBlocked, type TestUser } from "../../../supabase/tests/isolation/harness";
 import { generateToken } from "@/lib/security/tokens";
 import { eraseStory } from "./erase";
 import { listFiles } from "./files";
@@ -58,6 +58,7 @@ async function tenant(label: string, { published = true }: { published?: boolean
   await admin.from("case_study_versions").insert({ case_study_id: studyId, workspace_id: ws, version: 1, content: finalContent });
   await admin.from("approvals").insert({ case_study_id: studyId, workspace_id: ws, version: 1, approver_email: `${label}-client@example.test`, method: "email_link" });
   await admin.from("case_study_previews").insert({ case_study_id: studyId, workspace_id: ws, token_hash: hex64(), expires_at: new Date(Date.now() + 86_400_000).toISOString() });
+  if (published) await signCurrent(admin, studyId);
   if (published) expect((await admin.from("case_studies").update({ status: "published", slug: `st-${hex64().slice(0, 8)}` }).eq("id", studyId)).error).toBeNull();
   await admin.from("page_events").insert({ case_study_id: studyId, workspace_id: ws, type: "view" });
   await admin.from("case_study_feedback").insert({ case_study_id: studyId, workspace_id: ws, version: 1, kind: "changes_requested", message: `${label} FEEDBACK` });
@@ -71,7 +72,7 @@ async function tenant(label: string, { published = true }: { published?: boolean
 
 /** Every public table that has a workspace_id column. */
 async function tenantTables(): Promise<string[]> {
-  return ["proof_requests", "interviews", "interview_messages", "interview_uploads", "referrals", "case_studies", "case_study_versions", "claims", "approvals", "case_study_feedback", "case_study_approval_tokens", "case_study_previews", "takedown_requests", "page_events", "wall_settings", "workspace_communities", "social_profiles", "social_posts", "workspace_members", "workspace_invites", "subscriptions", "usage_counters", "audit_log", "notification_preferences", "push_subscriptions", "template_entitlements", "question_flows"];
+  return ["proof_requests", "interviews", "interview_messages", "interview_uploads", "referrals", "case_studies", "case_study_versions", "claims", "approvals", "case_study_feedback", "case_study_approval_tokens", "case_study_previews", "takedown_requests", "page_events", "wall_settings", "workspace_communities", "social_profiles", "social_posts", "signatures", "signature_revocations", "signature_events", "text_refinements", "workspace_members", "workspace_invites", "subscriptions", "usage_counters", "audit_log", "notification_preferences", "push_subscriptions", "template_entitlements", "question_flows"];
 }
 
 async function rowsLeft(ws: string): Promise<Record<string, number>> {

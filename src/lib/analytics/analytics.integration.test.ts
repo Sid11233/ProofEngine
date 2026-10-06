@@ -1,7 +1,7 @@
 /** Page events and dashboard views against the real database (npm run test:isolation). */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createTestUser, hex64, loadLocalConfig, makeClient, rowsOf, wasBlocked, type TestUser } from "../../../supabase/tests/isolation/harness";
+import { createTestUser, signCurrent, hex64, loadLocalConfig, makeClient, rowsOf, wasBlocked, type TestUser } from "../../../supabase/tests/isolation/harness";
 import { generateToken } from "@/lib/security/tokens";
 import { recordPageEvent } from "./record";
 
@@ -28,6 +28,7 @@ async function published(user: TestUser, ws: string, headline: string) {
   const token = generateToken();
   await user.client.rpc("request_client_approval", { study: id, hash: token.hash });
   await admin.rpc("approve_case_study", { token_hash: token.hash, ip_hash: hex64() });
+  await signCurrent(admin, id);
   expect((await user.client.rpc("publish_case_study", { study: id, new_slug: slug })).error).toBeNull();
   return { id, slug };
 }
