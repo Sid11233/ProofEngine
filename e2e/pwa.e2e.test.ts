@@ -33,7 +33,7 @@ describe("installability", () => {
     const res = await fetch(`${BASE}/manifest.webmanifest`);
     expect(res.status).toBe(200);
     const m = await res.json();
-    expect(m).toMatchObject({ start_url: "/app/dashboard", display: "standalone", theme_color: "#171717" });
+    expect(m).toMatchObject({ start_url: "/app/dashboard", display: "standalone", theme_color: "#faf7f0" });
     expect(m.name).toBeTruthy();
     expect(m.short_name).toBeTruthy();
     const purposes = m.icons.map((i: { sizes: string; purpose?: string }) => `${i.sizes}:${i.purpose ?? "any"}`);
