@@ -12,7 +12,8 @@ Status key: **done** is verified in this repository, **you** needs an account, a
 | Production keys rotated and different from dev; Stripe live webhook secret set | **you** | New Supabase, Stripe live, Resend, Anthropic, Upstash, VAPID, `CRON_SECRET`, `IP_HASH_SECRET` values in Vercel. |
 | SPF, DKIM, DMARC for the sending domain | **you** | Verify the domain in Resend and add the three DNS records. |
 | Backups enabled and one restore tested | **you** | Steps in [incident-response.md](incident-response.md) once it exists (Phase 11.4). |
-| Privacy policy, terms and DPA reviewed by a lawyer | **you** | Drafts arrive with Phase 11.3. |
+| Privacy policy, terms and DPA reviewed by a lawyer | **you** | Drafts are at `/privacy`, `/terms`, `/subprocessors`, `/dpa`; fill the highlighted placeholders, then remove the draft banner and noindex. |
+| Deletion works end to end in production | **you** | Delete a test workspace, wait out (or backdate) the grace period, check `/api/cron/purge` in the Vercel cron log and that the Storage buckets are empty. |
 | Public pages domain separate from the app domain, HSTS enabled | **you** | `PUBLIC_SITES_DOMAIN` plus wildcard DNS ([setup.md](setup.md)); HSTS is sent on every response. |
 | Turnstile and rate limits active on all public endpoints | **you** | Set `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, the Upstash keys and **`REQUIRE_DISTRIBUTED_RATE_LIMIT=1`** (audit M3). |
 | Spend circuit breaker tested | done | Covered by `e2e/abuse` (pauses interviews at the daily limit and resumes). Set `AI_DAILY_TOKEN_LIMIT` and `ALERT_EMAIL`. |

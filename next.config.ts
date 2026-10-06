@@ -57,6 +57,15 @@ const nextConfig: NextConfig = {
           { key: "Cache-Control", value: "private, no-store" },
         ],
       },
+      // "Remove my story" links carry a signed token.
+      {
+        source: "/remove/:path*",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "Cache-Control", value: "private, no-store" },
+        ],
+      },
       // Unsubscribe links carry a signed token.
       {
         source: "/unsubscribe/:path*",

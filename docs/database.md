@@ -135,6 +135,16 @@ R = read, W = write. "Server" means service role, used only in token-authenticat
 - `workspace_communities` is each workspace's tracker: editors and above read and write their own workspace's rows only (RLS), only `status` and `notes` are updatable (column grant), only active communities can be added, notes are at most 2000 characters and are rendered as text only. It is in the isolation SPECS and has a dedicated cross-workspace test.
 - Matching is tag overlap (`src/lib/finder/match.ts`): 3 points per shared niche tag, 1 per shared audience word, ties to verified entries. Links render only if they parse as plain https and always open with `target=_blank rel="noopener noreferrer"`.
 
+## Privacy: deletion, export and retention (Phase 11.3)
+
+- **Workspace and account deletion** (`request_workspace_deletion`, `request_account_deletion`; owner, recent sign-in, typed confirmation): a 30 day grace period. From the request the workspace's public pages and widget leave the public views, every interview, preview and approval link is revoked and nothing new can be created (a trigger refuses). A paid subscription must be cancelled first. After 30 days the daily job (`/api/cron/purge`) removes the files from both buckets, verifies none are left, then `hard_delete_workspace()` deletes the workspace row and the foreign keys remove every dependent row. There is no direct `DELETE` on `workspaces` any more.
+- **Append-only tables** (versions, approvals, feedback, page events, audit log) refuse deletes except inside the purge functions, which set the transaction-local flag `pe.purge`; no client can set it (PostgREST exposes no `set_config`; tested).
+- **Delete this interview** (`delete_interview`, admin+, recent sign-in): removes the transcript, upload rows (files first, by the action), claims and referrals, unpublishes or returns to draft the case studies built on it. They cannot go live again because their numbers no longer point at a claim.
+- **Client removal link** (`/remove/<case study id>.<HMAC>`, valid for the life of the case study, in every approval email and on the approval page): needs a confirming click, then `erase_story()` deletes the case study with all versions, approvals and events, the interview and the request (the client's name and email), and the files and logo. The audit trail keeps only that an erasure happened.
+- **Export** (`POST /api/export`, owner, recent sign-in, same origin, 3 per hour): a zip of JSON files read through the owner's own client, so row-level security limits it to their workspace; no token hashes, push keys, Stripe ids or IP hashes.
+- **Retention**: requests that never completed are deleted 90 days after their last activity (`stale_requests`, `purge_requests`), with their uploads. No audio is stored in V1; when voice answers are built the raw audio must be deleted right after transcription.
+- Files are always removed **before** the rows, and a failed removal throws, so a retry finds the rows instead of leaving orphaned files.
+
 ## Running the tests
 
 ```bash

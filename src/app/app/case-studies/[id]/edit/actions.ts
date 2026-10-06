@@ -1,5 +1,6 @@
 "use server";
 
+import "server-only";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -12,6 +13,9 @@ import { getEmailSender } from "@/lib/email/resend";
 import { themeSchema } from "@/lib/case-study/theme";
 import { getClientIp } from "@/lib/security/client-ip";
 import { publicEnv } from "@/lib/security/env.public";
+import { serverEnv } from "@/lib/security/env.server";
+import { removalSecret } from "@/lib/security/ip-hash";
+import { removalToken } from "@/lib/security/removal";
 import { generateToken } from "@/lib/security/tokens";
 import { createClient } from "@/lib/supabase/server";
 import { classify } from "@/lib/team/service";
@@ -132,7 +136,7 @@ export async function requestApprovalAction(studyId: string): Promise<LifecycleR
   const id = idSchema.safeParse(studyId);
   if (!id.success) return { ok: false, message: "That case study was not found." };
 
-  const result = await requestApproval(await createClient(), id.data, { appUrl: publicEnv.NEXT_PUBLIC_APP_URL, workspaceName: auth.workspace.name, sender: getEmailSender() });
+  const result = await requestApproval(await createClient(), id.data, { appUrl: publicEnv.NEXT_PUBLIC_APP_URL, workspaceName: auth.workspace.name, sender: getEmailSender(), removalUrl: (studyId) => new URL(`/remove/${removalToken(removalSecret(serverEnv), studyId)}`, publicEnv.NEXT_PUBLIC_APP_URL).toString() });
   if (!result.ok) return result;
   revalidatePath(`/app/case-studies/${id.data}/edit`);
   return { ok: true, link: result.link, message: result.emailSent ? "We emailed your client." : "Email is not set up, so copy the link below and send it to your client yourself." };

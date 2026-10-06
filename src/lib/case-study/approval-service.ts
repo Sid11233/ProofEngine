@@ -12,6 +12,8 @@ export interface ApprovalContext {
   appUrl: string;
   workspaceName: string;
   sender: EmailSender | null;
+  /** The client's own "remove my story" link for a case study. */
+  removalUrl?: (caseStudyId: string) => string;
 }
 
 export const PUBLISH_BLOCK_MESSAGES: Record<string, string> = {
@@ -32,7 +34,7 @@ export type ApprovalOutcome =
   | { ok: true; link: string; emailSent: boolean }
   | { ok: false; message: string };
 
-export function approvalEmail({ clientName, workspaceName, link }: { clientName: string; workspaceName: string; link: string }) {
+export function approvalEmail({ clientName, workspaceName, link, removalLink }: { clientName: string; workspaceName: string; link: string; removalLink?: string }) {
   const first = clientName.trim().split(/\s+/)[0] || "there";
   return {
     subject: `Please review your case study from ${workspaceName}`,
@@ -44,6 +46,7 @@ export function approvalEmail({ clientName, workspaceName, link }: { clientName:
       link,
       "",
       "The link works for 14 days and only for this version. If you were not expecting this, you can ignore this email.",
+      ...(removalLink ? ["", `Prefer that none of this is kept? You can delete the story, your interview and your contact details at any time: ${removalLink}`] : []),
     ].join("\n"),
   };
 }
@@ -68,7 +71,7 @@ export async function requestApproval(supabase: SupabaseClient, studyId: string,
   let emailSent = false;
   const recipient = ctx.sender ? await approver(supabase, studyId) : null;
   if (ctx.sender && recipient) {
-    emailSent = await ctx.sender.send({ to: recipient.email, ...approvalEmail({ clientName: recipient.name, workspaceName: ctx.workspaceName, link }) });
+    emailSent = await ctx.sender.send({ to: recipient.email, ...approvalEmail({ clientName: recipient.name, workspaceName: ctx.workspaceName, link, removalLink: ctx.removalUrl?.(studyId) }) });
   }
   return { ok: true, link, emailSent };
 }

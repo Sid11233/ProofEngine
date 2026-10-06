@@ -153,6 +153,9 @@ function IntroScreen({
           <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-1 size-5 shrink-0" required />
           <span className="text-sm">{consentText}</span>
         </label>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">
+          How your answers are used, kept and deleted: <a href="/privacy" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center underline underline-offset-2">privacy policy (opens in a new tab)</a>.
+        </p>
         {turnstileSiteKey ? <TurnstileWidget siteKey={turnstileSiteKey} nonce={nonce} onToken={setHumanToken} /> : null}
         <Alert message={error} />
         <button type="submit" className={buttonPrimary} disabled={!agreed || pending || Boolean(turnstileSiteKey && !humanToken)}>

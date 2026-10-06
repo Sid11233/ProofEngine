@@ -22,7 +22,9 @@ export type AuthAction =
   | "wall-settings"
   | "billing"
   | "notifications"
-  | "finder";
+  | "finder"
+  | "export"
+  | "privacy";
 
 interface Limit {
   limit: number;
@@ -43,6 +45,8 @@ const OVERRIDES: Partial<Record<AuthAction, { subject: Limit; ip: Limit }>> = {
   billing: { subject: { limit: 10, windowSec: 60 * 60 }, ip: { limit: 30, windowSec: 60 * 60 } },
   notifications: { subject: { limit: 60, windowSec: 60 * 60 }, ip: { limit: 120, windowSec: 60 * 60 } },
   finder: { subject: { limit: 200, windowSec: 60 * 60 }, ip: { limit: 400, windowSec: 60 * 60 } },
+  export: { subject: { limit: 3, windowSec: 60 * 60 }, ip: { limit: 10, windowSec: 60 * 60 } },
+  privacy: { subject: { limit: 20, windowSec: 60 * 60 }, ip: { limit: 40, windowSec: 60 * 60 } },
   "team-manage": { subject: { limit: 60, windowSec: 15 * 60 }, ip: { limit: 120, windowSec: 60 * 60 } },
 };
 

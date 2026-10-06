@@ -73,6 +73,16 @@ Every limit below is enforced on the server (in the database or in code), never 
 | Tracker changes | 200 per hour per user | `finder` rate limit |
 | Who can track | editors and above, own workspace only; viewers can browse the list | RLS, `saveTrackerAction` |
 
+## Privacy (Phase 11.3)
+
+| Control | Value | Where |
+| --- | --- | --- |
+| Deletion grace period | 30 days, cancellable; public pages and links stop immediately | `request_workspace_deletion`, `/api/cron/purge` |
+| Incomplete interviews | purged after 90 days idle | `stale_requests` |
+| Export | owner only, 3 per hour, 200,000 rows maximum | `/api/export` |
+| Deletion and interview-delete actions | 20 per hour per user, recent sign-in | `privacy` rate limit |
+| Client removal link | 20 requests per minute per IP, confirming click required | `/remove/[token]` |
+
 ## Uploads
 
 | Control | Value |

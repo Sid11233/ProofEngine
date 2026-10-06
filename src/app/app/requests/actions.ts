@@ -3,7 +3,9 @@
 import "server-only";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { isAuthAttemptAllowed, RATE_LIMITED_MESSAGE } from "@/lib/auth/rate-limits";
+import { checkRecentAuth, REAUTH_MESSAGE, type ReauthNeeded } from "@/lib/auth/recent-auth";
 import { requireUser } from "@/lib/auth/session";
 import { getEmailSender } from "@/lib/email/resend";
 import { getClientIp } from "@/lib/security/client-ip";
@@ -14,6 +16,7 @@ import { unsubscribeToken } from "@/lib/security/unsubscribe";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentWorkspace } from "@/lib/workspace/current";
 import { fieldErrorsOf, formDataToObject, type FieldErrors } from "@/lib/validation/form";
+import { removeUploadFiles } from "@/lib/privacy/server";
 import { createRequestSchema, requestIdSchema } from "@/lib/requests/schemas";
 import * as requests from "@/lib/requests/service";
 
@@ -117,4 +120,35 @@ export async function revokeRequestAction(requestId: string): Promise<RequestAct
   revalidatePath("/app/requests");
   revalidatePath(`/app/requests/${id.data}`);
   return { ok: true, message: "Link revoked. It stops working immediately." };
+}
+
+const deleteInterviewSchema = z.object({ interviewId: z.uuid() }).strict();
+
+/**
+ * Admin and above, recent sign-in. Removes the transcript, the uploads, the claims and the referrals of one
+ * interview and takes the case studies built on it offline. Files go first (their paths are read through the
+ * user's own client, so they can only be this workspace's), then the database function re-checks the role.
+ */
+export async function deleteInterviewAction(input: unknown): Promise<RequestActionResult & { reauth?: ReauthNeeded }> {
+  const user = await requireUser();
+  const workspace = await getCurrentWorkspace();
+  if (!workspace || (workspace.role !== "owner" && workspace.role !== "admin")) return { ok: false, message: requests.REQUEST_ERROR_MESSAGES.forbidden };
+  if (!(await isAuthAttemptAllowed("privacy", { ip: getClientIp(await headers()), subject: user.id }))) return { ok: false, message: RATE_LIMITED_MESSAGE };
+  const reauth = await checkRecentAuth();
+  if (reauth) return { ok: false, reauth, message: REAUTH_MESSAGE };
+  const parsed = deleteInterviewSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, message: "That interview was not found." };
+
+  const supabase = await createClient();
+  const { data: uploads } = await supabase.from("interview_uploads").select("file_path").eq("interview_id", parsed.data.interviewId).eq("workspace_id", workspace.id);
+  try {
+    await removeUploadFiles(workspace.id, (uploads ?? []).map((u) => String(u.file_path)));
+  } catch {
+    return { ok: false, message: "We could not remove the uploaded files, so nothing was deleted. Please try again." };
+  }
+  const { error } = await supabase.rpc("delete_interview", { ws: workspace.id, interview: parsed.data.interviewId });
+  if (error) return { ok: false, message: error.code === "P0002" ? "That interview was not found." : "We could not delete the interview." };
+  revalidatePath("/app/requests");
+  revalidatePath("/app/case-studies");
+  return { ok: true, message: "The interview was deleted. Case studies built on it were taken offline." };
 }
