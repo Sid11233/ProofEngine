@@ -4,7 +4,7 @@
 -- Run with: npx supabase test db
 
 begin;
-select plan(26);
+select plan(27);
 
 -- Tables and policies ---------------------------------------------------------------------------
 select is(
@@ -16,14 +16,14 @@ select is(
   (select array_agg(c.relname::text order by c.relname) from pg_class c join pg_namespace n on n.oid = c.relnamespace
    where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity
      and not exists (select 1 from pg_policy p where p.polrelid = c.oid)),
-  array['ai_daily_usage', 'stripe_events'],
-  'the only tables with RLS and no policy are the server-only ai_daily_usage and stripe_events');
+  array['ai_daily_usage', 'signing_challenges', 'stripe_events'],
+  'the only tables with RLS and no policy are the server-only ai_daily_usage, signing_challenges and stripe_events');
 
 select is(
   (select array_agg(distinct polrelid::regclass::text order by polrelid::regclass::text) from pg_policy
    where pg_get_expr(polqual, polrelid) = 'true'),
-  array['templates'],
-  'only the global template catalogue has a policy that is simply "true"');
+  array['consent_texts', 'templates'],
+  'only the global template catalogue and the (read-only) consent wording have a policy that is simply "true"');
 
 select is(
   (select count(*)::int from pg_policy where polcmd = 'w' and polwithcheck is null),
@@ -148,8 +148,14 @@ select is(
 
 select is(
   case when to_regclass('storage.objects') is null then 0
-       else (select count(*)::int from pg_policy where polrelid = 'storage.objects'::regclass) end,
-  0, 'no storage policy lets a client touch files directly (the server hands out signed URLs)');
+       else (select count(*)::int from pg_policy where polrelid = 'storage.objects'::regclass and polpermissive) end,
+  0, 'no permissive storage policy lets a client touch files directly (the server hands out signed URLs)');
+
+-- The signatures bucket also has an explicit RESTRICTIVE deny for anon and signed-in users, so a permissive policy added later cannot open it.
+select is(
+  case when to_regclass('storage.objects') is null then 1
+       else (select count(*)::int from pg_policy where polrelid = 'storage.objects'::regclass and not polpermissive and polname = 'signatures_bucket_deny_clients') end,
+  1, 'the signatures bucket has a restrictive deny policy for clients');
 
 select * from finish();
 rollback;
