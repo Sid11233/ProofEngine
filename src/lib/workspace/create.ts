@@ -56,6 +56,7 @@ export async function createWorkspaceWithProfile(
     if (error?.code !== UNIQUE_VIOLATION) break;
   }
 
-  await supabase.from("workspaces").delete().eq("id", id);
+  // A brand new, empty workspace may be discarded at once (there is no direct delete: deletion has a grace period).
+  await supabase.rpc("discard_new_workspace", { ws: id });
   throw new Error("Could not finish setting up the workspace");
 }

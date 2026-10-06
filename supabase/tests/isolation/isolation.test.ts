@@ -691,9 +691,11 @@ describe("workspace roles", () => {
     }
   });
 
-  it("only an owner can delete a workspace", async () => {
-    const res = await E.client.from("workspaces").delete().eq("id", tenantA.ws).select();
-    expect(wasBlocked(res), "workspaces: admin can delete").toBe(true);
+  it("nobody can delete a workspace directly: deletion goes through the 30 day grace period", async () => {
+    for (const [who, user] of [["admin", E], ["owner", A]] as const) {
+      const res = await user.client.from("workspaces").delete().eq("id", tenantA.ws).select();
+      expect(wasBlocked(res), `workspaces: ${who} deleted a workspace directly`).toBe(true);
+    }
     const { data } = await admin.from("workspaces").select("id").eq("id", tenantA.ws);
     expect(data).toHaveLength(1);
   });

@@ -71,6 +71,10 @@ Then open **Security Advisor** in the dashboard and fix any warning (the gate is
 
 Custom domains come later: the app on `app.<yourproduct>.com`, interview links on `i.<yourproduct>.com`, and published pages on a **separate registrable domain**. Decide those names before Phase 3 and 6.
 
+### Privacy job (Phase 11.3)
+
+`/api/cron/purge` runs daily at 03:00 UTC (`vercel.json`) with the same `CRON_SECRET`. It deletes workspaces and accounts whose 30 day grace period is over (files first, then rows) and requests that never completed after 90 days. It answers 500 if anything failed (check the Vercel cron log) and simply retries the next day. The draft legal pages are `/privacy`, `/terms`, `/subprocessors` and `/dpa`: fill in the highlighted `[...]` placeholders, have a lawyer review them, then remove the draft banner and `noindex` in `src/app/(legal)/layout.tsx`.
+
 ### Launch hardening (Phase 11)
 
 Set `REQUIRE_DISTRIBUTED_RATE_LIMIT=1` once Upstash is configured: the app then refuses to build or start without it, instead of quietly counting rate limits per serverless instance. Set `SECURITY_CONTACT=mailto:security@yourdomain` to publish `/.well-known/security.txt`. Both are on the [launch checklist](launch-checklist.md).

@@ -14,6 +14,7 @@ const membershipSchema = z.object({
     type: z.enum(["agency", "saas"]),
     plan: z.enum(["free", "pro", "team"]),
     subdomain_slug: z.string().nullable(),
+    deletion_requested_at: z.string().nullable(),
   }),
 });
 
@@ -24,6 +25,8 @@ export interface CurrentWorkspace {
   type: "agency" | "saas";
   plan: "free" | "pro" | "team";
   subdomainSlug: string | null;
+  /** When deletion was requested (it happens 30 days later), or null. */
+  deletionRequestedAt: string | null;
   role: Role;
 }
 
@@ -40,7 +43,7 @@ export const getCurrentWorkspace = cache(async (): Promise<CurrentWorkspace | nu
   // pinned to the caller's own membership or it would return a teammate's role.
   const { data, error } = await supabase
     .from("workspace_members")
-    .select("role, workspaces(id, name, type, plan, subdomain_slug)")
+    .select("role, workspaces(id, name, type, plan, subdomain_slug, deletion_requested_at)")
     .eq("user_id", user.id)
     .order("created_at", { ascending: true })
     .limit(1);
@@ -50,5 +53,5 @@ export const getCurrentWorkspace = cache(async (): Promise<CurrentWorkspace | nu
   if (!parsed.success) return null;
 
   const { role, workspaces: ws } = parsed.data;
-  return { id: ws.id, name: ws.name, type: ws.type, plan: ws.plan, subdomainSlug: ws.subdomain_slug, role };
+  return { id: ws.id, name: ws.name, type: ws.type, plan: ws.plan, subdomainSlug: ws.subdomain_slug, deletionRequestedAt: ws.deletion_requested_at, role };
 });

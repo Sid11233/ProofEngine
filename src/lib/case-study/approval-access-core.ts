@@ -10,7 +10,7 @@ import type { PreviewData } from "./preview-access-core";
 // resolver it answers every kind of bad link the same way. The database functions re-check the
 // token, its version and the stored content when the client acts, so this is the display check.
 
-export type ApprovalData = PreviewData & { workspaceName: string };
+export type ApprovalData = PreviewData & { workspaceName: string; caseStudyId: string };
 export type ApprovalResult = { ok: true; data: ApprovalData } | { ok: false; reason: "not_found" | "rate_limited" };
 
 export interface ApprovalDeps {
@@ -58,6 +58,7 @@ export function createApprovalResolver({ admin, ipLimiter, tokenLimiter, now = D
         themeSettings: study.theme_settings ?? {},
         logoPath: content.data.client.logoPath ?? null,
         workspaceName: typeof workspace?.name === "string" ? workspace.name : "",
+        caseStudyId: String(link.case_study_id),
       },
     };
   };

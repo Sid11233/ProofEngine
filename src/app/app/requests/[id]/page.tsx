@@ -1,13 +1,14 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { GenerateButton } from "@/components/case-study/generate-button";
+import { DeleteInterviewButton } from "@/components/requests/delete-interview-button";
 import { RequestActions } from "@/components/requests/request-actions";
 import { requestIdSchema } from "@/lib/requests/schemas";
 import { getRequest } from "@/lib/requests/service";
 import { requireUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentWorkspace } from "@/lib/workspace/current";
-import { regenerateLinkAction, revokeRequestAction, sendInviteAction, sendReminderAction } from "../actions";
+import { deleteInterviewAction, regenerateLinkAction, revokeRequestAction, sendInviteAction, sendReminderAction } from "../actions";
 import { pageTitle } from "@/lib/brand";
 
 export const metadata = { title: pageTitle("Request") };
@@ -67,6 +68,13 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         canManage={workspace?.role !== "viewer"}
         actions={{ send: sendInviteAction, remind: sendReminderAction, regenerate: regenerateLinkAction, revoke: revokeRequestAction }}
       />
+      {(workspace?.role === "owner" || workspace?.role === "admin") && (
+        <section aria-labelledby="privacy-heading" className="space-y-2 rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
+          <h2 id="privacy-heading" className="font-semibold">Privacy</h2>
+          {interview ? <p className="text-sm text-neutral-600 dark:text-neutral-400">If your client asks, you can delete everything they said in this interview.</p> : null}
+          <DeleteInterviewButton interviewId={interview ? String(interview.id) : null} remove={deleteInterviewAction} />
+        </section>
+      )}
     </div>
   );
 }

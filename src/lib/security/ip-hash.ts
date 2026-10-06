@@ -13,3 +13,7 @@ export const ipHashSecret = (env: { IP_HASH_SECRET?: string; SUPABASE_SERVICE_RO
 /** Secret for unsubscribe tokens: IP_HASH_SECRET when set, otherwise a separate key derived from the service role key. */
 export const unsubscribeSecret = (env: { IP_HASH_SECRET?: string; SUPABASE_SERVICE_ROLE_KEY: string }) =>
   createHmac("sha256", env.IP_HASH_SECRET ?? env.SUPABASE_SERVICE_ROLE_KEY).update("proof-engine:unsubscribe:v1").digest("hex");
+
+/** Secret for the "remove my story" links: IP_HASH_SECRET when set, otherwise a separate key derived from the service role key. */
+export const removalSecret = (env: { IP_HASH_SECRET?: string; SUPABASE_SERVICE_ROLE_KEY: string }) =>
+  createHmac("sha256", env.IP_HASH_SECRET ?? env.SUPABASE_SERVICE_ROLE_KEY).update("proof-engine:removal:v1").digest("hex");

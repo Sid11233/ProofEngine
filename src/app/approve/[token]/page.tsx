@@ -7,6 +7,9 @@ import { defaultTemplate, loadTemplates } from "@/lib/templates/load";
 import { effectiveTheme } from "@/lib/templates/model";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { signedLogoUrl } from "@/lib/uploads/server";
+import { removalSecret } from "@/lib/security/ip-hash";
+import { removalToken } from "@/lib/security/removal";
+import { serverEnv } from "@/lib/security/env.server";
 import { decideAction } from "./actions";
 
 // The client's approval page. The link is the only credential. Headers (noindex, no-referrer,
@@ -43,6 +46,7 @@ export default async function ApprovePage({ params }: { params: Promise<{ token:
           {data.workspaceName ? `${data.workspaceName} wrote` : "We wrote"} the page below from what you told us. Nothing is published unless you approve exactly this version.
         </p>
         <ApprovalForm decide={decide} />
+        <p className="text-sm text-neutral-600">Want everything about this removed instead? <a href={`/remove/${removalToken(removalSecret(serverEnv), data.caseStudyId)}`} className="underline underline-offset-2">Delete this story and my interview</a>.</p>
       </section>
       <CaseStudyView content={data.content} template={template} theme={effectiveTheme(template, data.themeSettings)} watermark="Awaiting your approval" logoUrl={await signedLogoUrl(data.logoPath)} />
     </>
