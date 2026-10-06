@@ -1,5 +1,6 @@
 "use server";
 
+import "server-only";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { isAuthAttemptAllowed, RATE_LIMITED_MESSAGE } from "@/lib/auth/rate-limits";

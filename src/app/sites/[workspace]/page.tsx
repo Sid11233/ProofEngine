@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { brand } from "@/lib/brand";
 import { listPublishedStudies } from "@/lib/public/load";
+import { publicViewAllowed, TOO_MANY_REQUESTS_TEXT } from "@/lib/public/view-limit";
 import { publicEnv } from "@/lib/security/env.public";
 import { createPublicClient } from "@/lib/supabase/public";
 
@@ -15,6 +17,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
 
 // The workspace home: its published stories, newest first. A workspace with none is a 404.
 export default async function SiteHome({ params }: { params: Promise<Params> }) {
+  if (!(await publicViewAllowed(await headers()))) return <main className="mx-auto max-w-md px-4 py-16"><h1 className="text-xl font-semibold">Too many requests</h1><p className="mt-2">{TOO_MANY_REQUESTS_TEXT}</p></main>;
   const { workspace } = await params;
   const list = await listPublishedStudies(createPublicClient(), workspace);
   if (!list || list.items.length === 0) notFound();

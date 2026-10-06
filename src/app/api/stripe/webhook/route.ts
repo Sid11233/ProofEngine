@@ -1,3 +1,4 @@
+import "server-only";
 import { NextResponse } from "next/server";
 import { processVerifiedEvent } from "@/lib/billing/webhook-core";
 import { getStripe } from "@/lib/billing/stripe";

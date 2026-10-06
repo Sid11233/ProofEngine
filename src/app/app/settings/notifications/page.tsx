@@ -1,3 +1,4 @@
+import "server-only";
 import { redirect } from "next/navigation";
 import { NotificationSettings } from "@/components/notifications/notification-settings";
 import { requireUser } from "@/lib/auth/session";

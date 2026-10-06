@@ -1,3 +1,4 @@
+import "server-only";
 import { NextResponse } from "next/server";
 import { getClientIp } from "@/lib/security/client-ip";
 import { serverEnv } from "@/lib/security/env.server";

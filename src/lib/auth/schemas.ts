@@ -34,7 +34,7 @@ export const signupSchema = z
 export const forgotPasswordSchema = z.object({ email: emailSchema }).strict();
 
 export const resetPasswordSchema = z
-  .object({ password: newPasswordSchema, confirmPassword: z.string() })
+  .object({ password: newPasswordSchema, confirmPassword: z.string().max(200) })
   .strict()
   .refine((value) => value.password === value.confirmPassword, {
     path: ["confirmPassword"],

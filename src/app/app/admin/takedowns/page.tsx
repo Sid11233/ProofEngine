@@ -1,3 +1,4 @@
+import "server-only";
 import { TakedownList, type TakedownView } from "@/components/admin/takedown-list";
 import { pageTitle } from "@/lib/brand";
 import { publicPageUrl } from "@/lib/public/host";

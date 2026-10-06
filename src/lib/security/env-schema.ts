@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SECURITY_CONTACT_PATTERN } from "./security-txt";
 
 // Pure schema and parsing, with no `server-only` import, so next.config.ts and
 // tests can use it. App code should import `env.public` or `env.server`.
@@ -39,6 +40,9 @@ export const serverEnvSchema = z.object({
   // Phase 2: rate limiting
   UPSTASH_REDIS_REST_URL: optional(z.url()),
   UPSTASH_REDIS_REST_TOKEN: optional(z.string().min(1)),
+  // "1" makes a missing Upstash configuration a build/start error. Set it in production: without Upstash every
+  // serverless instance keeps its own counters, so rate limits are only a fraction of what they say.
+  REQUIRE_DISTRIBUTED_RATE_LIMIT: optional(z.enum(["0", "1"])),
 
   // Phase 2/3: email
   RESEND_API_KEY: optional(z.string().min(1)),
@@ -70,6 +74,9 @@ export const serverEnvSchema = z.object({
   VAPID_PUBLIC_KEY: optional(z.string().regex(/^[A-Za-z0-9_-]{80,100}$/, "a base64url VAPID public key")),
   VAPID_PRIVATE_KEY: optional(z.string().regex(/^[A-Za-z0-9_-]{40,60}$/, "a base64url VAPID private key")),
   VAPID_SUBJECT: optional(z.string().regex(/^(mailto:[^\s@]+@[^\s@]+|https:\/\/[^\s]+)$/, "mailto:you@example.com or an https URL")),
+
+  // Phase 11: where vulnerability reports go (mailto:you@example.com or an https URL), published as /.well-known/security.txt.
+  SECURITY_CONTACT: optional(z.string().max(300).regex(SECURITY_CONTACT_PATTERN, "mailto:you@example.com or an https URL")),
 
   // Phase 6: comma-separated emails of the platform operators. They are told about takedown reports and
   // can open /app/admin/takedowns (after signing in with a verified account). Unset: nobody can.
@@ -144,6 +151,11 @@ export function assertEnv(source: Source): { public: PublicEnv; server: ServerEn
     problems.push(
       "  - NEXT_PUBLIC_SUPABASE_ANON_KEY (public): must not equal SUPABASE_SERVICE_ROLE_KEY",
     );
+  }
+
+  if (srv.success && srv.data.REQUIRE_DISTRIBUTED_RATE_LIMIT === "1") {
+    if (!srv.data.UPSTASH_REDIS_REST_URL) problems.push("  - UPSTASH_REDIS_REST_URL (server): required while REQUIRE_DISTRIBUTED_RATE_LIMIT=1");
+    if (!srv.data.UPSTASH_REDIS_REST_TOKEN) problems.push("  - UPSTASH_REDIS_REST_TOKEN (server): required while REQUIRE_DISTRIBUTED_RATE_LIMIT=1");
   }
 
   if (problems.length > 0 || !pub.success || !srv.success) {

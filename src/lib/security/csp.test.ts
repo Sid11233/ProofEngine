@@ -32,8 +32,11 @@ describe("buildCsp", () => {
     expect(prod).toContain("frame-src https://challenges.cloudflare.com");
   });
 
-  it("allows only the Supabase origin for data connections", () => {
-    expect(prod).toContain("connect-src 'self' https://xyz.supabase.co wss://xyz.supabase.co");
+  it("allows data connections to this app only: the browser never talks to Supabase (audit L5)", () => {
+    expect(prod).toMatch(/connect-src 'self'(;|$)/);
+    expect(prod).not.toMatch(/connect-src[^;]*supabase/);
+    // Signed logo images still come from Storage.
+    expect(prod).toContain("img-src 'self' data: blob: https://xyz.supabase.co");
   });
 
   it("relaxes only what dev tooling needs", () => {

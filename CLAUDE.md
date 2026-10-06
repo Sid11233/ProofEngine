@@ -77,7 +77,9 @@ Validated by `src/lib/security/env-schema.ts`, which `next.config.ts` runs on ev
 - Finder: `communities` is global and never client-writable (change it with a migration or service-role script); `workspace_communities` is editor+ and own-workspace only. External links must be https and rendered with `target="_blank" rel="noopener noreferrer"`; notes are text only.
 - Anything served by a secret link (`/i`, `/preview`, `/approve`, `/unsubscribe`) resolves through its own `*-access-core` resolver and gets noindex, no-referrer and no-store headers in `next.config.ts`.
 
-## Security audit rules (see docs/security-audit.md)
+## Security audit rules (see docs/security-audit.md and docs/security-audit-2.md)
+
+- Every public page or file that reads the database uses `publicViewAllowed()`. Every file that imports the admin client or `env.server` starts with `import "server-only"` (a test enforces it). Views grant only SELECT to `authenticated` (pgTAP enforces it). CSP `connect-src` stays `'self'`.
 
 - Session cookies are HttpOnly (`hardenCookie`); never add a browser-side Supabase client. Password and other account-takeover actions need `checkRecentAuth()`.
 - Case studies, versions and claims have **no direct client INSERT**; add new write paths as functions. `write_audit_log` is an allowlist: security events are written only by the function that performs the action.

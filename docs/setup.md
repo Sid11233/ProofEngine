@@ -71,6 +71,10 @@ Then open **Security Advisor** in the dashboard and fix any warning (the gate is
 
 Custom domains come later: the app on `app.<yourproduct>.com`, interview links on `i.<yourproduct>.com`, and published pages on a **separate registrable domain**. Decide those names before Phase 3 and 6.
 
+### Launch hardening (Phase 11)
+
+Set `REQUIRE_DISTRIBUTED_RATE_LIMIT=1` once Upstash is configured: the app then refuses to build or start without it, instead of quietly counting rate limits per serverless instance. Set `SECURITY_CONTACT=mailto:security@yourdomain` to publish `/.well-known/security.txt`. Both are on the [launch checklist](launch-checklist.md).
+
 ### Install and notifications (Phase 9)
 
 The app is installable and has an optional offline page: nothing to configure, except the icons come from the brand name until you provide a logo (`public/logo.png`, then `node scripts/generate-pwa-assets.mjs`). For push notifications run `npx web-push generate-vapid-keys` once and set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` (`mailto:you@example.com`) in Vercel. Details and the manual offline checklist: [pwa.md](pwa.md).

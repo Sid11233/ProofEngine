@@ -1,3 +1,4 @@
+import "server-only";
 import { notFound } from "next/navigation";
 import { ApprovalForm } from "@/components/case-study/approval-form";
 import { CaseStudyView } from "@/components/case-study/view/case-study-view";

@@ -1,3 +1,4 @@
+import "server-only";
 import { notFound } from "next/navigation";
 import { CaseStudyView } from "@/components/case-study/view/case-study-view";
 import { resolvePreview } from "@/lib/case-study/preview-access";
