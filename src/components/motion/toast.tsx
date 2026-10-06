@@ -61,7 +61,7 @@ function ToastCard({ item, reduced, onDismiss }: { item: ToastItem; reduced: boo
     if (on && timer.current) clearTimeout(timer.current);
     if (!on) timer.current = setTimeout(() => onDismiss(item.id), AUTO_DISMISS_MS);
   };
-  const colour = item.tone === "error" ? "border-red-700/40" : item.tone === "success" ? "border-green-700/40" : "border-neutral-300";
+  const colour = item.tone === "error" ? "border-red-700/40" : item.tone === "success" ? "border-green-700/40" : "border-neutral-300 border-l-4 border-l-[var(--signal-strong)]";
 
   return (
     <m.div

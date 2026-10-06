@@ -70,7 +70,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </p>
       ) : null}
       {showMfaBanner ? <MfaBanner /> : null}
-      <header className="flex items-center justify-between gap-3 border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
+      <header className="flex items-center justify-between gap-3 border-b-2 border-[var(--signal-soft)] px-4 py-3">
         <div className="min-w-0">
           <BrandMark />
           <span className="ml-3 truncate text-sm text-neutral-600 dark:text-neutral-400">{workspace.name}</span>

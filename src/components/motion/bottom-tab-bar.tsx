@@ -31,8 +31,8 @@ export function BottomTabBar({ items }: { items: TabItem[] }) {
           return (
             <li key={item.href}>
               <Link href={item.href} aria-current={active ? "page" : undefined} className="relative flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px]">
-                {active && <m.span layoutId="bottom-tab-indicator" transition={spring("default")} className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-[var(--signal)]" />}
-                <svg key={active ? "on" : "off"} viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={active ? "anim-icon-bounce" : ""}>
+                {active && <m.span layoutId="bottom-tab-indicator" transition={spring("default")} className="absolute inset-x-3 top-0 h-[3px] rounded-full bg-[var(--signal-strong)]" />}
+                <svg key={active ? "on" : "off"} viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={active ? "anim-icon-bounce text-[var(--signal-strong)]" : ""}>
                   <path d={item.icon} />
                 </svg>
                 <span className={active ? "font-medium" : "text-neutral-600"}>{item.label}</span>
