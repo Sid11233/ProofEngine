@@ -33,10 +33,14 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
 
   // For the "why can't I publish" list. The database publish trigger (Phase 6.2) is what enforces it.
   const { data: approvals } = await supabase.from("approvals").select("id").eq("case_study_id", study.id).eq("version", study.version).limit(1);
+  const { data: signatures } = await supabase.from("signatures").select("id, consent_web, otp_verified_at").eq("case_study_id", study.id).eq("version", study.version);
+  const { data: revoked } = await supabase.from("signature_revocations").select("signature_id").eq("workspace_id", study.workspaceId);
+  const revokedIds = new Set((revoked ?? []).map((r) => String(r.signature_id)));
   const blockers = explainPublishBlockers({
     status: study.status,
     templateAllowed: await templateAllowedInDatabase(supabase, study.workspaceId, template.id),
     approvedCurrentVersion: (approvals ?? []).length > 0,
+    signedCurrentVersion: (signatures ?? []).some((s) => s.consent_web === true && s.otp_verified_at !== null && !revokedIds.has(String(s.id))),
     allClaimsConfirmed: study.claims.length > 0 && study.claims.every((c) => c.confirmed),
   });
 

@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomBytes } from "node:crypto";
-import { PORT, createUser, newPage, startStack, stopStack, type Stack } from "./harness";
+import { PORT, createUser, newPage, startStack, stopStack, type Stack, signStudy } from "./harness";
 
 let stack: Stack;
 
@@ -24,6 +24,7 @@ async function publishedStudy() {
   const { data: study } = await stack.admin.from("case_studies").insert({ workspace_id: ws, content, status: "draft" }).select("id").single();
   await stack.admin.from("case_study_versions").insert({ case_study_id: study?.id, workspace_id: ws, version: 1, content });
   await stack.admin.from("approvals").insert({ case_study_id: study?.id, workspace_id: ws, version: 1, approver_email: "d@example.test", method: "email_link" });
+  await signStudy(stack.admin, String(study?.id));
   const res = await stack.admin.from("case_studies").update({ status: "published", slug: "counted-story" }).eq("id", study?.id);
   if (res.error) throw new Error(res.error.message);
   return { workspace, id: String(study?.id) };

@@ -135,3 +135,32 @@ export function totp(secretBase32: string, stepOffset = 0, now = Date.now()): st
   const binary = digest.readUInt32BE(offset) & 0x7fffffff;
   return String(binary % 1_000_000).padStart(6, "0");
 }
+
+/** A verified, web-consenting signature for a study's current version (publishing is refused without one). */
+export async function signStudy(admin: SupabaseClient, studyId: string): Promise<void> {
+  const { data: cs } = await admin.from("case_studies").select("workspace_id, current_version").eq("id", studyId).single();
+  if (!cs) throw new Error("signStudy: case study not found");
+  const { error } = await admin.from("signatures").insert({
+    workspace_id: cs.workspace_id, case_study_id: studyId, version: cs.current_version, signer_name: "E2E Signer", signer_email: "signer@example.test",
+    display_name_choice: "full", consent_text_version: "v1", esign_disclosure_accepted: true, consent_web: true, consent_social: false, consent_media: false,
+    method: "typed", content_hash: randomBytes(32).toString("hex"), otp_verified_at: new Date().toISOString(),
+  });
+  if (error) throw new Error(`signStudy: ${error.message}`);
+}
+
+/**
+ * Opens a signing link as the client who has already entered the emailed code: the test cannot read the email, so it
+ * writes the verified challenge and gives the browser the matching session cookie, exactly as a correct code would.
+ */
+export async function openVerifiedSigningLink(page: Page, stack: Stack, rawToken: string): Promise<void> {
+  const { createHash } = await import("node:crypto");
+  const sha = (v: string) => createHash("sha256").update(v).digest("hex");
+  const { data: token } = await stack.admin.from("case_study_approval_tokens").select("id, case_study_id, version").eq("token_hash", sha(rawToken)).single();
+  const session = randomBytes(32).toString("base64url");
+  const { error } = await stack.admin.from("signing_challenges").insert({
+    case_study_id: token?.case_study_id, version: token?.version, token_id: token?.id, code_hash: randomBytes(32).toString("hex"),
+    expires_at: new Date(Date.now() + 600_000).toISOString(), attempts: 1, consumed_at: new Date().toISOString(), session_hash: sha(session),
+  });
+  if (error) throw new Error(`openVerifiedSigningLink: ${error.message}`);
+  await page.context().addCookies([{ name: `pe_sign_${rawToken.slice(0, 12)}`, value: session, url: BASE, httpOnly: true, sameSite: "Strict" }]);
+}

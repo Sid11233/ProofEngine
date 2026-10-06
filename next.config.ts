@@ -77,6 +77,14 @@ const nextConfig: NextConfig = {
       },
       // Client approval links carry a secret and show unpublished work.
       {
+        source: "/sign/:path*",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "Cache-Control", value: "private, no-store" },
+        ],
+      },
+      {
         source: "/approve/:path*",
         headers: [
           { key: "X-Robots-Tag", value: "noindex, nofollow" },

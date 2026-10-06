@@ -517,7 +517,7 @@ function PublishPanel({ id, status, role, canEdit, headline, slug, declined, cli
             {status === "draft" ? "Your client approves this exact version by email. Editing afterwards cancels the request." : "Waiting for your client. A new link replaces the previous one."}
           </p>
           <button type="button" disabled={pending} onClick={() => run(() => actions.requestApproval(id))} className={smallButton}>
-            {status === "draft" ? "Request client approval" : "Send a new approval link"}
+            {status === "draft" ? "Request client approval and signature" : "Send a new signing link"}
           </button>
         </div>
       )}
