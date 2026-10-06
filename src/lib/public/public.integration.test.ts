@@ -1,7 +1,7 @@
 /** The public view and loader against the real database (npm run test:isolation). */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createTestUser, hex64, loadLocalConfig, makeClient, type TestUser } from "../../../supabase/tests/isolation/harness";
+import { createTestUser, signCurrent, hex64, loadLocalConfig, makeClient, type TestUser } from "../../../supabase/tests/isolation/harness";
 import { generateToken } from "@/lib/security/tokens";
 import { listPublishedStudies, loadPublishedStudy } from "./load";
 
@@ -30,6 +30,7 @@ async function study(headline: string, { publish = true, slug = `s-${hex64().sli
   const token = generateToken();
   expect((await owner.client.rpc("request_client_approval", { study: id, hash: token.hash })).error).toBeNull();
   expect((await admin.rpc("approve_case_study", { token_hash: token.hash, ip_hash: hex64() })).error).toBeNull();
+  if (publish) await signCurrent(admin, id);
   if (publish) expect((await owner.client.rpc("publish_case_study", { study: id, new_slug: slug })).error).toBeNull();
   return { id, slug };
 }

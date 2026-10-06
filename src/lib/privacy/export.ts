@@ -37,6 +37,9 @@ export const EXPORT_SOURCES: Source[] = [
   { file: "community_tracker.json", table: "workspace_communities", columns: "*", key: "workspace_id", order: "updated_at" },
   { file: "social_profiles.json", table: "social_profiles", columns: "*", key: "workspace_id" },
   { file: "social_posts.json", table: "social_posts", columns: "*", key: "workspace_id", order: "created_at" },
+  { file: "signatures.json", table: "signatures", columns: "id, case_study_id, version, signer_name, signer_email, signer_company, signer_role, display_name_choice, consent_text_version, consent_web, consent_social, consent_media, method, content_hash, signed_at", key: "workspace_id", order: "signed_at" },
+  { file: "signature_revocations.json", table: "signature_revocations", columns: "*", key: "workspace_id", order: "revoked_at" },
+  { file: "text_refinements.json", table: "text_refinements", columns: "*", key: "workspace_id", order: "created_at" },
   { file: "audit_log.json", table: "audit_log", columns: "*", key: "workspace_id", order: "created_at" },
 ];
 

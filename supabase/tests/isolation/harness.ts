@@ -92,3 +92,23 @@ export function wasBlocked(result: { data: unknown; error: unknown }): boolean {
 export function rowsOf(result: { data: unknown; error: unknown }): Row[] {
   return Array.isArray(result.data) ? (result.data as Row[]) : [];
 }
+
+/**
+ * A verified, web-consenting signature for the case study's current version, as the signing flow will
+ * write it (service role). Publishing is refused without one.
+ */
+export async function signCurrent(admin: SupabaseClient, caseStudyId: string, opts: { social?: boolean } = {}): Promise<string> {
+  const { data: cs } = await admin.from("case_studies").select("workspace_id, current_version").eq("id", caseStudyId).single();
+  if (!cs) throw new Error("signCurrent: case study not found");
+  const { data, error } = await admin
+    .from("signatures")
+    .insert({
+      workspace_id: cs.workspace_id, case_study_id: caseStudyId, version: cs.current_version, signer_name: "Test Signer", signer_email: "signer@example.test",
+      display_name_choice: "full", consent_text_version: "v1", esign_disclosure_accepted: true, consent_web: true, consent_social: opts.social === true,
+      method: "typed", content_hash: randomBytes(32).toString("hex"), otp_verified_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+  if (error || !data) throw new Error(`signCurrent: ${error?.message}`);
+  return String(data.id);
+}

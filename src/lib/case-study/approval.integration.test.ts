@@ -1,7 +1,7 @@
 /** Approval and publish rules against the real database (npm run test:isolation). */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createTestUser, hex64, loadLocalConfig, makeClient, wasBlocked, type TestUser } from "../../../supabase/tests/isolation/harness";
+import { createTestUser, signCurrent, hex64, loadLocalConfig, makeClient, wasBlocked, type TestUser } from "../../../supabase/tests/isolation/harness";
 import { generateToken } from "@/lib/security/tokens";
 
 let admin: SupabaseClient;
@@ -150,6 +150,7 @@ describe("publish rules (hold even for the owner, through the API)", () => {
   async function approved(opts?: { withClaim?: boolean }) {
     const d = await draft(opts);
     expect((await approve((await request(d.id)).token.hash)).error).toBeNull();
+    await signCurrent(admin, d.id);
     return d;
   }
 
@@ -211,5 +212,52 @@ describe("publish rules (hold even for the owner, through the API)", () => {
     expect(await statusOf(id)).toBe("draft");
     const { data } = await admin.from("case_studies").select("published_at").eq("id", id).single();
     expect(data?.published_at).toBeNull();
+  });
+});
+
+describe("publishing needs a signature", () => {
+  const unsigned = async () => {
+    const d = await draft();
+    expect((await approve((await request(d.id)).token.hash)).error).toBeNull();
+    return d.id;
+  };
+  const sign = (id: string, over: Record<string, unknown> = {}) =>
+    admin.from("signatures").insert({
+      workspace_id: ws, case_study_id: id, version: 1, signer_name: "Dana Doe", signer_email: "dana@example.test", display_name_choice: "first_only",
+      consent_text_version: "v1", esign_disclosure_accepted: true, consent_web: true, method: "typed", content_hash: hex64(), otp_verified_at: new Date().toISOString(), ...over,
+    }).select("id").single();
+
+  it("blocks an approved study with no signature, even for the service role", async () => {
+    const id = await unsigned();
+    expect((await publish(owner, id)).error?.message).toContain("publish_blocked:not_signed");
+    expect((await admin.from("case_studies").update({ status: "published", slug: "no-sig" }).eq("id", id)).error?.message).toContain("publish_blocked:not_signed");
+  });
+
+  it("blocks a signature without web consent, and one for another version", async () => {
+    const id = await unsigned();
+    expect((await sign(id, { consent_web: false })).error).toBeNull();
+    expect((await publish(owner, id)).error?.message).toContain("publish_blocked:not_signed");
+    expect((await sign(id, { version: 2 })).error).not.toBeNull(); // no such version exists
+  });
+
+  it("allows a valid signature, then blocks again once it is revoked; unpublishing is always allowed", async () => {
+    const id = await unsigned();
+    const { data } = await sign(id);
+    expect((await publish(owner, id)).error).toBeNull();
+    expect((await adminUser.client.rpc("unpublish_case_study", { study: id })).error).toBeNull();
+    expect((await admin.from("signature_revocations").insert({ workspace_id: ws, signature_id: data?.id, method: "email_link", reason: "test" })).error).toBeNull();
+    expect((await publish(owner, id)).error?.message).toContain("publish_blocked:not_signed");
+  });
+
+  it("signature tables are insert-only and hide hashes from members", async () => {
+    const id = await unsigned();
+    const { data } = await sign(id);
+    expect((await admin.from("signatures").update({ signer_name: "Changed" }).eq("id", data?.id)).error).not.toBeNull();
+    expect((await admin.from("signatures").delete().eq("id", data?.id)).error).not.toBeNull();
+    expect(wasBlocked(await owner.client.from("signatures").insert({ workspace_id: ws, case_study_id: id, version: 1 }).select())).toBe(true);
+    expect((await owner.client.from("signatures").select("id, signer_name").eq("id", data?.id)).data).toHaveLength(1);
+    expect((await owner.client.from("signatures").select("ip_hash").eq("id", data?.id)).error).not.toBeNull();
+    expect(wasBlocked(await owner.client.from("signing_challenges").select("id"))).toBe(true);
+    expect(wasBlocked(await owner.client.from("signature_events").insert({ workspace_id: ws, case_study_id: id, event: "signed" }).select())).toBe(true);
   });
 });
