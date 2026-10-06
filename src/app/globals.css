@@ -1,8 +1,15 @@
 @import "tailwindcss";
 
+/* The app is light only: a warm cream background with near-black text. The `dark:` utilities used across the
+   components only apply under a `.dark` class, which nothing sets, so they stay dormant instead of following the
+   visitor's system theme. To bring dark mode back, delete the @custom-variant line and restore the
+   prefers-color-scheme block (see git history). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --background: #faf7f0;
+  --foreground: #1a1a1a;
 }
 
 @theme inline {
@@ -10,13 +17,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {

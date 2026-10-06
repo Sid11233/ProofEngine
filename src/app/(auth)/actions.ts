@@ -14,6 +14,7 @@ import {
 import { isAuthAttemptAllowed, isIpAttemptAllowed, RATE_LIMITED_MESSAGE } from "@/lib/auth/rate-limits";
 import { safeNextPath } from "@/lib/auth/redirects";
 import { requireUser } from "@/lib/auth/session";
+import { describeSignupError } from "@/lib/auth/signup-errors";
 import { signal } from "@/lib/monitoring/signals";
 import { getClientIp } from "@/lib/security/client-ip";
 import { publicEnv } from "@/lib/security/env.public";
@@ -80,10 +81,10 @@ export async function signupAction(_prev: FormState, formData: FormData): Promis
   });
 
   if (error) {
-    if (error.code === "weak_password") {
-      return { ok: false, fieldErrors: { password: ["Choose a stronger password"] } };
-    }
-    return { ok: false, message: "We could not create your account. Please try again." };
+    // The code and status only (never the email): the Vercel log then says WHY sign-ups fail.
+    console.error("Sign-up failed", error.code ?? "no_code", error.status ?? 0);
+    const failure = describeSignupError(error.code);
+    return failure.field ? { ok: false, fieldErrors: { [failure.field]: [failure.message] } } : { ok: false, message: failure.message };
   }
   if (data.session) redirect(destination);
 

@@ -79,10 +79,15 @@ describe("community finder", () => {
     await page.getByLabel("Only the ones I track").check();
     expect(await page.getByTestId("community").count()).toBe(1);
 
-    // Stop tracking.
-    await again.getByLabel("Your status").selectOption("none");
-    await again.getByRole("button", { name: "Save" }).click();
-    await again.locator("[role=status]").filter({ hasText: "Saved." }).waitFor();
+    // Stop tracking. (Leave the "only mine" filter first: the card legitimately leaves that list once removed.)
+    await page.getByLabel("Only the ones I track").uncheck();
+    const target = page.getByTestId("community").first();
+    await target.getByLabel("Your status").selectOption("none");
+    await target.getByRole("button", { name: "Save" }).click();
+    for (let i = 0; i < 40; i++) {
+      if (((await stack.admin.from("workspace_communities").select("community_id").eq("workspace_id", owner.ws)).data ?? []).length === 0) break;
+      await page.waitForTimeout(250);
+    }
     expect((await stack.admin.from("workspace_communities").select("community_id").eq("workspace_id", owner.ws)).data).toHaveLength(0);
   }, 180_000);
 

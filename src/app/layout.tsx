@@ -32,10 +32,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
-  ],
+  themeColor: "#faf7f0",
   // Use the full screen on phones with notches (content respects env(safe-area-inset-*)), and let the
   // on-screen keyboard resize the layout instead of covering the input.
   viewportFit: "cover",
