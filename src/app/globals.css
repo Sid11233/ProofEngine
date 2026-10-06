@@ -66,3 +66,102 @@ html[data-motion="reduce"] *::after {
   transition-duration: 0.01ms !important;
   scroll-behavior: auto !important;
 }
+
+/* ---- Motion utilities (docs/animation-reference.md). CSS-only, so they work on every route. ---- */
+
+/* G-15 Button press, for every real button. Elements with .anim-press already have it. */
+button:not(:disabled):not(.anim-press):active,
+[role="button"]:not([aria-disabled="true"]):active {
+  transform: scale(0.97);
+}
+button, [role="button"] {
+  transition: transform var(--motion-instant) var(--ease-standard);
+}
+
+/* G-27 Skeleton shimmer: brand-tint pulse, opacity 0.5 to 0.9, 1.4 s loop. Static tint when reduced (safety net above
+   stops the loop). */
+.anim-skeleton {
+  background: color-mix(in srgb, var(--signal) 9%, #e4dfd2);
+  animation: anim-skeleton-pulse 1.4s ease-in-out infinite alternate;
+}
+@keyframes anim-skeleton-pulse {
+  from { opacity: 0.5; }
+  to { opacity: 0.9; }
+}
+
+/* G-48 Skeleton to content crossfade: content fades in over 200 ms as it replaces the skeleton. Opacity only. */
+.anim-content-in {
+  animation: anim-content-in 200ms var(--ease-standard) backwards;
+}
+@keyframes anim-content-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* G-16 Loading ring. */
+.anim-spin {
+  animation: anim-spin 700ms linear infinite;
+}
+@keyframes anim-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* G-12 Toast countdown bar and G-39 / G-16 check drawing. */
+.anim-shrink {
+  transform-origin: left;
+  animation: anim-shrink var(--anim-shrink-ms, 4000ms) linear both;
+}
+@keyframes anim-shrink {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+.anim-draw {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: anim-draw 220ms var(--ease-emphasized) forwards;
+}
+@keyframes anim-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* G-01 Route transition. Desktop: 200 ms fade plus 8 px rise. Phones: 280 ms push (x 24 px). */
+.anim-route {
+  animation: anim-route-up 200ms var(--ease-standard) backwards;
+}
+@keyframes anim-route-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes anim-route-push {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes anim-route-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (max-width: 767px) {
+  .anim-route {
+    animation-name: anim-route-push;
+    animation-duration: 280ms;
+  }
+}
+/* Reduced motion: a 120 ms fade, not instant (these rules are more specific than the safety net above). */
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="full"]) .anim-route {
+    animation-name: anim-route-fade !important;
+    animation-duration: 120ms !important;
+  }
+}
+html[data-motion="reduce"] .anim-route {
+  animation-name: anim-route-fade !important;
+  animation-duration: 120ms !important;
+}
+
+/* G-06 Tab icon bounce: scale 1 to 1.15 to 1 over 240 ms when a tab becomes active. */
+.anim-icon-bounce {
+  animation: anim-icon-bounce 240ms var(--ease-standard);
+}
+@keyframes anim-icon-bounce {
+  50% { transform: scale(1.15); }
+}

@@ -47,6 +47,9 @@ describe("signup and onboarding in a real browser", () => {
     await page.getByRole("button", { name: "Continue" }).click();
     await page.getByRole("button", { name: "Create workspace" }).click();
 
+    // The optional social links step comes first; it can be skipped.
+    await page.waitForURL(`${BASE}/app/settings/social`);
+    await page.getByRole("link", { name: "Skip for now" }).click();
     await page.waitForURL(`${BASE}/app/dashboard`);
     await page.getByRole("heading", { name: "Dashboard" }).waitFor();
     await page.getByText("Admin · free plan").waitFor();
