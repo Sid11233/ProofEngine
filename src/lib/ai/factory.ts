@@ -37,3 +37,7 @@ export function createAiClient(env: AiEnv, role: "interviewer" | "generator", { 
 
 /** True when some provider is configured. */
 export const aiConfigured = (env: AiEnv) => (env.AI_PROVIDER === "openrouter" ? Boolean(env.OPENROUTER_API_KEY) : Boolean(env.ANTHROPIC_API_KEY));
+
+/** The model name recorded in logs of accepted rewrites (a name only, never a key). */
+export const aiModelName = (env: AiEnv, role: "interviewer" | "generator") =>
+  env.AI_PROVIDER === "openrouter" ? (env.OPENROUTER_MODEL ?? DEFAULT_OPENROUTER_MODEL) : role === "interviewer" ? (env.INTERVIEWER_MODEL ?? DEFAULT_INTERVIEWER_MODEL) : (env.GENERATOR_MODEL ?? DEFAULT_GENERATOR_MODEL);
