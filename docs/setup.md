@@ -79,6 +79,18 @@ Custom domains come later: the app on `app.<yourproduct>.com`, interview links o
 
 Set `SENTRY_DSN` (server side only, no browser SDK) and `ALERT_EMAIL`, then add the Sentry alert rules described in [monitoring.md](monitoring.md). Without a DSN nothing is reported. The incident guide is [incident-response.md](incident-response.md).
 
+### Optional tuning variables
+
+| Variable | What it does | Default |
+| --- | --- | --- |
+| `ANTHROPIC_API_KEY`, `INTERVIEWER_MODEL`, `GENERATOR_MODEL` | The AI interviewer and case study drafting. Unset: canned questions, no AI drafting | off |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile on the interview start and the report form. Unset: no bot check (set both before launch) | off |
+| `AI_MESSAGES_FREE`, `AI_MESSAGES_PRO`, `AI_MESSAGES_TEAM` | Monthly AI messages per plan | 100, 3000, 20000 |
+| `AI_DAILY_TOKEN_LIMIT` | Platform wide AI tokens per UTC day before interviews pause (spend circuit breaker) | 2,000,000 |
+| `INTERVIEW_STARTS_PER_IP_HOUR` | Interviews one address may start per hour | 5 |
+| `REAUTH_MAX_AGE_SECONDS` | How recent a sign in must be for sensitive actions | 600 |
+| `TRUST_PROXY_HEADERS` | `1` when a proxy you control sets the client IP header (Vercel is detected automatically) | off |
+
 ### Launch hardening (Phase 11)
 
 Set `REQUIRE_DISTRIBUTED_RATE_LIMIT=1` once Upstash is configured: the app then refuses to build or start without it, instead of quietly counting rate limits per serverless instance. Set `SECURITY_CONTACT=mailto:security@yourdomain` to publish `/.well-known/security.txt`. Both are on the [launch checklist](launch-checklist.md).
@@ -130,10 +142,11 @@ Published case studies are served from their own domain so they never share an o
 
 ## 5. Branding (name and logo)
 
-The product name and logo live in one file, [src/lib/brand.ts](../src/lib/brand.ts). To rebrand:
+The product is branded **Attract Studio** with the artwork supplied in `Attract-Studio-Brand-Assets/`. The name and logo paths live in one file, [src/lib/brand.ts](../src/lib/brand.ts). To change the brand:
 
-1. Set `name` (used in page titles, headers, emails and the authenticator app label).
-2. Put your logo in `/public` (SVG or PNG, square works best) and set `logo: "/your-logo.svg"` with a short `logoAlt`.
-3. Replace `src/app/favicon.ico`. The PWA icons (192, 512 and maskable 512) are added in Phase 9.
+1. Set `name`, `shortName` (home screen label, under 12 characters), `logo` (two wordmark SVGs: dark text for light backgrounds, light text for dark backgrounds, in `public/brand/`) and `logoAlt`.
+2. Replace the app icons in `public/icons/` (`icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png`, `favicon.svg`, `favicon-16/32/48.png`).
+3. Run `node scripts/generate-pwa-assets.mjs`: it rebuilds `src/app/favicon.ico` and the offline page, and draws a placeholder letter icon for any app icon that is missing.
+4. The theme colour, manifest background and the offline page colours are in `src/app/layout.tsx`, `src/app/manifest.ts` and the script.
 
 Email sender name and domain are configured separately in Resend (`RESEND_FROM_EMAIL`).

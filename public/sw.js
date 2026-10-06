@@ -10,11 +10,11 @@
  */
 "use strict";
 
-const VERSION = "v1";
+const VERSION = "v2";
 const PREFIX = "pe-";
 const CACHE = `${PREFIX}static-${VERSION}`;
-const PRECACHE = ["/offline.html", "/offline.css", "/icons/icon-192.png"];
-const STATIC_PATHS = [/^\/_next\/static\//, /^\/icons\//, /^\/offline\.(html|css)$/];
+const PRECACHE = ["/offline.html", "/offline.css", "/icons/icon-192.png", "/brand/attract-studio-logo.svg", "/brand/attract-studio-logo-on-dark.svg"];
+const STATIC_PATHS = [/^\/_next\/static\//, /^\/icons\//, /^\/brand\//, /^\/offline\.(html|css)$/];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)).then(() => self.skipWaiting()));
