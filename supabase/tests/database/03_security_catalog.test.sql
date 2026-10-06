@@ -4,7 +4,7 @@
 -- Run with: npx supabase test db
 
 begin;
-select plan(25);
+select plan(26);
 
 -- Tables and policies ---------------------------------------------------------------------------
 select is(
@@ -44,6 +44,14 @@ select is(
   (select array_agg(c.relname::text) from pg_class c join pg_namespace n on n.oid = c.relnamespace
    where n.nspname = 'public' and c.relkind = 'v' and c.relname in ('public_case_studies', 'public_wall_settings') and c.reloptions::text like '%security_barrier=true%'),
   array['public_case_studies', 'public_wall_settings'], 'the public views are security barriers');
+
+-- No signed-in role can write through a view ----------------------------------------------------
+select is(
+  (select coalesce(array_agg(g.table_name::text || ':' || g.privilege_type order by g.table_name, g.privilege_type), '{}')
+   from information_schema.role_table_grants g
+   join information_schema.tables t on t.table_schema = g.table_schema and t.table_name = g.table_name and t.table_type = 'VIEW'
+   where g.grantee = 'authenticated' and g.table_schema = 'public' and g.privilege_type <> 'SELECT'),
+  '{}'::text[], 'authenticated can only SELECT from views (no insert, update, delete or truncate)');
 
 -- Anonymous access ------------------------------------------------------------------------------
 select is(

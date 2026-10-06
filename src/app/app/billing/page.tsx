@@ -1,3 +1,4 @@
+import "server-only";
 import { redirect } from "next/navigation";
 import { BillingActions } from "@/components/billing/billing-actions";
 import { requireUser } from "@/lib/auth/session";

@@ -1,3 +1,4 @@
+import "server-only";
 import { NextResponse } from "next/server";
 import { getEmailSender } from "@/lib/email/resend";
 import { runReminders } from "@/lib/reminders/run";

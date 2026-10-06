@@ -57,3 +57,17 @@ describe("assertEnv", () => {
     );
   });
 });
+
+describe("REQUIRE_DISTRIBUTED_RATE_LIMIT (Phase 11 audit M3)", () => {
+  const base = { NEXT_PUBLIC_SUPABASE_URL: "https://x.supabase.co", NEXT_PUBLIC_SUPABASE_ANON_KEY: "a".repeat(30), NEXT_PUBLIC_APP_URL: "https://app.example.com", SUPABASE_SERVICE_ROLE_KEY: "b".repeat(30) };
+  it("when set, a build or start without Upstash fails, naming the missing variables", () => {
+    expect(() => assertEnv({ ...base, REQUIRE_DISTRIBUTED_RATE_LIMIT: "1" })).toThrow(/UPSTASH_REDIS_REST_URL/);
+    expect(() => assertEnv({ ...base, REQUIRE_DISTRIBUTED_RATE_LIMIT: "1", UPSTASH_REDIS_REST_URL: "https://u.upstash.io" })).toThrow(/UPSTASH_REDIS_REST_TOKEN/);
+  });
+  it("passes with Upstash configured, and stays off by default", () => {
+    expect(() => assertEnv({ ...base, REQUIRE_DISTRIBUTED_RATE_LIMIT: "1", UPSTASH_REDIS_REST_URL: "https://u.upstash.io", UPSTASH_REDIS_REST_TOKEN: "t" })).not.toThrow();
+    expect(() => assertEnv(base)).not.toThrow();
+    expect(() => assertEnv({ ...base, REQUIRE_DISTRIBUTED_RATE_LIMIT: "0" })).not.toThrow();
+  });
+});
+

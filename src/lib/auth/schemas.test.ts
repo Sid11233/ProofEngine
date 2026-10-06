@@ -75,3 +75,16 @@ describe("formDataToObject", () => {
     expect(formDataToObject(form, ["email", "password", "upload"])).toEqual({ email: "a@example.com", password: "pw" });
   });
 });
+
+describe("password reset bounds (audit L4)", () => {
+  it("rejects an enormous confirmation field instead of comparing it", () => {
+    const password = "Correct-horse-battery-9";
+    expect(resetPasswordSchema.safeParse({ password, confirmPassword: password }).success).toBe(true);
+    const huge = resetPasswordSchema.safeParse({ password, confirmPassword: "x".repeat(100_000) });
+    expect(huge.success).toBe(false);
+    // Refused for its size up front, not merely for not matching.
+    expect(huge.success ? [] : huge.error.issues.filter((i) => i.code === "too_big" && i.path[0] === "confirmPassword")).toHaveLength(1);
+    expect(resetPasswordSchema.safeParse({ password, confirmPassword: password, extra: 1 }).success).toBe(false);
+  });
+});
+

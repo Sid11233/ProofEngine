@@ -1,5 +1,6 @@
 "use server";
 
+import "server-only";
 import { headers } from "next/headers";
 import { isAuthAttemptAllowed, RATE_LIMITED_MESSAGE } from "@/lib/auth/rate-limits";
 import { checkRecentAuth, REAUTH_MESSAGE, type ReauthNeeded } from "@/lib/auth/recent-auth";

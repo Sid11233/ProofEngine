@@ -1,3 +1,4 @@
+import "server-only";
 import { redirect } from "next/navigation";
 import { DashboardView } from "@/components/dashboard/dashboard-view";
 import { requireUser } from "@/lib/auth/session";

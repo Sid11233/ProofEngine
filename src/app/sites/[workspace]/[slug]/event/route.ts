@@ -1,3 +1,4 @@
+import "server-only";
 import { NextResponse } from "next/server";
 import { createDeduper } from "@/lib/analytics/dedupe";
 import { recordPageEvent } from "@/lib/analytics/record";

@@ -6,10 +6,8 @@ import { CaseStudyView } from "@/components/case-study/view/case-study-view";
 import { brand } from "@/lib/brand";
 import { loadPublishedStudy, type PublicStudy } from "@/lib/public/load";
 import { publicPageUrl } from "@/lib/public/host";
-import { getClientIp } from "@/lib/security/client-ip";
+import { publicViewAllowed, TOO_MANY_REQUESTS_TEXT } from "@/lib/public/view-limit";
 import { publicEnv } from "@/lib/security/env.public";
-import { sha256Hex } from "@/lib/security/hash";
-import { createRateLimiter } from "@/lib/security/rate-limit";
 import { createPublicClient } from "@/lib/supabase/public";
 import { effectiveTheme } from "@/lib/templates/model";
 
@@ -17,8 +15,6 @@ import { effectiveTheme } from "@/lib/templates/model";
 // public view, so every one of them is the same 404. Nothing here reads a session or a cookie.
 
 type Params = { workspace: string; slug: string };
-
-const limiter = createRateLimiter({ prefix: "site:ip", limit: 120, windowSec: 60 });
 
 const firstText = (study: PublicStudy) => {
   for (const section of study.content.sections) {
@@ -48,8 +44,8 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
 
 export default async function PublicStudyPage({ params }: { params: Promise<Params> }) {
   const { workspace, slug } = await params;
-  if (!(await limiter.limit(sha256Hex(getClientIp(await headers())))).success) {
-    return <main className="mx-auto max-w-md px-4 py-16"><h1 className="text-xl font-semibold">Too many requests</h1><p className="mt-2">Please try again in a minute.</p></main>;
+  if (!(await publicViewAllowed(await headers()))) {
+    return <main className="mx-auto max-w-md px-4 py-16"><h1 className="text-xl font-semibold">Too many requests</h1><p className="mt-2">{TOO_MANY_REQUESTS_TEXT}</p></main>;
   }
 
   const anon = createPublicClient();

@@ -22,6 +22,10 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Folders starting with a dot are not routes, so /.well-known/* is served from src/app/well-known/*.
+  async rewrites() {
+    return [{ source: "/.well-known/security.txt", destination: "/well-known/security.txt" }];
+  },
   async headers() {
     return [
       // Everything except the embeddable widget, which must be framable by the sites an admin lists

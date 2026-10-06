@@ -12,7 +12,6 @@ export function buildCsp({
   isDev: boolean;
 }): string {
   const supabaseOrigin = new URL(supabaseUrl).origin;
-  const supabaseWs = supabaseOrigin.replace(/^http/, "ws");
 
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
@@ -26,7 +25,9 @@ export function buildCsp({
     "style-src-attr": ["'unsafe-inline'"],
     "img-src": ["'self'", "data:", "blob:", supabaseOrigin],
     "font-src": ["'self'"],
-    "connect-src": ["'self'", supabaseOrigin, supabaseWs, ...(isDev ? ["ws:", "http:"] : [])],
+    // This app only. There is no browser-side Supabase client (sessions and data stay on the server), so the
+    // browser has no reason to connect to Supabase and an injected script could not use one.
+    "connect-src": ["'self'", ...(isDev ? ["ws:", "http:"] : [])],
     // Cloudflare Turnstile (bot check on the interview intro) renders in an iframe.
     "frame-src": ["https://challenges.cloudflare.com"],
     "object-src": ["'none'"],

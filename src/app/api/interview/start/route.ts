@@ -1,3 +1,4 @@
+import "server-only";
 import { beginInterview } from "@/lib/ai/interviewer";
 import { guardInterviewRequest, json } from "@/lib/interview/endpoint";
 import { startSchema } from "@/lib/interview/schemas";

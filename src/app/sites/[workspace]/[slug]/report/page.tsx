@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { ReportForm } from "@/components/public/report-form";
 import { loadPublishedStudy } from "@/lib/public/load";
+import { publicViewAllowed, TOO_MANY_REQUESTS_TEXT } from "@/lib/public/view-limit";
 import { publicEnv } from "@/lib/security/env.public";
 import { createPublicClient } from "@/lib/supabase/public";
 import { reportAction } from "./actions";
@@ -11,6 +12,7 @@ import { reportAction } from "./actions";
 export const metadata = { title: "Report this page", robots: { index: false, follow: false } };
 
 export default async function ReportPage({ params }: { params: Promise<{ workspace: string; slug: string }> }) {
+  if (!(await publicViewAllowed(await headers()))) return <main className="mx-auto max-w-md px-4 py-16"><h1 className="text-xl font-semibold">Too many requests</h1><p className="mt-2">{TOO_MANY_REQUESTS_TEXT}</p></main>;
   const { workspace, slug } = await params;
   const study = await loadPublishedStudy(createPublicClient(), workspace, slug);
   if (!study) notFound();
