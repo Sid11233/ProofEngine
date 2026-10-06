@@ -66,7 +66,7 @@ export function createApprovalResolver({ admin, ipLimiter, tokenLimiter, now = D
 
 /** What the client can do. Strict: unknown fields are rejected. */
 export const decisionSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("approve") }).strict(),
+  z.object({ kind: z.literal("approve"), social: z.boolean().optional() }).strict(),
   z.object({ kind: z.literal("changes"), note: plainLine(1000, { min: 1 }, "Tell us what to change") }).strict(),
   z.object({ kind: z.literal("decline") }).strict(),
 ]);
@@ -80,7 +80,7 @@ export async function recordDecision(admin: SupabaseClient, rawToken: string, de
   const token_hash = hashToken(rawToken);
   const call =
     decision.kind === "approve"
-      ? admin.rpc("approve_case_study", { token_hash, ip_hash: ipHash })
+      ? admin.rpc("approve_case_study", { token_hash, ip_hash: ipHash, social: decision.social === true })
       : decision.kind === "changes"
         ? admin.rpc("request_case_study_changes", { token_hash, note: decision.note, ip_hash: ipHash })
         : admin.rpc("decline_case_study", { token_hash, ip_hash: ipHash });

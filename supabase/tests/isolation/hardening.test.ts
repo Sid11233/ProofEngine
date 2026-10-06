@@ -83,7 +83,7 @@ describe("the REST surface as PostgREST publishes it", () => {
     expect(functions).toEqual(
       [
         "accept_invite", "autosave_case_study", "bump_ai_usage", "cancel_account_deletion", "cancel_workspace_deletion", "change_member_role", "create_generated_case_study",
-        "create_invite", "create_preview_link", "create_proof_request", "create_workspace", "delete_interview", "discard_new_workspace", "get_invite_preview",
+        "create_invite", "create_preview_link", "create_proof_request", "create_social_drafts", "create_workspace", "delete_interview", "discard_new_workspace", "get_invite_preview",
         "is_member", "is_reserved_slug", "list_team_members", "plan_interview_limit", "publish_case_study", "remove_member", "request_account_deletion", "request_client_approval", "request_workspace_deletion", "revoke_invite",
         "revoke_preview_link", "revoke_request", "role_rank", "rotate_request_token", "save_case_study_edit", "save_notification_preferences", "save_push_subscription", "save_wall_settings",
         "snapshot_case_study", "template_allowed", "unpublish_case_study", "write_audit_log",

@@ -15,6 +15,7 @@ const DONE_COPY = {
 export function ApprovalForm({ decide }: { decide: (input: unknown) => Promise<DecisionState> }) {
   const [mode, setMode] = useState<"choose" | "changes" | "decline">("choose");
   const [note, setNote] = useState("");
+  const [social, setSocial] = useState(false);
   const [state, setState] = useState<DecisionState | null>(null);
   const [pending, start] = useTransition();
 
@@ -28,8 +29,14 @@ export function ApprovalForm({ decide }: { decide: (input: unknown) => Promise<D
     <div className="space-y-4">
       {state && !state.ok && <p role="alert" className="rounded-md border border-red-700/30 bg-red-50 px-3 py-2 text-sm text-red-900">{state.message}</p>}
       {mode === "choose" && (
+        <label className="flex items-start gap-3 text-sm">
+          <input type="checkbox" checked={social} onChange={(e) => setSocial(e.target.checked)} className="mt-1 size-5" />
+          <span>Optional: the team may also write social media posts about this story, using only what I said above. I can ask them to stop at any time.</span>
+        </label>
+      )}
+      {mode === "choose" && (
         <div className="flex flex-col gap-3 @sm:flex-row">
-          <button type="button" disabled={pending} onClick={() => send({ kind: "approve" })} className={`${button} bg-neutral-900 text-white`}>Approve and allow publishing</button>
+          <button type="button" disabled={pending} onClick={() => send({ kind: "approve", social })} className={`${button} bg-neutral-900 text-white`}>Approve and allow publishing</button>
           <button type="button" disabled={pending} onClick={() => setMode("changes")} className={`${button} border border-neutral-400`}>Ask for changes</button>
           <button type="button" disabled={pending} onClick={() => setMode("decline")} className={`${button} border border-neutral-400`}>Do not publish</button>
         </div>

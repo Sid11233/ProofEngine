@@ -40,5 +40,6 @@ export async function createWorkspaceAction(input: unknown): Promise<OnboardingR
     return { ok: false, message: "We could not create your workspace. Please try again." };
   }
 
-  redirect("/app/dashboard");
+  // Optional next step: profile links for the social post buttons (skippable).
+  redirect("/app/settings/social");
 }

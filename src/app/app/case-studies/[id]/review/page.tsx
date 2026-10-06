@@ -27,6 +27,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
         <h1 className="text-2xl font-semibold">Review case study</h1>
         <div className="flex gap-4 text-sm">
           <Link href={`/app/case-studies/${study.id}/edit`} className="inline-flex min-h-11 items-center underline underline-offset-2">Edit and preview</Link>
+          <Link href={`/app/case-studies/${study.id}/social`} className="inline-flex min-h-11 items-center underline underline-offset-2">Social posts</Link>
           <Link href={`/app/case-studies/${study.id}/template`} className="inline-flex min-h-11 items-center underline underline-offset-2">Change template</Link>
         </div>
       </div>

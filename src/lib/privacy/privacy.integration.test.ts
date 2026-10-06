@@ -71,7 +71,7 @@ async function tenant(label: string, { published = true }: { published?: boolean
 
 /** Every public table that has a workspace_id column. */
 async function tenantTables(): Promise<string[]> {
-  return ["proof_requests", "interviews", "interview_messages", "interview_uploads", "referrals", "case_studies", "case_study_versions", "claims", "approvals", "case_study_feedback", "case_study_approval_tokens", "case_study_previews", "takedown_requests", "page_events", "wall_settings", "workspace_communities", "workspace_members", "workspace_invites", "subscriptions", "usage_counters", "audit_log", "notification_preferences", "push_subscriptions", "template_entitlements", "question_flows"];
+  return ["proof_requests", "interviews", "interview_messages", "interview_uploads", "referrals", "case_studies", "case_study_versions", "claims", "approvals", "case_study_feedback", "case_study_approval_tokens", "case_study_previews", "takedown_requests", "page_events", "wall_settings", "workspace_communities", "social_profiles", "social_posts", "workspace_members", "workspace_invites", "subscriptions", "usage_counters", "audit_log", "notification_preferences", "push_subscriptions", "template_entitlements", "question_flows"];
 }
 
 async function rowsLeft(ws: string): Promise<Record<string, number>> {
