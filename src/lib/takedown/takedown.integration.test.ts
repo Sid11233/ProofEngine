@@ -1,7 +1,7 @@
 /** Reports, emergency disable and notification against the real database (npm run test:isolation). */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createTestUser, hex64, loadLocalConfig, makeClient, wasBlocked, type TestUser } from "../../../supabase/tests/isolation/harness";
+import { createTestUser, signCurrent, hex64, loadLocalConfig, makeClient, wasBlocked, type TestUser } from "../../../supabase/tests/isolation/harness";
 import type { EmailMessage, EmailSender } from "@/lib/email/types";
 import { generateToken } from "@/lib/security/tokens";
 import { loadPublishedStudy } from "@/lib/public/load";
@@ -26,6 +26,7 @@ async function published(headline = "Reported story") {
   const token = generateToken();
   await owner.client.rpc("request_client_approval", { study: id, hash: token.hash });
   await admin.rpc("approve_case_study", { token_hash: token.hash, ip_hash: hex64() });
+  await signCurrent(admin, id);
   expect((await owner.client.rpc("publish_case_study", { study: id, new_slug: slug })).error).toBeNull();
   return { id, slug };
 }

@@ -17,6 +17,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   createTestUser,
+  signCurrent,
   hex64,
   inDays,
   loadLocalConfig,
@@ -175,7 +176,12 @@ async function seedTenant(ws: string, ownerId: string): Promise<Tenant> {
   await must(admin.from("wall_settings").insert({ workspace_id: ws, enabled: false }).select(), "wall_settings");
   await must(admin.from("workspace_communities").insert({ workspace_id: ws, community_id: "b0000000-0000-4000-8000-000000000001", status: "saved", notes: "seed" }).select(), "workspace_communities");
   await must(admin.from("social_profiles").insert({ workspace_id: ws, network: "linkedin", url: "https://www.linkedin.com/company/seed" }).select(), "social_profiles");
+  const signatureId = await signCurrent(admin, String(caseStudy.id), { social: true });
   await must(admin.from("social_posts").insert({ workspace_id: ws, case_study_id: caseStudy.id, network: "x", variant: 1, body: "Seed draft" }).select(), "social_posts");
+  await must(admin.from("signature_events").insert({ workspace_id: ws, case_study_id: caseStudy.id, signature_id: signatureId, event: "signed" }).select(), "signature_events");
+  const second = await signCurrent(admin, String(caseStudy.id));
+  await must(admin.from("signature_revocations").insert({ workspace_id: ws, signature_id: second, method: "email_link", reason: "seed" }).select(), "signature_revocations");
+  await must(admin.from("text_refinements").insert({ workspace_id: ws, case_study_id: caseStudy.id, version: 1, field_path: "headline", original_text: "a", suggested_text: "b" }).select(), "text_refinements");
   await must(admin.from("push_subscriptions").insert({ user_id: ownerId, workspace_id: ws, endpoint: "https://fcm.googleapis.com/fcm/send/seedseedseedseedseed", p256dh: "A".repeat(87), auth: "z".repeat(22) }).select(), "push_subscriptions");
   await must(admin.from("notification_preferences").insert({ user_id: ownerId, workspace_id: ws }).select(), "notification_preferences");
   await must(
@@ -427,6 +433,36 @@ const SPECS: Spec[] = [
     readRole: "editor",
     patch: { status: "posted" },
     insert: (t) => ({ workspace_id: t.ws, case_study_id: t.ws, network: "x", variant: 9, body: "Hacked" }),
+  },
+  {
+    table: "signatures",
+    tenantCol: "workspace_id",
+    columns: "id,workspace_id,signer_name,consent_web",
+    readRole: "viewer",
+    patch: { signer_name: "HACKED" },
+    insert: (t) => ({ workspace_id: t.ws, case_study_id: t.ws, version: 1, signer_name: "x", signer_email: "x@example.test" }),
+  },
+  {
+    table: "signature_revocations",
+    tenantCol: "workspace_id",
+    readRole: "viewer",
+    patch: { reason: "HACKED" },
+    insert: (t) => ({ workspace_id: t.ws, signature_id: t.ws, method: "x" }),
+  },
+  {
+    table: "signature_events",
+    tenantCol: "workspace_id",
+    columns: "id,workspace_id,event",
+    readRole: "admin",
+    patch: { event: "declined" },
+    insert: (t) => ({ workspace_id: t.ws, case_study_id: t.ws, event: "signed" }),
+  },
+  {
+    table: "text_refinements",
+    tenantCol: "workspace_id",
+    readRole: "editor",
+    patch: { accepted: true },
+    insert: (t) => ({ workspace_id: t.ws, case_study_id: t.ws, version: 1, field_path: "headline", original_text: "a", suggested_text: "b" }),
   },
   {
     table: "wall_settings",

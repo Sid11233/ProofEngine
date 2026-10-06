@@ -10,6 +10,18 @@
   color-scheme: light;
   --background: #faf7f0;
   --foreground: #1a1a1a;
+  /* Signal orange from the Attract Studio brand: shapes, progress and accents, never small body text. */
+  --signal: #ff5a1f;
+
+  /* Motion tokens (src/lib/motion/tokens.ts keeps the same numbers). */
+  --motion-instant: 90ms;
+  --motion-micro: 140ms;
+  --motion-standard: 260ms;
+  --motion-emphasis: 480ms;
+  --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-emphasized: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-accelerate: cubic-bezier(0.55, 0, 0.85, 0.35);
+  --ease-decelerate: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @theme inline {
@@ -23,4 +35,34 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* G-15 Button press: scale 0.97 for 90 ms, back on release. Transform only. */
+.anim-press {
+  transition: transform var(--motion-instant) var(--ease-standard);
+}
+.anim-press:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Reduced motion. The device setting applies unless the in-app setting says "full"; the in-app "reduce" setting
+   applies even when the device allows motion. Safety net for every CSS animation and transition: effectively
+   instant, so state changes still happen but nothing moves. Opacity-only fades are written per component. */
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="full"]) *,
+  html:not([data-motion="full"]) *::before,
+  html:not([data-motion="full"]) *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+html[data-motion="reduce"] *,
+html[data-motion="reduce"] *::before,
+html[data-motion="reduce"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
 }

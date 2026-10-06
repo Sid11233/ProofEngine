@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { readZip } from "../src/test/zip-reader";
 import { removalSecret } from "../src/lib/security/ip-hash";
 import { removalToken } from "../src/lib/security/removal";
-import { BASE, PORT, createUser, newPage, signIn, startStack, stopStack, type Stack } from "./harness";
+import { BASE, PORT, createUser, newPage, signIn, startStack, stopStack, type Stack, openVerifiedSigningLink, signStudy } from "./harness";
 
 const CRON_SECRET = "e2e-cron-secret-" + randomBytes(24).toString("hex");
 let stack: Stack;
@@ -40,6 +40,7 @@ async function tenant(label: string, { plan = "pro" } = {}) {
   await stack.admin.from("case_study_versions").insert({ case_study_id: studyId, workspace_id: ws, version: 1, content });
   await stack.admin.from("approvals").insert({ case_study_id: studyId, workspace_id: ws, version: 1, approver_email: `${label}-client@example.test`, method: "email_link" });
   const slug = `story-${randomBytes(3).toString("hex")}`;
+  await signStudy(stack.admin, String(studyId));
   const res = await stack.admin.from("case_studies").update({ status: "published", slug }).eq("id", studyId);
   if (res.error) throw new Error(res.error.message);
   await stack.admin.from("referrals").insert({ workspace_id: ws, interview_id: interview?.id, referred_name: `${label} Referral`, referred_contact: `${label}-ref@example.test` });
@@ -199,6 +200,7 @@ describe("the client's removal link", () => {
     await stack.admin.from("case_studies").update({ status: "awaiting_client_approval" }).eq("id", t.studyId);
     await stack.admin.from("case_study_approval_tokens").insert({ case_study_id: t.studyId, workspace_id: t.ws, version: 1, token_hash: sha(raw) });
     const page = await newPage(stack);
+    await openVerifiedSigningLink(page, stack, raw);
     await page.goto(`${BASE}/approve/${raw}`);
     const link = page.getByRole("link", { name: "Delete this story and my interview" });
     await link.waitFor();

@@ -1,7 +1,7 @@
 /** Limits and entitlements enforced by the server and database, called directly with a valid session (npm run test:isolation). */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createTestUser, hex64, loadLocalConfig, makeClient, wasBlocked, type TestUser } from "../../../supabase/tests/isolation/harness";
+import { createTestUser, signCurrent, hex64, loadLocalConfig, makeClient, wasBlocked, type TestUser } from "../../../supabase/tests/isolation/harness";
 import { createRequest } from "@/lib/requests/service";
 import { generateToken } from "@/lib/security/tokens";
 import { loadPublishedStudy } from "@/lib/public/load";
@@ -30,6 +30,7 @@ async function approved(user: TestUser, ws: string, template: string | null) {
   const token = generateToken();
   await user.client.rpc("request_client_approval", { study: id, hash: token.hash });
   await admin.rpc("approve_case_study", { token_hash: token.hash, ip_hash: hex64() });
+  await signCurrent(admin, id);
   return id;
 }
 
@@ -55,6 +56,13 @@ describe("the plan table and the database agree", () => {
       expect((await admin.rpc("plan_interview_limit", { plan: plan.id })).data, plan.id).toBe(plan.interviewsPerMonth);
     }
     expect((await admin.rpc("plan_interview_limit", { plan: "made-up" })).data).toBe(0);
+  });
+
+  it("refinement allowances match plan_refinement_limit() for every plan", async () => {
+    for (const plan of Object.values(PLANS)) {
+      expect((await admin.rpc("plan_refinement_limit", { plan: plan.id })).data, plan.id).toBe(plan.refinementsPerMonth);
+    }
+    expect((await admin.rpc("plan_refinement_limit", { plan: "made-up" })).data).toBe(10);
   });
 
   it("AI allowances match the limits defaults", () => {

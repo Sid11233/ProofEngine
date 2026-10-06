@@ -12,7 +12,7 @@ import { effectiveTheme } from "@/lib/templates/model";
 import { createClient } from "@/lib/supabase/server";
 import { signedLogoUrl } from "@/lib/uploads/server";
 import { getCurrentWorkspace } from "@/lib/workspace/current";
-import { autosaveContentAction, createPreviewLinkAction, publishAction, requestApprovalAction, revokePreviewLinkAction, saveThemeAction, unpublishAction } from "./actions";
+import { acceptRefinementAction, autosaveContentAction, createPreviewLinkAction, publishAction, requestApprovalAction, refineTextAction, restoreOriginalAction, revokePreviewLinkAction, saveThemeAction, unpublishAction } from "./actions";
 
 export const metadata = { title: pageTitle("Edit case study") };
 
@@ -33,10 +33,14 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
 
   // For the "why can't I publish" list. The database publish trigger (Phase 6.2) is what enforces it.
   const { data: approvals } = await supabase.from("approvals").select("id").eq("case_study_id", study.id).eq("version", study.version).limit(1);
+  const { data: signatures } = await supabase.from("signatures").select("id, consent_web, otp_verified_at").eq("case_study_id", study.id).eq("version", study.version);
+  const { data: revoked } = await supabase.from("signature_revocations").select("signature_id").eq("workspace_id", study.workspaceId);
+  const revokedIds = new Set((revoked ?? []).map((r) => String(r.signature_id)));
   const blockers = explainPublishBlockers({
     status: study.status,
     templateAllowed: await templateAllowedInDatabase(supabase, study.workspaceId, template.id),
     approvedCurrentVersion: (approvals ?? []).length > 0,
+    signedCurrentVersion: (signatures ?? []).some((s) => s.consent_web === true && s.otp_verified_at !== null && !revokedIds.has(String(s.id))),
     allClaimsConfirmed: study.claims.length > 0 && study.claims.every((c) => c.confirmed),
   });
 
@@ -89,6 +93,8 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
         slug={study.slug}
         declined={study.declined}
         clientNote={latest?.kind === "changes_requested" && typeof latest.message === "string" ? latest.message : null}
+        refinedFields={study.refinedFields}
+        refine={{ refine: refineTextAction, accept: acceptRefinementAction, restore: restoreOriginalAction }}
         actions={{ autosave: autosaveContentAction, saveTheme: saveThemeAction, createPreview: createPreviewLinkAction, revokePreview: revokePreviewLinkAction, requestApproval: requestApprovalAction, publish: publishAction, unpublish: unpublishAction }}
       />
     </div>

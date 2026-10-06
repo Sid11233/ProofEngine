@@ -10,6 +10,9 @@ import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import { SignOutButton } from "@/components/pwa/sign-out-button";
 import { isPlatformAdminEmail } from "@/lib/takedown/admin";
+import { cookies } from "next/headers";
+import { MotionProvider } from "@/components/motion/motion-provider";
+import { MOTION_COOKIE, parsePreference } from "@/lib/motion/preference";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // Middleware already redirects anonymous visitors; this is the second lock.
@@ -25,7 +28,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     showMfaBanner = !factors?.totp?.length;
   }
 
+  const motionPreference = parsePreference((await cookies()).get(MOTION_COOKIE)?.value);
+
   return (
+    <MotionProvider initialPreference={motionPreference}>
     <div className="min-h-dvh">
       <ServiceWorkerRegister />
       {workspace.deletionRequestedAt ? (
@@ -59,6 +65,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           ["/app/settings/team", "Team"],
           ["/app/billing", "Billing"],
           ["/app/settings/privacy", "Privacy"],
+          ["/app/settings/motion", "Motion"],
           ["/app/settings/security", "Security"],
           ...(user.email_confirmed_at && isPlatformAdminEmail(user.email) ? [["/app/admin/takedowns", "Takedowns"]] : []),
         ].map(([href, label]) => (
@@ -75,5 +82,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <Link href="/dpa" className="inline-flex min-h-11 items-center underline underline-offset-2">DPA</Link>
       </footer>
     </div>
+    </MotionProvider>
   );
 }

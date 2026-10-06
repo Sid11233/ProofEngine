@@ -1,54 +1,10 @@
-import "server-only";
-import { notFound } from "next/navigation";
-import { ApprovalForm } from "@/components/case-study/approval-form";
-import { CaseStudyView } from "@/components/case-study/view/case-study-view";
-import { resolveApproval } from "@/lib/case-study/approval-access";
-import { defaultTemplate, loadTemplates } from "@/lib/templates/load";
-import { effectiveTheme } from "@/lib/templates/model";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { signedLogoUrl } from "@/lib/uploads/server";
-import { removalSecret } from "@/lib/security/ip-hash";
-import { removalToken } from "@/lib/security/removal";
-import { serverEnv } from "@/lib/security/env.server";
-import { decideAction } from "./actions";
+import { redirect } from "next/navigation";
+import { z } from "zod";
 
-// The client's approval page. The link is the only credential. Headers (noindex, no-referrer,
-// no-store) are set in next.config.ts for /approve/*.
-export const metadata = { title: "Approve your case study", robots: { index: false, follow: false }, referrer: "no-referrer" as const };
+// Older emails linked here. Approval and signature are one step now, at /sign/<token>; the same link works.
+export const metadata = { robots: { index: false, follow: false }, referrer: "no-referrer" as const };
 
-export default async function ApprovePage({ params }: { params: Promise<{ token: string }> }) {
+export default async function ApproveRedirect({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const result = await resolveApproval(token);
-
-  if (!result.ok) {
-    if (result.reason === "rate_limited") {
-      return (
-        <main className="mx-auto max-w-md px-4 py-16">
-          <h1 className="text-xl font-semibold">Too many requests</h1>
-          <p className="mt-2 text-neutral-600">Please wait a minute and try again.</p>
-        </main>
-      );
-    }
-    notFound();
-  }
-
-  const { data } = result;
-  const templates = await loadTemplates(createAdminClient());
-  const template = templates.find((t) => t.id === data.templateId) ?? defaultTemplate(templates);
-  if (!template) notFound();
-
-  const decide = decideAction.bind(null, token);
-  return (
-    <>
-      <section className="mx-auto max-w-3xl space-y-4 px-4 py-8">
-        <h1 className="text-2xl font-semibold">Please review your case study</h1>
-        <p className="text-neutral-700">
-          {data.workspaceName ? `${data.workspaceName} wrote` : "We wrote"} the page below from what you told us. Nothing is published unless you approve exactly this version.
-        </p>
-        <ApprovalForm decide={decide} />
-        <p className="text-sm text-neutral-600">Want everything about this removed instead? <a href={`/remove/${removalToken(removalSecret(serverEnv), data.caseStudyId)}`} className="underline underline-offset-2">Delete this story and my interview</a>.</p>
-      </section>
-      <CaseStudyView content={data.content} template={template} theme={effectiveTheme(template, data.themeSettings)} watermark="Awaiting your approval" logoUrl={await signedLogoUrl(data.logoPath)} />
-    </>
-  );
+  redirect(z.string().regex(/^[A-Za-z0-9_-]{43}$/).safeParse(token).success ? `/sign/${token}` : "/");
 }
