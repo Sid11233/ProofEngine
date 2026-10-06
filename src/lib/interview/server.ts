@@ -1,5 +1,5 @@
 import "server-only";
-import { createAnthropicClient } from "@/lib/ai/client";
+import { createAiClient } from "@/lib/ai/factory";
 import type { InterviewerDeps } from "@/lib/ai/interviewer";
 import { getEmailSender } from "@/lib/email/resend";
 import { canUseAI } from "@/lib/billing/entitlements";
@@ -24,9 +24,7 @@ function build(): Wiring {
   return {
     deps: {
       admin,
-      ai: serverEnv.ANTHROPIC_API_KEY
-        ? createAnthropicClient({ apiKey: serverEnv.ANTHROPIC_API_KEY, model: serverEnv.INTERVIEWER_MODEL })
-        : null,
+      ai: createAiClient(serverEnv, "interviewer"),
       // 10 messages per minute per token (Prompt 3.4).
       messageLimiter: createRateLimiter({ prefix: "interview:message:token", limit: 10, windowSec: 60 }),
       // Monthly per-workspace AI cap, checked before every model call.

@@ -53,6 +53,10 @@ export const serverEnvSchema = z.object({
   INTERVIEWER_MODEL: optional(z.string().min(1)),
   GENERATOR_MODEL: optional(z.string().min(1)),
   TURNSTILE_SECRET_KEY: optional(z.string().min(1)),
+  // TEST ONLY: use OpenRouter (free models) instead of Anthropic. See docs/ai-test-provider.md. Never for real clients.
+  AI_PROVIDER: optional(z.enum(["anthropic", "openrouter"])),
+  OPENROUTER_API_KEY: optional(z.string().min(20)),
+  OPENROUTER_MODEL: optional(z.string().min(3).max(100).regex(/^[A-Za-z0-9._:/-]+$/)),
 
   // "1" when a proxy you control overwrites X-Forwarded-For (Vercel does this automatically)
   TRUST_PROXY_HEADERS: optional(z.enum(["0", "1"])),
