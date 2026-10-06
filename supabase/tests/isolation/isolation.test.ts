@@ -173,6 +173,7 @@ async function seedTenant(ws: string, ownerId: string): Promise<Tenant> {
   const changes = await admin.rpc("request_case_study_changes", { token_hash: feedbackToken, note: "Seed note", ip_hash: hex64() });
   if (changes.error) throw new Error(`seed feedback: ${changes.error.message}`);
   await must(admin.from("wall_settings").insert({ workspace_id: ws, enabled: false }).select(), "wall_settings");
+  await must(admin.from("workspace_communities").insert({ workspace_id: ws, community_id: "b0000000-0000-4000-8000-000000000001", status: "saved", notes: "seed" }).select(), "workspace_communities");
   await must(admin.from("push_subscriptions").insert({ user_id: ownerId, workspace_id: ws, endpoint: "https://fcm.googleapis.com/fcm/send/seedseedseedseedseed", p256dh: "A".repeat(87), auth: "z".repeat(22) }).select(), "push_subscriptions");
   await must(admin.from("notification_preferences").insert({ user_id: ownerId, workspace_id: ws }).select(), "notification_preferences");
   await must(
@@ -403,6 +404,13 @@ const SPECS: Spec[] = [
     readRole: "owner",
     patch: { client_completed: true },
     insert: (t, actor) => ({ user_id: actor, workspace_id: t.ws, client_completed: true }),
+  },
+  {
+    table: "workspace_communities",
+    tenantCol: "workspace_id",
+    readRole: "editor",
+    patch: { notes: "HACKED" },
+    insert: (t) => ({ workspace_id: t.ws, community_id: "b0000000-0000-4000-8000-000000000002", status: "joined" }),
   },
   {
     table: "wall_settings",

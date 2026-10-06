@@ -65,6 +65,14 @@ Every limit below is enforced on the server (in the database or in code), never 
 | Service worker | scope `/app/`; caches only static build files, icons and the offline page; cleared on sign out | `public/sw.js` |
 | Interview JavaScript | 260 KB transferred cap (measured about 230 KB; plan target of 100 KB not reachable, see roadmap) | `e2e/mobile.e2e.test.ts` |
 
+## Light finder (Phase 10)
+
+| Control | Value | Where |
+| --- | --- | --- |
+| Tracker notes | 2000 characters, plain text | `workspace_communities`, `trackerInputSchema` |
+| Tracker changes | 200 per hour per user | `finder` rate limit |
+| Who can track | editors and above, own workspace only; viewers can browse the list | RLS, `saveTrackerAction` |
+
 ## Uploads
 
 | Control | Value |
