@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import { connection } from "next/server";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { brand, pageTitle } from "@/lib/brand";
+import { MOTION_COOKIE, parsePreference } from "@/lib/motion/preference";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,9 +48,11 @@ export default async function RootLayout({
 }>) {
   // Render per request so the CSP nonce from middleware reaches Next's scripts.
   await connection();
+  // The in-app Reduce motion setting (a plain display cookie), applied before first paint.
+  const motion = parsePreference((await cookies()).get(MOTION_COOKIE)?.value);
 
   return (
-    <html lang="en">
+    <html lang="en" data-motion={motion}>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
       </body>
