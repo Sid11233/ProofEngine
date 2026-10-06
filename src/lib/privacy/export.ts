@@ -35,6 +35,8 @@ export const EXPORT_SOURCES: Source[] = [
   { file: "subscription.json", table: "subscriptions", columns: "plan, status, current_period_end, cancel_at_period_end", key: "workspace_id" },
   { file: "wall_settings.json", table: "wall_settings", columns: "*", key: "workspace_id" },
   { file: "community_tracker.json", table: "workspace_communities", columns: "*", key: "workspace_id", order: "updated_at" },
+  { file: "social_profiles.json", table: "social_profiles", columns: "*", key: "workspace_id" },
+  { file: "social_posts.json", table: "social_posts", columns: "*", key: "workspace_id", order: "created_at" },
   { file: "audit_log.json", table: "audit_log", columns: "*", key: "workspace_id", order: "created_at" },
 ];
 
