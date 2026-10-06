@@ -4,7 +4,7 @@ import { BrandMark } from "@/components/brand-mark";
 export default function Home() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-6 px-4 text-center">
-      <h1 className="text-3xl"><BrandMark /></h1>
+      <h1 className="text-3xl"><BrandMark height={44} /></h1>
       <p className="text-neutral-600 dark:text-neutral-400">
         Send clients an AI interview link and publish case studies they have approved.
       </p>

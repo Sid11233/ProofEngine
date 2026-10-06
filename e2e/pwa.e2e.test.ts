@@ -96,7 +96,7 @@ describe("service worker", () => {
       return urls;
     });
     expect(cached.length).toBeGreaterThan(0);
-    for (const path of cached) expect(path, `cached something that is not a static file: ${path}`).toMatch(/^\/(_next\/static\/|icons\/|offline\.(html|css)$)/);
+    for (const path of cached) expect(path, `cached something that is not a static file: ${path}`).toMatch(/^\/(_next\/static\/|icons\/|brand\/|offline\.(html|css)$)/);
     expect(cached.some((p) => p.startsWith("/app") || p.startsWith("/api") || p.startsWith("/i/") || p.startsWith("/preview") || p.startsWith("/approve"))).toBe(false);
   }, 120_000);
 

@@ -1,4 +1,4 @@
-# Proof Engine
+# Attract Studio (codename: Proof Engine)
 
 Send a client an AI interview link, then publish a client-approved case study page.
 
