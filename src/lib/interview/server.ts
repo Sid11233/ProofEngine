@@ -8,6 +8,7 @@ import { createRateLimiter, type RateLimiter } from "@/lib/security/rate-limit";
 import { serverEnv } from "@/lib/security/env.server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseStore, type UploadStore } from "@/lib/uploads/store";
+import { signal } from "@/lib/monitoring/signals";
 import { isBreakerTripped } from "./breaker";
 
 interface Wiring {
@@ -55,6 +56,7 @@ export const getUploadLimiter = () => get().uploadLimiter;
 /** True while the global daily AI spend breaker is open. Alerts the owner once when it first trips. */
 export function breakerTripped(): Promise<boolean> {
   return isBreakerTripped(get().deps.admin, limits.aiDailyTokenLimit, async () => {
+    signal("ai_spend_limit");
     const to = serverEnv.ALERT_EMAIL;
     const sender = getEmailSender();
     if (to && sender) {

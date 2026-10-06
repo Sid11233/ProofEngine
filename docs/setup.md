@@ -75,6 +75,10 @@ Custom domains come later: the app on `app.<yourproduct>.com`, interview links o
 
 `/api/cron/purge` runs daily at 03:00 UTC (`vercel.json`) with the same `CRON_SECRET`. It deletes workspaces and accounts whose 30 day grace period is over (files first, then rows) and requests that never completed after 90 days. It answers 500 if anything failed (check the Vercel cron log) and simply retries the next day. The draft legal pages are `/privacy`, `/terms`, `/subprocessors` and `/dpa`: fill in the highlighted `[...]` placeholders, have a lawyer review them, then remove the draft banner and `noindex` in `src/app/(legal)/layout.tsx`.
 
+### Monitoring (Phase 11.4)
+
+Set `SENTRY_DSN` (server side only, no browser SDK) and `ALERT_EMAIL`, then add the Sentry alert rules described in [monitoring.md](monitoring.md). Without a DSN nothing is reported. The incident guide is [incident-response.md](incident-response.md).
+
 ### Launch hardening (Phase 11)
 
 Set `REQUIRE_DISTRIBUTED_RATE_LIMIT=1` once Upstash is configured: the app then refuses to build or start without it, instead of quietly counting rate limits per serverless instance. Set `SECURITY_CONTACT=mailto:security@yourdomain` to publish `/.well-known/security.txt`. Both are on the [launch checklist](launch-checklist.md).

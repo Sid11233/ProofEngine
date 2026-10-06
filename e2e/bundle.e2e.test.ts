@@ -47,6 +47,12 @@ describe("the client bundle", () => {
     }
   });
 
+  it("has no error-reporting SDK in the browser (Sentry runs on the server only)", () => {
+    for (const [file, body] of text) {
+      expect(/ingest\.sentry\.io|@sentry\/|__SENTRY__|sentry-trace/i.test(body), `${file} contains Sentry browser code`).toBe(false);
+    }
+  });
+
   it("does not ship the server-only libraries", () => {
     for (const [file, body] of text) {
       expect(body.includes("webpush.sendNotification") || body.includes("generateVAPIDKeys"), `${file} contains web-push server code`).toBe(false);

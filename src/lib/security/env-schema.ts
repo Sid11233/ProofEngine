@@ -75,6 +75,9 @@ export const serverEnvSchema = z.object({
   VAPID_PRIVATE_KEY: optional(z.string().regex(/^[A-Za-z0-9_-]{40,60}$/, "a base64url VAPID private key")),
   VAPID_SUBJECT: optional(z.string().regex(/^(mailto:[^\s@]+@[^\s@]+|https:\/\/[^\s]+)$/, "mailto:you@example.com or an https URL")),
 
+  // Phase 11: Sentry error reports (server side only; request bodies, cookies, headers and secrets are scrubbed). Unset: off.
+  SENTRY_DSN: optional(z.url().refine((v) => v.startsWith("https://"), "an https DSN")),
+
   // Phase 11: where vulnerability reports go (mailto:you@example.com or an https URL), published as /.well-known/security.txt.
   SECURITY_CONTACT: optional(z.string().max(300).regex(SECURITY_CONTACT_PATTERN, "mailto:you@example.com or an https URL")),
 

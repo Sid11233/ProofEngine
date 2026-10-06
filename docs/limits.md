@@ -83,6 +83,17 @@ Every limit below is enforced on the server (in the database or in code), never 
 | Deletion and interview-delete actions | 20 per hour per user, recent sign-in | `privacy` rate limit |
 | Client removal link | 20 requests per minute per IP, confirming click required | `/remove/[token]` |
 
+## Monitoring signals (Phase 11.4)
+
+| Signal | Alert when | One alert per |
+| --- | --- | --- |
+| Failed sign-ins | more than 30 in 10 minutes | hour |
+| Unknown interview links | more than 60 in 10 minutes | hour |
+| Stripe webhook failures | more than 2 in 10 minutes | hour |
+| Stripe webhook bad signatures | more than 20 in 10 minutes | hour |
+| Database permission errors | more than 50 in 10 minutes | hour |
+| Daily AI spend limit reached | the first time | day |
+
 ## Uploads
 
 | Control | Value |

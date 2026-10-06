@@ -14,6 +14,7 @@ import {
 import { isAuthAttemptAllowed, isIpAttemptAllowed, RATE_LIMITED_MESSAGE } from "@/lib/auth/rate-limits";
 import { safeNextPath } from "@/lib/auth/redirects";
 import { requireUser } from "@/lib/auth/session";
+import { signal } from "@/lib/monitoring/signals";
 import { getClientIp } from "@/lib/security/client-ip";
 import { publicEnv } from "@/lib/security/env.public";
 import { createClient, createStatelessClient } from "@/lib/supabase/server";
@@ -41,6 +42,7 @@ export async function loginAction(_prev: FormState, formData: FormData): Promise
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
+    signal("failed_login");
     // Only reported after the password was correct, so this reveals nothing to a guesser.
     const message =
       error.code === "email_not_confirmed"

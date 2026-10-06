@@ -28,6 +28,10 @@ export interface PendingInvite {
 export function classify(error: Pick<PostgrestError, "code">): TeamError {
   switch (error.code) {
     case "42501":
+      // A permission or row-level-security refusal. Counted (not stored) so a burst can raise an alert; the hook
+      // is installed by instrumentation.ts, so this file stays free of server-only imports.
+      (globalThis as { __peSignal?: (name: string) => void }).__peSignal?.("permission_error");
+      return "forbidden";
     case "28000":
       return "forbidden";
     case "23505":

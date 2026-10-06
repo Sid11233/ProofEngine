@@ -11,7 +11,7 @@ Status key: **done** is verified in this repository, **you** needs an account, a
 | All Supabase Security Advisor warnings fixed | **you** | Run the Advisor on the hosted project after `supabase db push`; checklist in [setup.md](setup.md). |
 | Production keys rotated and different from dev; Stripe live webhook secret set | **you** | New Supabase, Stripe live, Resend, Anthropic, Upstash, VAPID, `CRON_SECRET`, `IP_HASH_SECRET` values in Vercel. |
 | SPF, DKIM, DMARC for the sending domain | **you** | Verify the domain in Resend and add the three DNS records. |
-| Backups enabled and one restore tested | **you** | Steps in [incident-response.md](incident-response.md) once it exists (Phase 11.4). |
+| Backups enabled and one restore tested | **you** | Steps in [incident-response.md](incident-response.md), section 4. Storage files are not in database backups. |
 | Privacy policy, terms and DPA reviewed by a lawyer | **you** | Drafts are at `/privacy`, `/terms`, `/subprocessors`, `/dpa`; fill the highlighted placeholders, then remove the draft banner and noindex. |
 | Deletion works end to end in production | **you** | Delete a test workspace, wait out (or backdate) the grace period, check `/api/cron/purge` in the Vercel cron log and that the Storage buckets are empty. |
 | Public pages domain separate from the app domain, HSTS enabled | **you** | `PUBLIC_SITES_DOMAIN` plus wildcard DNS ([setup.md](setup.md)); HSTS is sent on every response. |
@@ -20,7 +20,8 @@ Status key: **done** is verified in this repository, **you** needs an account, a
 | Manual XSS test (10 payloads) on testimonials, names and metrics | done | `e2e/xss.e2e.test.ts`. |
 | Sign up as two accounts and try to access each other's data through the UI and the API | done | `e2e/cross-tenant.e2e.test.ts`. |
 | `security.txt` | **you** | Set `SECURITY_CONTACT` (e.g. `mailto:security@yourdomain`). |
-| Incident plan written and an owner assigned | **you** | Document arrives with Phase 11.4; name the owner. |
+| Incident plan written and an owner assigned | **you** | [incident-response.md](incident-response.md) is written; fill in the owner and backup owner at the top. |
+| Monitoring on | **you** | Create the Sentry project, set `SENTRY_DSN` and `ALERT_EMAIL`, add the two alert rules ([monitoring.md](monitoring.md)). |
 
 ## Recurring routine after launch
 
