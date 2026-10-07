@@ -44,12 +44,19 @@ export function NavigationLoader() {
     return () => { clearTimeout(show); clearTimeout(giveUp); };
   }, [waitingFrom]);
 
-  if (!wait || !wait.shown || wait.from !== pathname) return null;
+  const showing = Boolean(wait && wait.shown && wait.from === pathname);
+
+  // Fade the page being left (CSS, opacity only) so the loader reads like the skeleton screens: no card behind it.
+  useEffect(() => {
+    if (!showing) return;
+    document.documentElement.dataset.navigating = "true";
+    return () => { delete document.documentElement.dataset.navigating; };
+  }, [showing]);
+
+  if (!showing) return null;
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-36 z-40 flex justify-center px-4" data-anim="S-02">
-      <div className="rounded-2xl border border-[var(--signal-soft)] bg-[var(--background)]/95 px-6 py-4 shadow-lg">
-        <AttractLoader size="md" label="Opening the page" />
-      </div>
+    <div className="pointer-events-none fixed inset-x-0 top-40 z-40 flex justify-center px-4" data-anim="S-02">
+      <AttractLoader size="md" label="Opening the page" />
     </div>
   );
 }
