@@ -38,13 +38,16 @@ export const rectSchema = z
 
 const next = z.union([z.literal("auto"), localId]);
 
+export const tooltipSchema = z.object({ title: safeText(80, { min: 1 }), body: safeText(280), position: z.enum(TOOLTIP_POSITIONS) }).strict();
+export const chatMessageSchema = z.object({ from: z.enum(["user", "agent"]), text: safeText(500, { min: 1 }), delayMs: z.number().int().min(0).max(3000) }).strict();
+
 export const screenshotSceneSchema = z
   .object({
     id: localId,
     type: z.literal("screenshot"),
     assetId,
     hotspot: rectSchema,
-    tooltip: z.object({ title: safeText(80, { min: 1 }), body: safeText(280), position: z.enum(TOOLTIP_POSITIONS) }).strict(),
+    tooltip: tooltipSchema,
     blurs: z.array(rectSchema).max(20).default([]),
     next: next.default("auto"),
   })
@@ -55,7 +58,7 @@ export const chatSceneSchema = z
     id: localId,
     type: z.literal("chat"),
     persona: z.object({ name: safeText(40, { min: 1 }), role: safeText(60) }).strict(),
-    messages: z.array(z.object({ from: z.enum(["user", "agent"]), text: safeText(500, { min: 1 }), delayMs: z.number().int().min(0).max(3000) }).strict()).max(40),
+    messages: z.array(chatMessageSchema).max(40),
     choices: z.array(z.object({ label: safeText(60, { min: 1 }), goto: localId }).strict()).max(4).default([]),
   })
   .strict();
