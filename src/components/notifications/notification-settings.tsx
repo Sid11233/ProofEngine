@@ -3,6 +3,7 @@
 import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
 import type { NotificationActionResult } from "@/app/app/settings/notifications/actions";
 import { urlBase64ToUint8Array } from "@/lib/pwa/vapid";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Props {
   vapidKey: string | null;
@@ -98,10 +99,7 @@ export function NotificationSettings({ vapidKey, initial, actions }: Props) {
       <section aria-labelledby="events-heading" className="space-y-3">
         <h2 id="events-heading" className="text-lg font-semibold">Tell me when</h2>
         {EVENTS.map((e) => (
-          <label key={e.key} className="flex min-h-11 items-center gap-3">
-            <input type="checkbox" className="size-5" checked={prefs[e.key]} disabled={pending} onChange={(ev) => togglePref(e.key, ev.target.checked)} />
-            <span>{e.label}</span>
-          </label>
+          <Checkbox key={e.key} checked={prefs[e.key]} disabled={pending} onChange={(ev) => togglePref(e.key, ev.target.checked)}>{e.label}</Checkbox>
         ))}
       </section>
 

@@ -14,6 +14,8 @@ import { RefineControl, RefinedBadge, type RefineActions } from "./refine-contro
 import { CopyButton } from "@/components/motion/copy-button";
 import { LoadingButton, type ButtonPhase } from "@/components/motion/loading-button";
 import { CaseStudyView } from "./view/case-study-view";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select } from "@/components/ui/select";
 
 interface Props {
   id: string;
@@ -241,17 +243,17 @@ export function CaseStudyEditor(props: Props) {
           </div>
           <div className="space-y-1">
             <label htmlFor="theme-font" className="block text-sm font-medium">Fonts</label>
-            <select id="theme-font" className={field} value={theme.fontPair} onChange={(e) => patchTheme({ fontPair: e.target.value as Theme["fontPair"] })}>
+            <Select id="theme-font" value={theme.fontPair} onChange={(e) => patchTheme({ fontPair: e.target.value as Theme["fontPair"] })} className="w-full">
               {FONT_PAIRS.map((pair) => <option key={pair} value={pair}>{FONT_PAIR_LABELS[pair]}</option>)}
-            </select>
+            </Select>
           </div>
           <div className="grid grid-cols-3 gap-2">
             {([["radius", "Corners", RADII], ["spacing", "Spacing", SPACINGS], ["mode", "Mode", MODES]] as const).map(([key, label, options]) => (
               <div key={key} className="space-y-1">
                 <label htmlFor={`theme-${key}`} className="block text-sm font-medium">{label}</label>
-                <select id={`theme-${key}`} className={field} value={theme[key]} onChange={(e) => patchTheme({ [key]: e.target.value } as Partial<Theme>)}>
+                <Select id={`theme-${key}`} value={theme[key]} onChange={(e) => patchTheme({ [key]: e.target.value } as Partial<Theme>)} className="w-full">
                   {options.map((o) => <option key={o} value={o}>{o}</option>)}
-                </select>
+                </Select>
               </div>
             ))}
           </div>
@@ -325,10 +327,7 @@ export function CaseStudyEditor(props: Props) {
                           <input id={`ed-mv-${sectionIds[index]}-${mIndex}`} className={field} maxLength={40} value={metric.value} onChange={(e) => setMetric({ value: e.target.value })} />
                         </div>
                       </div>
-                      <label className="flex min-h-11 items-center gap-2 text-sm">
-                        <input type="checkbox" className="size-5" checked={!metric.hidden} onChange={(e) => setMetric({ hidden: e.target.checked ? undefined : true })} />
-                        Show this metric on the page
-                      </label>
+                      <Checkbox checked={!metric.hidden} onChange={(e) => setMetric({ hidden: e.target.checked ? undefined : true })}>Show this metric on the page</Checkbox>
                       <Source claim={claim} label={metric.label} />
                       <Flag edited={edited} wasConfirmed={claim?.confirmed ?? false} />
                     </div>
@@ -355,10 +354,10 @@ export function CaseStudyEditor(props: Props) {
 
           <div className="space-y-1">
             <label htmlFor="add-section" className="block text-sm font-medium">Add a section</label>
-            <select id="add-section" className={field} value="" onChange={(e) => { if (e.target.value) addSection(e.target.value as (typeof ADDABLE)[number]); }}>
+            <Select id="add-section" value="" onChange={(e) => { if (e.target.value) addSection(e.target.value as (typeof ADDABLE)[number]); }} className="w-full">
               <option value="">Choose a type...</option>
               {ADDABLE.filter((t) => template.sectionTypes.includes(t)).map((t) => <option key={t} value={t}>{t}</option>)}
-            </select>
+            </Select>
             <p className="text-sm text-neutral-600 dark:text-neutral-400">Numbers and quotes always come from what your client said, so they cannot be added by hand.</p>
           </div>
         </section>

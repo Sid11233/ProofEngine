@@ -15,6 +15,7 @@ import { unsubscribeSecret } from "@/lib/security/ip-hash";
 import { unsubscribeToken } from "@/lib/security/unsubscribe";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentWorkspace } from "@/lib/workspace/current";
+import { plainLine } from "@/lib/validation/text";
 import { fieldErrorsOf, formDataToObject, type FieldErrors } from "@/lib/validation/form";
 import { removeUploadFiles } from "@/lib/privacy/server";
 import { createRequestSchema, requestIdSchema } from "@/lib/requests/schemas";
@@ -151,4 +152,22 @@ export async function deleteInterviewAction(input: unknown): Promise<RequestActi
   revalidatePath("/app/requests");
   revalidatePath("/app/case-studies");
   return { ok: true, message: "The interview was deleted. Case studies built on it were taken offline." };
+}
+
+const projectTypeSchema = z.object({ requestId: z.uuid(), projectType: plainLine(200, { min: 1 }, "Enter a short project type") }).strict();
+
+/** The quiet "Add project type" action on the requests list. Editor and above; the column is the only one touched. */
+export async function setProjectTypeAction(input: unknown): Promise<RequestActionResult> {
+  const auth = await authorise();
+  if (auth === "throttled") return { ok: false, message: RATE_LIMITED_MESSAGE };
+  if (!auth) return FORBIDDEN;
+  const parsed = projectTypeSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, message: "Enter a short project type.", fieldErrors: fieldErrorsOf(parsed.error) };
+
+  // Row-level security keeps this inside the caller's workspace; only project_type can change.
+  const { data, error } = await (await createClient()).from("proof_requests").update({ project_type: parsed.data.projectType }).eq("id", parsed.data.requestId).select("id");
+  if (error || !data?.length) return { ok: false, message: "We could not save that. Please try again." };
+  revalidatePath("/app/requests");
+  revalidatePath(`/app/requests/${parsed.data.requestId}`);
+  return { ok: true, message: "Saved." };
 }

@@ -4,9 +4,9 @@ import { useActionState } from "react";
 import { FormMessage, SubmitButton, TextField } from "@/components/auth/form-parts";
 import type { RequestActionResult } from "@/app/app/requests/actions";
 import { LinkOnce } from "./link-once";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select } from "@/components/ui/select";
 
-const selectClass =
-  "min-h-11 w-full rounded-md border border-neutral-300 bg-transparent px-2 py-1 text-base outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 dark:border-neutral-700";
 
 export function NewRequestForm({
   action,
@@ -37,10 +37,10 @@ export function NewRequestForm({
       <TextField label="Project type (optional)" name="projectType" required={false} hint="For example: website redesign" errors={errors?.projectType} />
       <div className="space-y-1.5">
         <label htmlFor="flowType" className="block text-sm font-medium">Interview style</label>
-        <select id="flowType" name="flowType" defaultValue={defaultFlow} className={selectClass}>
+        <Select id="flowType" name="flowType" defaultValue={defaultFlow} className="w-full">
           <option value="agency">Agency (client of a service)</option>
           <option value="saas">SaaS (customer of a product)</option>
-        </select>
+        </Select>
       </div>
       <fieldset className="space-y-3">
         <legend className="text-sm font-medium">Outcomes to focus on (up to 3, optional)</legend>
@@ -50,16 +50,13 @@ export function NewRequestForm({
       </fieldset>
       <div className="space-y-1.5">
         <label htmlFor="tone" className="block text-sm font-medium">Tone</label>
-        <select id="tone" name="tone" defaultValue="friendly" className={selectClass}>
+        <Select id="tone" name="tone" defaultValue="friendly" className="w-full">
           <option value="friendly">Friendly</option>
           <option value="professional">Professional</option>
           <option value="casual">Casual</option>
-        </select>
+        </Select>
       </div>
-      <label className="flex min-h-11 items-center gap-3 text-sm">
-        <input type="checkbox" name="sendNow" />
-        Email the invitation to the client now
-      </label>
+      <Checkbox name="sendNow">Email the invitation to the client now</Checkbox>
       <FormMessage state={state} />
       <SubmitButton pendingLabel="Creating...">Create request</SubmitButton>
     </form>

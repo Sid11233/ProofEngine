@@ -7,6 +7,9 @@ import { getCurrentWorkspace } from "@/lib/workspace/current";
 import { changeRoleAction, inviteMemberAction, removeMemberAction, revokeInviteAction } from "./actions";
 import { pageTitle } from "@/lib/brand";
 
+import { ContentFade } from "@/components/motion/content-fade";
+import { PageHeader } from "@/components/ui/page-header";
+import { Illustration } from "@/components/illustrations/illustration";
 export const metadata = { title: pageTitle("Team") };
 
 export default async function TeamPage() {
@@ -22,8 +25,8 @@ export default async function TeamPage() {
   ]);
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <h1 className="text-2xl font-semibold">Team</h1>
+    <ContentFade className="max-w-3xl space-y-6">
+      <PageHeader title="Team" subtitle="Who can work in this workspace, and what they can do." art={<Illustration id="TM-1" decorative />} />
       <TeamManager
         viewerRole={workspace.role}
         members={teammates.map((m) => ({
@@ -41,6 +44,6 @@ export default async function TeamPage() {
           remove: removeMemberAction,
         }}
       />
-    </div>
+    </ContentFade>
   );
 }

@@ -5,6 +5,8 @@ import { useState, useTransition, type ReactNode } from "react";
 import type { SignState } from "@/app/sign/[token]/actions";
 import { diffWords } from "@/lib/case-study/diff";
 import { SignaturePad } from "./signature-pad";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select } from "@/components/ui/select";
 
 export interface ReviewProps {
   version: number;
@@ -166,10 +168,10 @@ export function SigningFlow({ stage, workspaceName, maskedEmail, review, preview
         <h2 id="s-consent" className="text-lg font-semibold">2. Your agreement</h2>
         <div tabIndex={0} role="region" aria-label="Consent text" className="max-h-64 overflow-auto whitespace-pre-wrap rounded-md border border-neutral-300 p-3 text-sm">{review.consent.body}</div>
         <p className="text-xs text-neutral-600">Version {review.consent.version}</p>
-        <label className="flex items-start gap-3 text-sm"><input type="checkbox" className="mt-1 size-5" checked={esign} onChange={(e) => setEsign(e.target.checked)} /><span>Required: I agree to do business electronically and to sign this record with an electronic signature.</span></label>
-        <label className="flex items-start gap-3 text-sm"><input type="checkbox" className="mt-1 size-5" checked={accuracy} onChange={(e) => setAccuracy(e.target.checked)} /><span>Required: I confirm the page above is accurate and I allow it to be published on the web.</span></label>
-        <label className="flex items-start gap-3 text-sm"><input type="checkbox" className="mt-1 size-5" checked={social} onChange={(e) => setSocial(e.target.checked)} /><span>Optional: the team may share it on social media.</span></label>
-        <label className="flex items-start gap-3 text-sm"><input type="checkbox" className="mt-1 size-5" checked={media} onChange={(e) => setMedia(e.target.checked)} /><span>Optional: the team may use my company logo and headshot.</span></label>
+        <Checkbox checked={esign} onChange={(e) => setEsign(e.target.checked)}>Required: I agree to do business electronically and to sign this record with an electronic signature.</Checkbox>
+        <Checkbox checked={accuracy} onChange={(e) => setAccuracy(e.target.checked)}>Required: I confirm the page above is accurate and I allow it to be published on the web.</Checkbox>
+        <Checkbox checked={social} onChange={(e) => setSocial(e.target.checked)}>Optional: the team may share it on social media.</Checkbox>
+        <Checkbox checked={media} onChange={(e) => setMedia(e.target.checked)}>Optional: the team may use my company logo and headshot.</Checkbox>
       </section>
 
       <section aria-labelledby="s-sign" className="space-y-4">
@@ -180,9 +182,9 @@ export function SigningFlow({ stage, workspaceName, maskedEmail, review, preview
             <div className="grid gap-3 sm:grid-cols-2">
               <div><label htmlFor="n" className="block text-sm font-medium">Full name</label><input id="n" className={input} value={name} maxLength={200} onChange={(e) => setName(e.target.value)} autoComplete="name" /></div>
               <div><label htmlFor="d" className="block text-sm font-medium">How should your name appear?</label>
-                <select id="d" className={input} value={displayChoice} onChange={(e) => setDisplayChoice(e.target.value as typeof displayChoice)}>
+                <Select id="d" value={displayChoice} onChange={(e) => setDisplayChoice(e.target.value as typeof displayChoice)} className="w-full">
                   <option value="full">Full name</option><option value="first_only">First name only</option><option value="anonymous">Anonymous</option>
-                </select></div>
+                </Select></div>
               <div><label htmlFor="c" className="block text-sm font-medium">Company (optional)</label><input id="c" className={input} value={company} maxLength={200} onChange={(e) => setCompany(e.target.value)} autoComplete="organization" /></div>
               <div><label htmlFor="r" className="block text-sm font-medium">Role (optional)</label><input id="r" className={input} value={role} maxLength={200} onChange={(e) => setRole(e.target.value)} autoComplete="organization-title" /></div>
             </div>
