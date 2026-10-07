@@ -1,5 +1,7 @@
 "use client";
 
+import { AttractLoader } from "@/components/motion/attract-loader";
+import { MagnetSpinner } from "@/components/motion/magnet-spinner";
 import { isReachable } from "@/lib/referrals/schemas";
 import { TurnstileWidget } from "@/components/turnstile-widget";
 import { useEffect, useRef, useState } from "react";
@@ -240,10 +242,9 @@ function ChatScreen({
         ))}
         {pending && (
           <div className="flex justify-start" role="status" aria-live="polite">
-            <p className="rounded-2xl bg-neutral-100 px-4 py-2 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
-              <span className="sr-only">The interviewer is typing</span>
-              <span aria-hidden="true">Typing...</span>
-            </p>
+            <div className="rounded-2xl bg-neutral-100 px-4 py-2 dark:bg-neutral-800">
+              <AttractLoader size="sm" label="The interviewer is typing" />
+            </div>
           </div>
         )}
         <div ref={bottom} />
@@ -352,7 +353,7 @@ function ClosingScreen({ token, workspaceName, onFinished }: { token: string; wo
         </fieldset>
 
         <Alert message={error} />
-        <button type="submit" className={buttonPrimary} disabled={pending}>{pending ? "Sending..." : "Finish"}</button>
+        <button type="submit" className={buttonPrimary} disabled={pending}>{pending ? <span className="inline-flex items-center gap-2"><MagnetSpinner size={18} />Sending...</span> : "Finish"}</button>
       </form>
     </Shell>
   );
@@ -405,7 +406,7 @@ function FormScreen({
         <Alert message={error} />
         <div className="flex gap-3">
           <button type="button" className="min-h-11 rounded-md border border-neutral-300 px-5 text-base dark:border-neutral-700" onClick={onBack} disabled={pending}>Back to chat</button>
-          <button type="submit" className={buttonPrimary} disabled={pending}>{pending ? "Sending..." : "Submit answers"}</button>
+          <button type="submit" className={buttonPrimary} disabled={pending}>{pending ? <span className="inline-flex items-center gap-2"><MagnetSpinner size={18} />Sending...</span> : "Submit answers"}</button>
         </div>
       </form>
     </Shell>

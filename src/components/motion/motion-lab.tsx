@@ -3,6 +3,8 @@
 import { useState, type ReactNode } from "react";
 import { DURATION_MS, EASE_CSS, MAX_STAGGER_ITEMS, SPRING, STAGGER_MS } from "@/lib/motion/tokens";
 import type { MotionEntry } from "@/lib/motion/registry";
+import { AttractLoader } from "./attract-loader";
+import { MagnetSpinner } from "./magnet-spinner";
 import { AnimatedTabs } from "./animated-tabs";
 import { ContentFade } from "./content-fade";
 import { CopyButton } from "./copy-button";
@@ -54,6 +56,7 @@ const DEMOS: Record<string, () => ReactNode> = {
   "G-12": () => <ToastDemo />,
   "G-13": () => <Popover label="Open popover"><p className="px-2 py-1">Hello from a popover.</p></Popover>,
   "G-16": () => <LoadingDemo />,
+  "S-02": () => <div className="flex flex-wrap items-center gap-6"><AttractLoader size="md" label="Demo loader" /><span className="inline-flex items-center gap-2 text-sm"><MagnetSpinner size={24} /> small version</span></div>,
   "G-27": () => <div className="space-y-2"><Skeleton className="h-6 w-48" /><Skeleton className="h-16" /></div>,
   "G-39": () => <CopyButton text="https://example.com/demo-link" label="Copy link" />,
   "G-48": () => <ContentFade className="rounded-md border border-neutral-300 p-3 text-sm">Content that fades in as it replaces a skeleton.</ContentFade>,

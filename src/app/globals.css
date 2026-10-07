@@ -180,3 +180,78 @@ input, select, textarea { accent-color: var(--signal-strong); }
   outline-offset: 2px;
 }
 .anim-row:hover { background: var(--signal-wash); }
+
+/* ---- Attract Studio loader (S-02): the logo lockup. The letters stand, the magnet slides in from the right, the
+   letters tumble towards it, and the magnet sweeps left swallowing them. One 1.8 s pass; the component replays it
+   while something is loading. --as-s scales the speed (1 = normal). ---- */
+.as-loader { --as-ink: var(--foreground); --as-orange: var(--signal); --as-s: 1; overflow: visible; display: block; }
+.as-loader .as-ink { fill: var(--as-ink); }
+.as-loader .as-org { fill: var(--as-orange); }
+.as-loader .as-mag { fill: none; stroke: var(--as-orange); stroke-width: 30; }
+.as-loader .as-tip { fill: var(--as-ink); }
+.as-loader .as-line { fill: none; stroke: var(--as-orange); stroke-width: 5; stroke-linecap: round; }
+
+.as-Min { animation: as-in calc(420ms * var(--as-s, 1)) cubic-bezier(.16, 1, .3, 1) calc(250ms * var(--as-s, 1)) both; }
+@keyframes as-in { from { transform: translateX(1600px); } to { transform: translateX(0); } }
+.as-MP { animation: as-pulse calc(220ms * var(--as-s, 1)) ease-out calc(500ms * var(--as-s, 1)) both; }
+@keyframes as-pulse { 0% { transform: scale(1); } 45% { transform: scale(1.06); } 100% { transform: scale(1); } }
+
+.as-line { animation: as-line calc(180ms * var(--as-s, 1)) cubic-bezier(.22, 1, .36, 1) both; }
+.as-n0 { animation-delay: calc(600ms * var(--as-s, 1)); } .as-n1 { animation-delay: calc(640ms * var(--as-s, 1)); } .as-n2 { animation-delay: calc(680ms * var(--as-s, 1)); }
+@keyframes as-line { from { opacity: 0; transform: scaleX(0); } to { opacity: 1; transform: scaleX(1); } }
+.as-lines { animation: as-fade calc(120ms * var(--as-s, 1)) ease-in calc(1050ms * var(--as-s, 1)) forwards; }
+@keyframes as-fade { to { opacity: 0; } }
+
+.as-LT { animation: as-roll calc(480ms * var(--as-s, 1)) cubic-bezier(.5, 0, .3, 1) calc(var(--td, 0ms) * var(--as-s, 1)) both; }
+@keyframes as-roll {
+  from { transform: translate(0, 0) rotate(0deg); }
+  50%  { transform: translate(calc(var(--dx, 0px) * .5), -9px) rotate(180deg); }
+  to   { transform: translate(var(--dx, 0px), 0) rotate(360deg); }
+}
+.as-l0 { --dx: 14px; --td: 760ms; --vd: 1538ms; --ex: 20px; }
+.as-l1 { --dx: 20px; --td: 720ms; --vd: 1416ms; --ex: 20px; }
+.as-l2 { --dx: 26px; --td: 680ms; --vd: 1358ms; --ex: 20px; }
+.as-l3 { --dx: 32px; --td: 640ms; --vd: 1315ms; --ex: 20px; }
+.as-l4 { --dx: 38px; --td: 600ms; --vd: 1276ms; --ex: 20px; }
+.as-l5 { --dx: 44px; --td: 560ms; --vd: 1239ms; --ex: 20px; }
+.as-l6 { --dx: 50px; --td: 520ms; --vd: 1199ms; --ex: 20px; }
+.as-st { --vd: 1251ms; --ex: 20px; }
+
+.as-Msw { animation: as-sweep calc(700ms * var(--as-s, 1)) cubic-bezier(0.45, 0, 0.3, 1) calc(1100ms * var(--as-s, 1)) both; }
+@keyframes as-sweep { from { transform: translateX(0); } to { transform: translateX(-436px); } }
+.as-LV { animation: as-eat calc(100ms * var(--as-s, 1)) cubic-bezier(.55, 0, .9, .6) calc(var(--vd, 0ms) * var(--as-s, 1)) both; }
+.as-cam { animation: as-cam calc(700ms * var(--as-s, 1)) cubic-bezier(0.45, 0, 0.3, 1) calc(1100ms * var(--as-s, 1)) both; }
+@keyframes as-cam { from { transform: translateX(0); } to { transform: translateX(123px); } }
+@keyframes as-eat {
+  0%   { opacity: 1; transform: translateX(0) scale(1); }
+  70%  { opacity: 1; }
+  100% { opacity: 0; transform: translateX(var(--ex, 40px)) scale(.2); }
+}
+
+/* The small magnet (inside buttons and inline): dots are pulled towards it, looping. */
+.as-mini { display: inline-block; vertical-align: middle; --as-ink: currentColor; --as-orange: var(--signal); overflow: visible; }
+.as-mini .as-mag { fill: none; stroke: var(--as-orange); stroke-width: 30; }
+.as-mini .as-tip { fill: var(--as-ink); }
+.as-mini .as-dot { fill: var(--as-orange); animation: as-pull 1000ms cubic-bezier(.55, 0, .85, .35) infinite; transform-box: fill-box; }
+.as-mini .as-dot:nth-of-type(2) { animation-delay: 160ms; }
+.as-mini .as-dot:nth-of-type(3) { animation-delay: 320ms; }
+.as-mini .as-body { animation: as-bob 1000ms ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes as-pull {
+  0%   { transform: translateX(-34px); opacity: 0; }
+  20%  { opacity: 1; }
+  100% { transform: translateX(0); opacity: 0; }
+}
+@keyframes as-bob { 50% { transform: scale(1.06); } }
+
+/* Reduced motion: the logo stands still (the finished lockup), the small magnet is static. These win over the
+   general 0.01 ms safety net, which would otherwise jump the letters to their "swallowed" end state. */
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="full"]) .as-Min, html:not([data-motion="full"]) .as-Msw, html:not([data-motion="full"]) .as-MP,
+  html:not([data-motion="full"]) .as-LT, html:not([data-motion="full"]) .as-LV, html:not([data-motion="full"]) .as-line,
+  html:not([data-motion="full"]) .as-lines, html:not([data-motion="full"]) .as-cam, html:not([data-motion="full"]) .as-dot,
+  html:not([data-motion="full"]) .as-body { animation: none !important; }
+}
+html[data-motion="reduce"] .as-Min, html[data-motion="reduce"] .as-Msw, html[data-motion="reduce"] .as-MP,
+html[data-motion="reduce"] .as-LT, html[data-motion="reduce"] .as-LV, html[data-motion="reduce"] .as-line,
+html[data-motion="reduce"] .as-lines, html[data-motion="reduce"] .as-cam, html[data-motion="reduce"] .as-dot,
+html[data-motion="reduce"] .as-body { animation: none !important; }

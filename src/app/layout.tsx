@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { brand, pageTitle } from "@/lib/brand";
+import { LoaderDefs } from "@/components/motion/loader-defs";
 import { MOTION_COOKIE, parsePreference } from "@/lib/motion/preference";
 
 const geistSans = Geist({
@@ -54,6 +55,7 @@ export default async function RootLayout({
   return (
     <html lang="en" data-motion={motion}>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <LoaderDefs />
         {children}
       </body>
     </html>

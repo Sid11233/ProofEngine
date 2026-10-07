@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { MagnetSpinner } from "@/components/motion/magnet-spinner";
 import { CopyButton } from "@/components/motion/copy-button";
 import { useToast } from "@/components/motion/toast";
 
@@ -39,7 +40,7 @@ export function SocialDrafts({ drafts, canEdit, actions }: { drafts: DraftView[]
     <div className="space-y-6">
       {canEdit && (
         <button type="button" disabled={pending} onClick={() => run(actions.generate)} className={primary}>
-          {pending ? "Working…" : drafts.length > 0 ? "Write new drafts" : "Write drafts"}
+          {pending ? (<span className="inline-flex items-center gap-2"><MagnetSpinner size={18} />Working…</span>) : drafts.length > 0 ? "Write new drafts" : "Write drafts"}
         </button>
       )}
       {groups.map((network) => (

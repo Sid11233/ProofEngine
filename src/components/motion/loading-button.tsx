@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { MagnetSpinner } from "./magnet-spinner";
 
 export type ButtonPhase = "idle" | "loading" | "success";
 
@@ -15,7 +16,7 @@ export function LoadingButton({ phase, children, workingLabel = "Working…", do
       {busy && (
         <span className="absolute inset-0 flex items-center justify-center gap-2" aria-hidden="true">
           {phase === "loading" ? (
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="anim-spin"><path d="M12 3a9 9 0 019 9" /></svg>
+            <MagnetSpinner size={20} />
           ) : (
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path className="anim-draw" d="M5 13l4 4L19 7" /></svg>
           )}
