@@ -287,7 +287,7 @@ export function AppShell({ workspace, user, isPlatformAdmin, notice, initialColl
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const pathname = usePathname();
   // The case study editor is a wide tool: the sidebar folds to icons and the page uses the full width.
-  const editorRoute = /^\/app\/case-studies\/[^/]+\/(edit|review|template)$/.test(pathname);
+  const editorRoute = /^\/app\/case-studies\/[^/]+\/(edit|review|template)$/.test(pathname) || /^\/app\/demos\/[^/]+$/.test(pathname);
 
   const toggle = () => {
     setCollapsed((current) => {

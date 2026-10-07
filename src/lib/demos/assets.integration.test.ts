@@ -63,3 +63,33 @@ describe("demo images, end to end", () => {
     expect(up.error).not.toBeNull();
   });
 });
+
+describe("demo service, end to end", () => {
+  it("creates, saves valid content, refuses foreign images and markup, publishes through the rules", async () => {
+    const { createDemo, saveDemo, publishDemo, unpublishDemo } = await import("./service");
+    await admin.from("workspaces").update({ plan: "pro" }).eq("id", ws);
+    const created = await createDemo(owner.client, { workspaceId: ws, userId: owner.id }, "My demo");
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const id = created.id;
+
+    const chat = (text: string) => ({ scenes: [{ id: "c1", type: "chat", persona: { name: "Ava", role: "Agent" }, messages: [{ from: "agent", text, delayMs: 0 }], choices: [] }] });
+    expect(await saveDemo(owner.client, id, { content: chat("Hello there") })).toEqual({ ok: true, findings: [] });
+    expect(await saveDemo(owner.client, id, { content: chat("<img src=x onerror=1>") })).toMatchObject({ ok: false, error: "invalid" });
+    expect(await saveDemo(owner.client, id, { content: chat("Write me at jane@acme.com") })).toMatchObject({ ok: true, findings: [{ path: "scenes.0.messages.0", kinds: ["email"] }] });
+    expect(await saveDemo(owner.client, id, { content: chat("Hello there"), status: "published" })).toMatchObject({ ok: false, error: "invalid" });
+
+    // an image id that is not one of this demo's rows
+    const foreign = { scenes: [{ id: "s1", type: "screenshot", assetId: "99999999-9999-4999-8999-999999999999", hotspot: { x: 0, y: 0, w: 0.5, h: 0.5 }, tooltip: { title: "T", body: "", position: "top" } }] };
+    expect(await saveDemo(owner.client, id, { content: foreign })).toEqual({ ok: false, error: "invalid", issues: ["An image does not belong to this demo"] });
+
+    expect(await publishDemo(owner.client, id, "Bad Slug!")).toEqual({ ok: false, error: "bad_slug" });
+    expect(await publishDemo(owner.client, id, "my-demo-1234")).toEqual({ ok: false, error: "not_attested" });
+    await saveDemo(owner.client, id, { authenticity_attested: true, redaction_acknowledged: true });
+    const live = await publishDemo(owner.client, id, "my-demo-1234");
+    expect(live).toEqual({ ok: true, slug: "my-demo-1234" });
+    expect(await saveDemo(owner.client, id, { title: "Changed" })).toEqual({ ok: false, error: "locked" });
+    expect(await unpublishDemo(owner.client, id)).toEqual({ ok: true });
+    expect(await saveDemo(owner.client, id, { title: "Changed" })).toMatchObject({ ok: true });
+  }, 60_000);
+});

@@ -27,7 +27,9 @@ export type AuthAction =
   | "finder"
   | "export"
   | "privacy"
-  | "demo-assets";
+  | "demo-assets"
+  | "demo-ai"
+  | "demo-edit";
 
 interface Limit {
   limit: number;
@@ -52,6 +54,8 @@ const OVERRIDES: Partial<Record<AuthAction, { subject: Limit; ip: Limit }>> = {
   finder: { subject: { limit: 200, windowSec: 60 * 60 }, ip: { limit: 400, windowSec: 60 * 60 } },
   export: { subject: { limit: 3, windowSec: 60 * 60 }, ip: { limit: 10, windowSec: 60 * 60 } },
   privacy: { subject: { limit: 20, windowSec: 60 * 60 }, ip: { limit: 40, windowSec: 60 * 60 } },
+  "demo-ai": { subject: { limit: 20, windowSec: 60 * 60 }, ip: { limit: 60, windowSec: 60 * 60 } },
+  "demo-edit": { subject: { limit: 240, windowSec: 60 * 60 }, ip: { limit: 480, windowSec: 60 * 60 } },
   "demo-assets": { subject: { limit: 60, windowSec: 60 * 60 }, ip: { limit: 120, windowSec: 60 * 60 } },
   "team-manage": { subject: { limit: 60, windowSec: 15 * 60 }, ip: { limit: 120, windowSec: 60 * 60 } },
 };
