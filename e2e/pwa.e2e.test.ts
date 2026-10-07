@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomBytes } from "node:crypto";
-import { BASE, createUser, newPage, signIn, startStack, stopStack, type Stack } from "./harness";
+import { BASE, createUser, newPage, signIn, startStack, stopStack, type Stack, signOut } from "./harness";
 
 let stack: Stack;
 
@@ -33,7 +33,7 @@ describe("installability", () => {
     const res = await fetch(`${BASE}/manifest.webmanifest`);
     expect(res.status).toBe(200);
     const m = await res.json();
-    expect(m).toMatchObject({ start_url: "/app/dashboard", display: "standalone", theme_color: "#faf7f0" });
+    expect(m).toMatchObject({ start_url: "/app/dashboard", display: "standalone", theme_color: "#fafaf9" });
     expect(m.name).toBeTruthy();
     expect(m.short_name).toBeTruthy();
     const purposes = m.icons.map((i: { sizes: string; purpose?: string }) => `${i.sizes}:${i.purpose ?? "any"}`);
@@ -76,7 +76,7 @@ describe("service worker", () => {
   it("shows only the branded offline page when offline, with no private data, and caches only static files", async () => {
     const { page, context } = await signedIn("pwa-offline");
     await page.goto(`${BASE}/app/dashboard`);
-    await page.getByText("Secret Workspace Name").first().waitFor();
+    await page.getByRole("button", { name: /Workspace: Secret Workspace Name/ }).waitFor();
     await page.reload(); // now controlled by the worker
     await controlled(page);
     await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
@@ -107,7 +107,7 @@ describe("service worker", () => {
     await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
     expect(await page.evaluate(async () => (await caches.keys()).length)).toBeGreaterThan(0);
 
-    await page.getByRole("button", { name: "Sign out" }).click();
+    await signOut(page);
     await page.waitForURL(`${BASE}/login`);
     expect(await page.evaluate(async () => (await caches.keys()).filter((k) => k.startsWith("pe-")).length), "caches survived sign out").toBe(0);
 
@@ -131,20 +131,23 @@ describe("install prompt", () => {
       window.dispatchEvent(e);
     });
     // The page must be hydrated before it listens, so keep offering the event until the button shows.
-    for (let i = 0; i < 20 && (await page.getByRole("button", { name: "Install app" }).count()) === 0; i++) {
+    // The install suggestion lives in the account menu (top right).
+    const offered = page.locator('[aria-label="Install the app"]');
+    for (let i = 0; i < 20 && (await offered.count()) === 0; i++) {
       await fire();
       await page.waitForTimeout(250);
     }
-    await page.getByRole("button", { name: "Install app" }).waitFor();
+    await page.getByRole("button", { name: "Account menu" }).click();
+    await page.getByRole("menuitem", { name: "Install app" }).waitFor();
     await page.getByRole("button", { name: "Dismiss install suggestion" }).click();
-    expect(await page.getByRole("button", { name: "Install app" }).count()).toBe(0);
+    expect(await offered.count()).toBe(0);
     expect(await page.evaluate(() => localStorage.getItem("pe-install-dismissed"))).toBe("1");
 
     await page.reload();
     await page.waitForTimeout(1500);
     await fire();
     await page.waitForTimeout(500);
-    expect(await page.getByRole("button", { name: "Install app" }).count(), "dismissal was forgotten").toBe(0);
+    expect(await offered.count(), "dismissal was forgotten").toBe(0);
 
     const out = await newPage(stack);
     await out.goto(`${BASE}/login`);

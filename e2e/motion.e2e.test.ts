@@ -153,7 +153,8 @@ describe("the overlay and navigation animations", () => {
     await page.waitForURL(`${BASE}/app/dashboard`);
     await page.locator('nav[data-anim="G-06"]').waitFor();
     await page.locator('nav[data-anim="G-06"] a[aria-current="page"]').waitFor();
-    await page.locator('nav[data-anim="G-05"] a[aria-current="page"]').waitFor();
+    // On a phone the sidebar is hidden; the bottom bar is the navigation.
+    expect(await page.locator('nav[data-anim="G-05"]').isVisible()).toBe(false);
     await page.locator('nav[data-anim="G-06"]').getByRole("link", { name: "Requests" }).click();
     await page.waitForURL(`${BASE}/app/requests`);
     expect(await page.locator('nav[data-anim="G-06"] a[aria-current="page"]').innerText()).toContain("Requests");
@@ -194,7 +195,7 @@ describe("the Attract Studio loader", () => {
     await signIn(page, user.email, user.password);
     await page.waitForURL(`${BASE}/app/dashboard`);
     await page.goto(`${BASE}/app/requests`);
-    await page.getByRole("heading", { name: "Requests" }).waitFor();
+    await page.getByRole("heading", { name: "Requests", exact: true }).waitFor();
     // A page without its own loading screen, made slow: hold back its data for a moment.
     await page.route("**/app/requests/new**", async (route) => { await new Promise((r) => setTimeout(r, 1500)); await route.continue(); });
     await page.getByRole("link", { name: "New request" }).click();
@@ -220,10 +221,12 @@ describe("the Attract Studio loader", () => {
     await page.waitForURL(`${BASE}/app/dashboard`);
     await page.goto(`${BASE}/app/settings/wall`);
     await page.getByRole("heading", { name: "Wall of proof" }).waitFor();
-    await page.route("**/app/settings/security**", async (route) => { await new Promise((r) => setTimeout(r, 1500)); await route.continue(); });
-    await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Security" }).click();
+    await page.route("**/app/settings/security**", async (route) => { await new Promise((r) => setTimeout(r, 3000)); await route.continue(); });
+    const main = page.getByRole("navigation", { name: "Main" });
+    await main.getByRole("button", { name: "Settings" }).click();
+    await main.getByRole("link", { name: "Security" }).click();
     const loading = page.locator('[aria-busy="true"]').filter({ has: page.locator('[data-anim="S-02"]') });
-    await loading.waitFor();
+    await loading.waitFor({ timeout: 20_000 });
     expect(await loading.locator('[data-anim="G-27"]').count()).toBeGreaterThan(0);
     await page.getByRole("heading", { name: /Security|two-factor/i }).first().waitFor();
     await loading.waitFor({ state: "detached" });

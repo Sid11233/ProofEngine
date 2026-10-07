@@ -107,7 +107,7 @@ describe("editing with a live preview", () => {
   it("shows desktop, tablet and mobile widths, and the layout really responds to them", async () => {
     const owner = await createUser(stack.admin, "ed-device");
     const s = await seed(owner.id, { templateName: "Before and After" });
-    const { context, page } = await openEditor(owner.email, owner.password, s.studyId);
+    const { context, page } = await openEditor(owner.email, owner.password, s.studyId, { width: 1440, height: 900 });
     const frame = page.getByTestId("preview-frame");
 
     const pos = async (text: string) => (await frame.getByText(text, { exact: true }).boundingBox())!;

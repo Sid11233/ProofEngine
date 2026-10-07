@@ -38,7 +38,7 @@ export function SegmentedControl<T extends string>({ label, options, value, onCh
             disabled={disabled}
             onClick={() => onChange(option.value)}
             onKeyDown={(event) => onKeyDown(event, index)}
-            className={`min-h-9 rounded-[8px] px-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${selected ? "border border-line bg-surface font-medium shadow-sm" : "border border-transparent text-muted hover:text-foreground"}`}
+            className={`min-h-9 rounded-[8px] px-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${selected ? "border border-line bg-surface font-medium shadow-sm" : "border border-transparent text-[#57534e] hover:text-foreground"}`}
           >
             {option.label}
           </button>

@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Page } from "playwright";
-import { BASE, createUser, newPage, signIn, startStack, stopStack, totp, watchConsole, type Stack } from "./harness";
+import { BASE, createUser, newPage, signIn, startStack, stopStack, totp, watchConsole, type Stack, signOut } from "./harness";
 
 let stack: Stack;
 
@@ -41,7 +41,7 @@ describe("two-factor authentication in a real browser", () => {
     // Owners without MFA see the nudge.
     await signIn(page, user.email, user.password);
     await page.waitForURL(`${BASE}/app/dashboard`);
-    await page.getByText(/turn on\s+two-factor authentication/i).waitFor();
+    await page.getByText(/Protect your workspace with two-factor authentication/i).waitFor();
 
     // Enrol.
     await page.goto(`${BASE}/app/settings/security`);
@@ -60,10 +60,10 @@ describe("two-factor authentication in a real browser", () => {
 
     // The banner is gone once MFA is on.
     await page.goto(`${BASE}/app/dashboard`);
-    expect(await page.getByText(/turn on\s+two-factor authentication/i).count()).toBe(0);
+    expect(await page.getByText(/Protect your workspace with two-factor authentication/i).count()).toBe(0);
 
     // Sign out and in again: the password alone must not be enough.
-    await page.getByRole("button", { name: "Sign out" }).click();
+    await signOut(page);
     await page.waitForURL(`${BASE}/login`);
     await signIn(page, user.email, user.password);
     await page.waitForURL(/\/login\/mfa/);

@@ -284,7 +284,10 @@ html[data-navigating="true"] main { opacity: 0.4; }
 .tnum { font-variant-numeric: tabular-nums; }
 
 /* ---- Illustrations (design/Attract-Studio-Illustration-Gallery.html). Ink follows the text colour. ---- */
-.il { width: 100%; height: auto; color: var(--il-ink, currentColor); --il-orange: #FF5A1F; --il-bg: var(--surface); }
+@layer components {
+  .il { width: 100%; height: auto; }
+}
+.il { color: var(--il-ink, currentColor); --il-orange: #FF5A1F; --il-bg: var(--surface); }
 .il .s  { fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
 .il .o  { fill: var(--il-orange); }
 .il .os { fill: none; stroke: var(--il-orange); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }

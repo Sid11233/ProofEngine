@@ -55,7 +55,7 @@ export function DashboardView({ data, workspaceName, plan }: { data: DashboardDa
 
   return (
     <div className="space-y-8">
-      <PageHeader title="Dashboard" subtitle={`${workspaceName} · ${planLabel}`} action={<ButtonLink href="/app/requests/new">New request</ButtonLink>} />
+      <PageHeader title="Dashboard" subtitle={`${workspaceName} · ${planLabel}`} action={next.href === "/app/requests/new" ? undefined : <ButtonLink href="/app/requests/new">New request</ButtonLink>} />
 
       <Card tint aria-labelledby="next-heading" className="flex flex-wrap items-center justify-between gap-6 p-6">
         <div className="min-w-0 max-w-xl space-y-3">

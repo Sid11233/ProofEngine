@@ -1,14 +1,16 @@
 "use client";
 
 import { removePushSubscriptionAction } from "@/app/app/settings/notifications/actions";
+import { Icon } from "@/components/ui/icons";
 import { clearPwaState } from "@/lib/pwa/clear";
 
-/** The sign out form's button: clears this device's caches and push subscription first, then submits. */
+/** The sign out form's button (in the account menu): clears this device's caches and push subscription first, then submits. */
 export function SignOutButton() {
   return (
     <button
       type="submit"
-      className="min-h-11 rounded-md px-3 underline underline-offset-2"
+      role="menuitem"
+      className="flex min-h-10 w-full items-center gap-3 rounded-control px-2 text-left text-sm text-foreground hover:bg-black/[0.05]"
       onClick={async (event) => {
         const form = event.currentTarget.form;
         if (!form || form.dataset.cleared === "1") return;
@@ -26,6 +28,7 @@ export function SignOutButton() {
         form.requestSubmit();
       }}
     >
+      <Icon name="logout" className="text-muted" />
       Sign out
     </button>
   );

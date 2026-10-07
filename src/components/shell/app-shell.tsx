@@ -3,8 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { m } from "motion/react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Avatar } from "@/components/ui/avatar";
+
+import { Icon } from "@/components/ui/icons";
+import { Dialog } from "@/components/motion/dialog";
+import { spring } from "@/lib/motion/springs";
+import { useReducedMotion } from "@/lib/motion/useReducedMotion";
+import { BrandLogo } from "./brand-logo";
+import { MenuButton } from "./menu";
+import { ADMIN_ITEM, isActive, NAV_GROUPS, SETTINGS_ITEMS, settingsActive, TAB_ITEMS, type NavItem } from "./nav-config";
 
 /** The workspace's orange circle with its first letter (the pill at the top of the sidebar). */
 function WorkspaceBadge({ name, size }: { name: string; size: number }) {
@@ -14,14 +22,6 @@ function WorkspaceBadge({ name, size }: { name: string; size: number }) {
     </span>
   );
 }
-import { Icon } from "@/components/ui/icons";
-import { Dialog } from "@/components/motion/dialog";
-import { spring } from "@/lib/motion/springs";
-import { useReducedMotion } from "@/lib/motion/useReducedMotion";
-import { BrandLogo } from "./brand-logo";
-import { MenuButton } from "./menu";
-import { ADMIN_ITEM, isActive, NAV_GROUPS, SETTINGS_ITEMS, settingsActive, TAB_ITEMS, type NavItem } from "./nav-config";
-
 export interface ShellNotice {
   id: string;
   tone: "warning" | "danger";
@@ -93,6 +93,8 @@ function Sidebar({ collapsed, onToggle, workspace, isPlatformAdmin }: { collapse
           label={`Workspace: ${workspace.name}`}
           align="left"
           panelClassName="w-64"
+          wrapperClassName="relative w-full"
+          buttonClassName={collapsed ? "size-11 justify-center rounded-full" : "w-full rounded-full"}
           button={
             collapsed ? <WorkspaceBadge name={workspace.name} size={36} /> : (
               <span className="flex w-full items-center gap-3 rounded-full border border-line bg-surface py-1.5 pl-1.5 pr-3 text-left shadow-sm">
@@ -117,7 +119,7 @@ function Sidebar({ collapsed, onToggle, workspace, isPlatformAdmin }: { collapse
         </MenuButton>
       </div>
 
-      <nav aria-label="Main" className="min-h-0 flex-1 space-y-5 overflow-y-auto px-3 pb-4 pt-2">
+      <nav data-anim="G-05" aria-label="Main" className="min-h-0 flex-1 space-y-5 overflow-y-auto px-3 pb-4 pt-2">
         {groups.map((group) => (
           <div key={group.label}>
             <p className={`px-3 pb-1 text-xs font-medium uppercase tracking-wider text-muted ${collapsed ? "sr-only" : ""}`}>{group.label}</p>
@@ -166,7 +168,10 @@ function Sidebar({ collapsed, onToggle, workspace, isPlatformAdmin }: { collapse
 function TopBar({ email, name, installSlot, signOutSlot }: { email: string; name: string; installSlot: ReactNode; signOutSlot: ReactNode }) {
   return (
     <div className="flex h-16 items-center justify-between gap-3 px-4 md:justify-end md:px-8">
-      <Link href="/app/dashboard" aria-label="Attract Studio, dashboard" className="no-underline hover:no-underline md:hidden"><BrandLogo /></Link>
+      <div className="flex min-w-0 items-center gap-3 md:hidden">
+        <Link href="/app/dashboard" aria-label="Attract Studio, dashboard" className="shrink-0 no-underline hover:no-underline"><BrandLogo iconOnly /></Link>
+        <span className="truncate text-sm font-medium">{name}</span>
+      </div>
       <div className="flex items-center gap-2">
         <MenuButton
           label="Notifications"
@@ -197,10 +202,9 @@ function TopBar({ email, name, installSlot, signOutSlot }: { email: string; name
 
 function NoticeBar({ notice }: { notice: ShellNotice }) {
   const key = `pe-notice-${notice.id}`;
-  const [dismissed, setDismissed] = useState(false);
-  useEffect(() => {
-    try { if (sessionStorage.getItem(key) === "1") setDismissed(true); } catch { /* storage blocked: the bar simply stays */ }
-  }, [key]);
+  // Dismissed for this browser session. The server always renders it (so there is no layout shift for most people); a browser that dismissed it earlier hides it after loading.
+  const subscribe = (notify: () => void) => { window.addEventListener("pe-notice", notify); return () => window.removeEventListener("pe-notice", notify); };
+  const dismissed = useSyncExternalStore(subscribe, () => { try { return sessionStorage.getItem(key) === "1"; } catch { return false; } }, () => false);
   if (dismissed) return null;
   const danger = notice.tone === "danger";
   return (
@@ -208,7 +212,7 @@ function NoticeBar({ notice }: { notice: ShellNotice }) {
       <Icon name="shield" size={18} className={danger ? "text-[#B42318]" : "text-[#9A6700]"} />
       <p className="min-w-0 flex-1">{notice.text}</p>
       <Link href={notice.actionHref} className="shrink-0 font-medium text-foreground">{notice.actionLabel}</Link>
-      <button type="button" aria-label="Dismiss" onClick={() => { try { sessionStorage.setItem(key, "1"); } catch { /* ignore */ } setDismissed(true); }} className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-muted outline-none hover:bg-black/[0.05] focus-visible:outline-2 focus-visible:outline-[var(--signal-strong)]">
+      <button type="button" aria-label="Dismiss" onClick={() => { try { sessionStorage.setItem(key, "1"); } catch { /* ignore */ } window.dispatchEvent(new Event("pe-notice")); }} className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-muted outline-none hover:bg-black/[0.05] focus-visible:outline-2 focus-visible:outline-[var(--signal-strong)]">
         <Icon name="x" />
       </button>
     </div>
@@ -281,6 +285,9 @@ function BottomBar({ isPlatformAdmin }: { isPlatformAdmin: boolean }) {
 
 export function AppShell({ workspace, user, isPlatformAdmin, notice, initialCollapsed, installSlot, signOutSlot, footer, children }: Props) {
   const [collapsed, setCollapsed] = useState(initialCollapsed);
+  const pathname = usePathname();
+  // The case study editor is a wide tool: the sidebar folds to icons and the page uses the full width.
+  const editorRoute = /^\/app\/case-studies\/[^/]+\/(edit|review|template)$/.test(pathname);
 
   const toggle = () => {
     setCollapsed((current) => {
@@ -307,11 +314,12 @@ export function AppShell({ workspace, user, isPlatformAdmin, notice, initialColl
 
   return (
     <div className="min-h-dvh md:flex">
-      <Sidebar collapsed={collapsed} onToggle={toggle} workspace={workspace} isPlatformAdmin={isPlatformAdmin} />
+      <a href="#main" className="sr-only z-[70] rounded-control bg-foreground px-4 py-2 text-sm font-medium text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Skip to content</a>
+      <Sidebar collapsed={collapsed || editorRoute} onToggle={toggle} workspace={workspace} isPlatformAdmin={isPlatformAdmin} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar email={user.email} name={workspace.name} installSlot={installSlot} signOutSlot={signOutSlot} />
         {notice ? <NoticeBar notice={notice} /> : null}
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-24 sm:px-8 md:pb-8">{children}</main>
+        <main id="main" tabIndex={-1} className={`mx-auto w-full flex-1 px-4 py-6 pb-24 sm:px-8 md:pb-8 ${editorRoute ? "max-w-none" : "max-w-6xl"}`}>{children}</main>
         {footer}
       </div>
       <BottomBar isPlatformAdmin={isPlatformAdmin} />

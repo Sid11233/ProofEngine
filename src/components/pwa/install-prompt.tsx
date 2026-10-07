@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Icon } from "@/components/ui/icons";
 
 // A small "Install app" button for browsers that offer installation (Chrome, Edge, Android). It is only
 // rendered inside the signed-in app, can be dismissed, and remembers that in localStorage. Browsers that
@@ -51,19 +52,21 @@ export function InstallPrompt() {
   };
 
   return (
-    <div role="region" aria-label="Install the app" className="flex items-center gap-1 text-sm">
+    <div role="group" aria-label="Install the app" className="flex items-center gap-1">
       <button
         type="button"
-        className="inline-flex min-h-11 items-center rounded-md border border-neutral-300 px-3 hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900"
+        role="menuitem"
+        className="flex min-h-10 flex-1 items-center gap-3 rounded-control px-2 text-left text-sm text-foreground hover:bg-black/[0.05]"
         onClick={async () => {
           await event.prompt();
           setEvent(null);
         }}
       >
+        <Icon name="download" className="text-muted" />
         Install app
       </button>
-      <button type="button" aria-label="Dismiss install suggestion" className="inline-flex size-11 items-center justify-center rounded-md text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-900" onClick={dismiss}>
-        <span aria-hidden="true">×</span>
+      <button type="button" aria-label="Dismiss install suggestion" className="inline-flex size-9 shrink-0 items-center justify-center rounded-control text-muted hover:bg-black/[0.05]" onClick={dismiss}>
+        <Icon name="x" />
       </button>
     </div>
   );

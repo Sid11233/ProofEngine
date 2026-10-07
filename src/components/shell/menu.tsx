@@ -7,7 +7,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
  * The panel stays in the page while closed (hidden), so things inside it that must keep listening, such as the
  * install prompt, keep working. Escape or a click outside closes it and focus goes back to the button.
  */
-export function MenuButton({ label, button, children, align = "right", panelClassName = "" }: { label: string; button: ReactNode; children: ReactNode | ((close: () => void) => ReactNode); align?: "left" | "right"; panelClassName?: string }) {
+export function MenuButton({ label, button, children, align = "right", panelClassName = "", buttonClassName = "size-11 justify-center rounded-full", wrapperClassName = "relative" }: { label: string; button: ReactNode; children: ReactNode | ((close: () => void) => ReactNode); align?: "left" | "right"; panelClassName?: string; buttonClassName?: string; wrapperClassName?: string }) {
   const [open, setOpen] = useState(false);
   const id = useId();
   const root = useRef<HTMLDivElement>(null);
@@ -24,8 +24,8 @@ export function MenuButton({ label, button, children, align = "right", panelClas
 
   const close = () => setOpen(false);
   return (
-    <div ref={root} className="relative" onBlur={(event) => { if (open && !root.current?.contains(event.relatedTarget as Node | null)) setOpen(false); }}>
-      <button ref={trigger} type="button" aria-label={label} aria-haspopup="menu" aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)} className="inline-flex size-11 items-center justify-center rounded-full outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--signal-strong)]">
+    <div ref={root} className={wrapperClassName} onBlur={(event) => { if (open && !root.current?.contains(event.relatedTarget as Node | null)) setOpen(false); }}>
+      <button ref={trigger} type="button" aria-label={label} aria-haspopup="menu" aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)} className={`inline-flex items-center outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--signal-strong)] ${buttonClassName}`}>
         {button}
       </button>
       <div id={id} role="menu" hidden={!open} data-anim="G-13" className={`anim-pop absolute top-full z-50 mt-2 w-72 rounded-card border border-line bg-surface p-2 shadow-lg ${align === "right" ? "right-0 origin-top-right" : "left-0 origin-top-left"} ${panelClassName}`.trim()}>
