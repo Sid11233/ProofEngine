@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { brand, pageTitle } from "@/lib/brand";
+import { IllustrationDefs } from "@/components/illustrations/illustration-defs";
 import { LoaderDefs } from "@/components/motion/loader-defs";
 import { MOTION_COOKIE, parsePreference } from "@/lib/motion/preference";
 
@@ -35,7 +36,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#faf7f0",
+  themeColor: "#fafaf9",
   // Use the full screen on phones with notches (content respects env(safe-area-inset-*)), and let the
   // on-screen keyboard resize the layout instead of covering the input.
   viewportFit: "cover",
@@ -56,6 +57,7 @@ export default async function RootLayout({
     <html lang="en" data-motion={motion}>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <LoaderDefs />
+        <IllustrationDefs />
         {children}
       </body>
     </html>

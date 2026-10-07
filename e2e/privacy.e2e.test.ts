@@ -98,7 +98,7 @@ describe("workspace deletion", () => {
     await button.click();
     await page.getByText(/Scheduled\. Everything will be deleted on/).waitFor();
     await page.reload();
-    await page.getByRole("alert").filter({ hasText: "scheduled for deletion" }).first().waitFor();
+    await page.getByText(/scheduled for deletion/).first().waitFor();
     expect((await fetch(site(t.workspace, `/${t.slug}`))).status, "the page is still public").toBe(404);
     expect((await fetch(`${BASE}/i/${t.rawInterview}`, { headers: { "x-forwarded-for": "198.51.100.200" } })).status).toBe(404);
 

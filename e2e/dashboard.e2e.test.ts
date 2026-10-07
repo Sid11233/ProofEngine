@@ -48,13 +48,13 @@ describe("dashboard", () => {
     const pageA = await dashboardFor(a);
     expect(await pageA.getByTestId("next-title").textContent()).toBe("3 clients have not responded yet");
     await pageA.getByText("Proof requests").first().waitFor();
-    const funnelA = await pageA.locator("section[aria-labelledby=funnel-heading]").innerText();
-    expect(funnelA).toMatch(/Sent\s*3/);
+    // The numbers count up for about 0.6 s, so wait for them to settle.
+    const funnelOf = (page: typeof pageA) => page.locator("section[aria-labelledby=funnel-heading]").innerText();
+    await expect.poll(() => funnelOf(pageA), { timeout: 5000 }).toMatch(/Sent\s*3/);
 
     const pageB = await dashboardFor(b);
-    const funnelB = await pageB.locator("section[aria-labelledby=funnel-heading]").innerText();
-    expect(funnelB).toMatch(/Sent\s*1/);
-    expect(funnelB).not.toMatch(/Sent\s*3/);
+    await expect.poll(() => funnelOf(pageB), { timeout: 5000 }).toMatch(/Sent\s*1/);
+    expect(await funnelOf(pageB)).not.toMatch(/Sent\s*3/);
     expect(await pageB.getByTestId("next-title").textContent()).toBe("Your requests are out");
   }, 120_000);
 });

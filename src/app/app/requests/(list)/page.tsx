@@ -1,45 +1,45 @@
-import Link from "next/link";
-import { requireUser } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
-import { listRequests } from "@/lib/requests/service";
-import { getCurrentWorkspace } from "@/lib/workspace/current";
-import { pageTitle } from "@/lib/brand";
+import { Illustration } from "@/components/illustrations/illustration";
 import { ContentFade } from "@/components/motion/content-fade";
-import { ListStagger } from "@/components/motion/list-stagger";
+import { ReminderTip } from "@/components/requests/reminder-tip";
+import { RequestList } from "@/components/requests/request-list";
+import { ButtonLink } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
+import { requireUser } from "@/lib/auth/session";
+import { pageTitle } from "@/lib/brand";
+import { listRequests } from "@/lib/requests/service";
+import { createClient } from "@/lib/supabase/server";
+import { getCurrentWorkspace } from "@/lib/workspace/current";
+import { setProjectTypeAction } from "../actions";
 
 export const metadata = { title: pageTitle("Requests") };
+
+const shortDate = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 
 export default async function RequestsPage() {
   await requireUser();
   const workspace = await getCurrentWorkspace();
   const items = await listRequests(await createClient());
   const canCreate = workspace?.role !== "viewer";
+  const completed = items.filter((i) => i.status === "completed").length;
+  const subtitle = items.length === 0 ? "Send a client a short AI interview." : completed === items.length ? `${items.length} request${items.length === 1 ? "" : "s"}, all completed.` : `${items.length} request${items.length === 1 ? "" : "s"}, ${completed} completed.`;
 
   return (
     <ContentFade className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">Requests</h1>
-        {canCreate && (
-          <Link href="/app/requests/new" className="inline-flex min-h-11 items-center rounded-md bg-neutral-900 px-4 text-sm font-medium text-white dark:bg-neutral-100 dark:text-neutral-900">
-            New request
-          </Link>
-        )}
-      </div>
+      <PageHeader title="Requests" subtitle={subtitle} action={canCreate ? <ButtonLink href="/app/requests/new">New request</ButtonLink> : undefined} />
       {items.length === 0 ? (
-        <p className="text-neutral-600 dark:text-neutral-400">No requests yet. Create one to send a client an interview link.</p>
+        <Card className="flex flex-col items-center gap-4 py-10 text-center">
+          <Illustration id="RQ-1" decorative className="w-56" />
+          <div>
+            <h2 className="text-lg font-semibold">No requests yet</h2>
+            <p className="mt-1 text-sm text-muted">Create one to send a client an interview link.</p>
+          </div>
+        </Card>
       ) : (
-        <ListStagger
-          className="divide-y divide-neutral-200 rounded-md border border-neutral-200"
-          items={items.map((item) => (
-            <Link key={item.id} href={`/app/requests/${item.id}`} className="flex min-h-11 flex-wrap items-center justify-between gap-2 px-3 py-2 anim-row">
-              <span className="min-w-0">
-                <span className="block truncate font-medium">{item.clientName}</span>
-                <span className="block truncate text-sm text-neutral-600">{item.projectType ?? "No project type"}</span>
-              </span>
-              <span className="rounded-full border border-neutral-300 px-2 py-0.5 text-xs">{item.status}</span>
-            </Link>
-          ))}
-        />
+        <>
+          <RequestList rows={items.map((i) => ({ id: i.id, clientName: i.clientName, projectType: i.projectType, status: i.status, date: shortDate(i.createdAt) }))} canEdit={canCreate} saveProjectType={setProjectTypeAction} />
+          <ReminderTip />
+        </>
       )}
     </ContentFade>
   );

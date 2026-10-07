@@ -164,3 +164,9 @@ export async function openVerifiedSigningLink(page: Page, stack: Stack, rawToken
   if (error) throw new Error(`openVerifiedSigningLink: ${error.message}`);
   await page.context().addCookies([{ name: `pe_sign_${rawToken.slice(0, 12)}`, value: session, url: BASE, httpOnly: true, sameSite: "Strict" }]);
 }
+
+/** Opens the account menu (top right) and signs out. */
+export async function signOut(page: Page) {
+  await page.getByRole("button", { name: "Account menu" }).click();
+  await page.getByRole("menuitem", { name: "Sign out" }).click();
+}

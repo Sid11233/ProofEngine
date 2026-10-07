@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { BASE, createUser, newPage, signIn, startStack, statusText, stopStack, watchConsole, type Stack } from "./harness";
+import { BASE, createUser, newPage, signIn, startStack, statusText, stopStack, watchConsole, type Stack, signOut } from "./harness";
 
 let stack: Stack;
 
@@ -33,7 +33,7 @@ describe("authentication in a real browser", () => {
     await page.waitForURL(`${BASE}/app/dashboard`);
     await page.getByRole("heading", { name: "Dashboard" }).waitFor();
 
-    await page.getByRole("button", { name: "Sign out" }).click();
+    await signOut(page);
     await page.waitForURL(`${BASE}/login`);
 
     // Signed out means signed out: the dashboard is locked again.
