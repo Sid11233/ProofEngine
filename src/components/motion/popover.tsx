@@ -37,7 +37,7 @@ export function Popover({ label, children, align = "left" }: { label: string; ch
             data-anim="G-13"
             role="dialog"
             aria-label={label}
-            className={`absolute z-40 mt-1 min-w-48 rounded-md border border-neutral-200 bg-[#faf7f0] p-2 text-sm shadow-lg ${align === "right" ? "right-0 origin-top-right" : "left-0 origin-top-left"}`}
+            className={`absolute z-40 mt-1 min-w-48 rounded-md border border-neutral-200 bg-surface p-2 text-sm shadow-lg ${align === "right" ? "right-0 origin-top-right" : "left-0 origin-top-left"}`}
             initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.95 }}

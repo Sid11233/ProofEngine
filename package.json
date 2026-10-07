@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "illustrations": "node scripts/generate-illustrations.mjs",
     "test": "vitest run",
     "test:isolation": "vitest run --config vitest.isolation.config.mts",
     "test:db": "supabase test db",

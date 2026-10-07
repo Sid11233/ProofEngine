@@ -68,7 +68,7 @@ function ToastCard({ item, reduced, onDismiss }: { item: ToastItem; reduced: boo
       ref={ref}
       layout={!reduced}
       role={item.tone === "error" ? "alert" : "status"}
-      className={`pointer-events-auto relative w-full max-w-sm overflow-hidden rounded-md border ${colour} bg-[#faf7f0] shadow-lg`}
+      className={`pointer-events-auto relative w-full max-w-sm overflow-hidden rounded-md border ${colour} bg-surface shadow-lg`}
       initial={reduced ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={reduced ? { opacity: 0 } : { opacity: 0, x: 40 }}

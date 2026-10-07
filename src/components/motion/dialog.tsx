@@ -73,7 +73,7 @@ export function Dialog({ open, onClose, title, children }: { open: boolean; onCl
             aria-modal="true"
             aria-labelledby={titleId}
             tabIndex={-1}
-            className="relative w-full max-w-md space-y-4 rounded-lg border border-neutral-200 bg-[#faf7f0] p-5 shadow-xl outline-none"
+            className="relative w-full max-w-md space-y-4 rounded-lg border border-neutral-200 bg-surface p-5 shadow-xl outline-none"
             initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}

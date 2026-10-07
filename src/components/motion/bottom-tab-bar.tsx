@@ -24,7 +24,7 @@ export function BottomTabBar({ items }: { items: TabItem[] }) {
   // The case study editor has its own fixed controls at the bottom of a phone screen; two bars would fight.
   if (/^\/app\/case-studies\/[^/]+\/(edit|review|template)$/.test(pathname)) return null;
   return (
-    <nav data-anim="G-06" aria-label="Quick links" className="fixed inset-x-0 bottom-0 z-30 border-t border-neutral-200 bg-[#faf7f0]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+    <nav data-anim="G-06" aria-label="Quick links" className="fixed inset-x-0 bottom-0 z-30 border-t border-neutral-200 bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
       <ul className="mx-auto grid max-w-md grid-cols-5">
         {items.map((item) => {
           const active = isActive(pathname, item.href);

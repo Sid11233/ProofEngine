@@ -8,8 +8,15 @@
 
 :root {
   color-scheme: light;
-  --background: #faf7f0;
-  --foreground: #1a1a1a;
+  --background: #fafaf9;
+  --foreground: #0a0a0a;
+  /* Design tokens. Page #FAFAF9, surface white, 1 px border, card radius 14 px, control radius 10 px. */
+  --surface: #ffffff;
+  --line: #e7e5e4;
+  --tint: #fff1eb;
+  --muted: #78716c;
+  --radius-card: 14px;
+  --radius-control: 10px;
   /* Signal orange from the Attract Studio brand: shapes, progress and accents, never small body text. */
   --signal: #ff5a1f;
   /* A slightly deeper orange for thin lines and icons, which need more contrast on cream than a fill does. */
@@ -32,6 +39,13 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-tint: var(--tint);
+  --color-muted: var(--muted);
+  --color-signal: var(--signal);
+  --radius-card: var(--radius-card);
+  --radius-control: var(--radius-control);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -259,3 +273,69 @@ html[data-motion="reduce"] .as-body { animation: none !important; }
 /* While a clicked link waits for its page, the current page fades back so the loader reads cleanly (opacity only). */
 main { transition: opacity var(--motion-micro) var(--ease-standard); }
 html[data-navigating="true"] main { opacity: 0.4; }
+
+/* ---- Base type and links ---- */
+@layer base {
+  /* Links are not underlined until hover or keyboard focus. */
+  a { text-decoration: none; }
+  a:hover, a:focus-visible { text-decoration-line: underline; text-underline-offset: 3px; }
+  body { font-size: 14px; line-height: 1.5; }
+}
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* ---- Illustrations (design/Attract-Studio-Illustration-Gallery.html). Ink follows the text colour. ---- */
+.il { width: 100%; height: auto; color: var(--il-ink, currentColor); --il-orange: #FF5A1F; --il-bg: var(--surface); }
+.il .s  { fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.il .o  { fill: var(--il-orange); }
+.il .os { fill: none; stroke: var(--il-orange); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+.il .i  { fill: currentColor; }
+.il .f  { fill: currentColor; opacity: .14; }
+.il .b  { fill: var(--il-bg, Canvas); }
+.il .t  { stroke-width: 2; }
+.il .d  { stroke-dasharray: 4 5; }
+
+/* ---- Checkbox (src/components/ui/checkbox.tsx): our own box and drawn check on a real input. ---- */
+.ui-checkbox {
+  appearance: none;
+  position: relative;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid #a8a29e;
+  border-radius: 6px;
+  background: var(--surface);
+  cursor: pointer;
+  transition: background-color var(--motion-micro) var(--ease-standard), border-color var(--motion-micro) var(--ease-standard);
+}
+.ui-checkbox:checked { background: var(--signal-strong); border-color: var(--signal-strong); }
+.ui-checkbox::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0);
+  transition: transform 180ms var(--ease-standard);
+}
+.ui-checkbox:checked::before { transform: rotate(45deg) scale(1); }
+.ui-checkbox:disabled { cursor: not-allowed; opacity: 0.5; }
+
+/* G-13 Popover (CSS version, for panels that stay mounted): scale 0.95 to 1 from the anchor corner over 140 ms. */
+.anim-pop:not([hidden]) { animation: anim-pop 140ms var(--ease-standard) backwards; }
+@keyframes anim-pop { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: none; } }
+@keyframes anim-pop-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="full"]) .anim-pop:not([hidden]) { animation-name: anim-pop-fade !important; animation-duration: 120ms !important; }
+}
+html[data-motion="reduce"] .anim-pop:not([hidden]) { animation-name: anim-pop-fade !important; animation-duration: 120ms !important; }
+
+/* G-13 menu panels (avatar, bell, workspace): scale in from the corner they open from, 140 ms. */
+.anim-menu { animation: anim-menu 140ms var(--ease-standard) backwards; }
+@keyframes anim-menu { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="full"]) .anim-menu { animation-name: anim-route-fade !important; animation-duration: 120ms !important; }
+}
+html[data-motion="reduce"] .anim-menu { animation-name: anim-route-fade !important; animation-duration: 120ms !important; }
