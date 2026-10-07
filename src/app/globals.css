@@ -255,3 +255,7 @@ html[data-motion="reduce"] .as-Min, html[data-motion="reduce"] .as-Msw, html[dat
 html[data-motion="reduce"] .as-LT, html[data-motion="reduce"] .as-LV, html[data-motion="reduce"] .as-line,
 html[data-motion="reduce"] .as-lines, html[data-motion="reduce"] .as-cam, html[data-motion="reduce"] .as-dot,
 html[data-motion="reduce"] .as-body { animation: none !important; }
+
+/* While a clicked link waits for its page, the current page fades back so the loader reads cleanly (opacity only). */
+main { transition: opacity var(--motion-micro) var(--ease-standard); }
+html[data-navigating="true"] main { opacity: 0.4; }

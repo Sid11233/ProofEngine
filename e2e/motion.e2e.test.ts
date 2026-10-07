@@ -188,20 +188,44 @@ describe("the Attract Studio loader", () => {
     expect(await loader.evaluate((el) => getComputedStyle(el.querySelector(".as-LV")!).animationName)).toBe("none");
   }, 120_000);
 
-  it("shows while a clicked link waits for its page, never blocks clicks, and goes away", async () => {
+  it("shows while a clicked link waits for its page, with no card behind it, never blocks clicks, and goes away", async () => {
     const user = await createUser(stack.admin, "motion-loader");
     const page = await newPage(stack);
     await signIn(page, user.email, user.password);
     await page.waitForURL(`${BASE}/app/dashboard`);
-    // Make a page without its own loading state slow: hold back its data for a moment.
-    await page.route("**/app/billing**", async (route) => { await new Promise((r) => setTimeout(r, 1500)); await route.continue(); });
-    await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Billing" }).click();
+    await page.goto(`${BASE}/app/requests`);
+    await page.getByRole("heading", { name: "Requests" }).waitFor();
+    // A page without its own loading screen, made slow: hold back its data for a moment.
+    await page.route("**/app/requests/new**", async (route) => { await new Promise((r) => setTimeout(r, 1500)); await route.continue(); });
+    await page.getByRole("link", { name: "New request" }).click();
     const loader = page.getByRole("status").filter({ hasText: "Opening the page" });
     await loader.waitFor();
-    // It does not intercept the pointer.
-    expect(await page.locator('[data-anim="S-02"]').first().evaluate((el) => getComputedStyle(el).pointerEvents)).toBe("none");
-    await page.waitForURL(`${BASE}/app/billing`);
-    await page.getByRole("heading", { name: /Billing|Plan/ }).first().waitFor();
+    const wrapper = page.locator('[data-anim="S-02"]').first();
+    expect(await wrapper.evaluate((el) => getComputedStyle(el).pointerEvents)).toBe("none");
+    // No card: the wrapper and the loader have no background, border or shadow.
+    for (const el of [wrapper, loader]) {
+      const style = await el.evaluate((node) => { const c = getComputedStyle(node); return { bg: c.backgroundColor, border: c.borderTopWidth, shadow: c.boxShadow }; });
+      expect(style).toEqual({ bg: "rgba(0, 0, 0, 0)", border: "0px", shadow: "none" });
+    }
+    expect(await page.locator("html").getAttribute("data-navigating")).toBe("true");
+    await page.waitForURL(`${BASE}/app/requests/new`);
     await loader.waitFor({ state: "detached" });
+    expect(await page.locator("html").getAttribute("data-navigating")).toBeNull();
+  }, 120_000);
+
+  it("settings pages load like the dashboard: the logo animation over a page-shaped placeholder", async () => {
+    const user = await createUser(stack.admin, "motion-settings");
+    const page = await newPage(stack);
+    await signIn(page, user.email, user.password);
+    await page.waitForURL(`${BASE}/app/dashboard`);
+    await page.goto(`${BASE}/app/settings/wall`);
+    await page.getByRole("heading", { name: "Wall of proof" }).waitFor();
+    await page.route("**/app/settings/security**", async (route) => { await new Promise((r) => setTimeout(r, 1500)); await route.continue(); });
+    await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Security" }).click();
+    const loading = page.locator('[aria-busy="true"]').filter({ has: page.locator('[data-anim="S-02"]') });
+    await loading.waitFor();
+    expect(await loading.locator('[data-anim="G-27"]').count()).toBeGreaterThan(0);
+    await page.getByRole("heading", { name: /Security|two-factor/i }).first().waitFor();
+    await loading.waitFor({ state: "detached" });
   }, 120_000);
 });
