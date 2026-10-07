@@ -1,113 +1,149 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import type { FinderActionResult } from "@/app/app/finder/actions";
+import { Illustration } from "@/components/illustrations/illustration";
+import { Callout } from "@/components/ui/callout";
+import { Chip } from "@/components/ui/chip";
+import { Icon } from "@/components/ui/icons";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import type { CommunityView, TrackerEntry } from "@/lib/finder/load";
-import { TRACKER_STATUSES, type TrackerStatus } from "@/lib/finder/schemas";
+import type { TrackerStatus } from "@/lib/finder/schemas";
 
 interface Props {
   communities: CommunityView[];
   tracker: Record<string, TrackerEntry>;
   canTrack: boolean;
   hasNiche: boolean;
+  /** Platform operators also see communities that have not been verified yet. */
+  showUnverified: boolean;
   actions: {
     save: (input: unknown) => Promise<FinderActionResult>;
     remove: (input: unknown) => Promise<FinderActionResult>;
   };
 }
 
-const field = "block min-h-11 w-full rounded-md border border-neutral-300 bg-transparent px-3 py-2 text-base dark:border-neutral-700";
-const button = "inline-flex min-h-11 items-center rounded-md border border-neutral-300 px-4 text-sm font-medium disabled:opacity-50 dark:border-neutral-700";
+type Choice = TrackerStatus | "none";
+const OPTIONS: Array<{ value: "none" | "saved" | "joined" | "posted"; label: string }> = [
+  { value: "none", label: "Not tracking" },
+  { value: "saved", label: "Saved" },
+  { value: "joined", label: "Joined" },
+  { value: "posted", label: "Posted" },
+];
 
-/** The user's own words, rendered as a text node only. */
-function Card({ c, entry, canTrack, actions }: { c: CommunityView; entry: TrackerEntry | undefined; canTrack: boolean; actions: Props["actions"] }) {
-  const [status, setStatus] = useState<TrackerStatus | "none">(entry?.status ?? "none");
+const platformLabel = (p: string) => `${p.charAt(0).toUpperCase()}${p.slice(1)}`;
+
+/** A community. The user's own notes are rendered as text only. */
+function CommunityCard({ c, entry, canTrack, actions }: { c: CommunityView; entry: TrackerEntry | undefined; canTrack: boolean; actions: Props["actions"] }) {
+  const [status, setStatus] = useState<Choice>(entry?.status ?? "none");
   const [notes, setNotes] = useState(entry?.notes ?? "");
-  const [message, setMessage] = useState<FinderActionResult>();
-  const [pending, start] = useTransition();
-  const dirty = status !== (entry?.status ?? "none") || notes !== (entry?.notes ?? "");
+  const [saved, setSaved] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [, start] = useTransition();
+  const savedNotes = useRef(entry?.notes ?? "");
+  const shownStatus: "none" | "saved" | "joined" | "posted" = status === "dropped" ? "none" : status;
 
-  function save() {
+  function persist(next: Choice, nextNotes: string) {
     start(async () => {
-      if (status === "none") setMessage(await actions.remove({ communityId: c.id }));
-      else setMessage(await actions.save({ communityId: c.id, status, notes }));
+      const result = next === "none" ? await actions.remove({ communityId: c.id }) : await actions.save({ communityId: c.id, status: next, notes: nextNotes });
+      setSaved(result.ok ? "Saved" : (result.message ?? "Could not save"));
+      if (result.ok) savedNotes.current = nextNotes;
     });
   }
 
   return (
-    <li className="space-y-3 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800" data-testid="community">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
-          <h3 className="font-semibold">{c.name}</h3>
-          <p className="text-sm text-neutral-600 dark:text-neutral-400"><span className="capitalize">{c.platform}</span>{c.audience ? ` · ${c.audience}` : ""}</p>
+    <li data-testid="community" className="space-y-4 rounded-card border border-line bg-surface p-5">
+      <div className="flex items-start gap-3">
+        <span aria-hidden="true" className="inline-flex size-10 shrink-0 items-center justify-center rounded-control bg-tint text-sm font-semibold text-[#b43a0c]">{c.platform.charAt(0).toUpperCase()}</span>
+        <div className="min-w-0 flex-1">
+          <h3 className="font-semibold leading-snug">{c.name}</h3>
+          <p className="text-sm text-muted"><span>{platformLabel(c.platform)}</span>{c.audience ? ` · ${c.audience}` : ""}</p>
         </div>
-        {c.needsVerification ? (
-          <span className="rounded-full border border-amber-700/40 bg-amber-50 px-2 py-0.5 text-xs text-amber-950">Needs verification</span>
-        ) : (
-          <span className="text-xs text-neutral-600 dark:text-neutral-400">Verified {c.lastVerifiedAt?.slice(0, 10) ?? ""}</span>
-        )}
+        {c.needsVerification ? <span className="shrink-0 rounded-full border border-[#f3e2a9] bg-[#fff8e6] px-2.5 py-1 text-xs font-medium text-[#8a5a00]">Needs verification</span> : null}
       </div>
 
-      {c.rulesSummary ? <p className="text-sm"><span className="font-medium">Rules: </span>{c.rulesSummary}</p> : null}
-      {c.selfPromoPolicy ? <p className="text-sm"><span className="font-medium">Self-promotion: </span>{c.selfPromoPolicy}</p> : null}
-      <p className="text-sm font-medium text-amber-900 dark:text-amber-200">Read this community&rsquo;s rules before you post anything.</p>
-      <p><a href={c.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-sm underline underline-offset-2">Open {c.name} (new tab)</a></p>
-
-      {canTrack ? (
-        <div className="space-y-2 border-t border-neutral-200 pt-3 dark:border-neutral-800">
-          <label className="block text-sm font-medium" htmlFor={`status-${c.id}`}>Your status</label>
-          <select id={`status-${c.id}`} className={field} value={status} onChange={(e) => setStatus(e.target.value as TrackerStatus | "none")}>
-            <option value="none">Not tracking</option>
-            {TRACKER_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-          {status !== "none" ? (
-            <>
-              <label className="block text-sm font-medium" htmlFor={`notes-${c.id}`}>Notes (plain text)</label>
-              <textarea id={`notes-${c.id}`} className={field} rows={3} maxLength={2000} value={notes} onChange={(e) => setNotes(e.target.value)} />
-            </>
-          ) : null}
-          <div className="flex flex-wrap items-center gap-3">
-            <button type="button" className={button} disabled={pending || !dirty} onClick={save}>Save</button>
-            <span role="status" aria-live="polite" className="text-sm">{message ? (message.ok ? "Saved." : message.message) : null}</span>
+      <div className="border-y border-line">
+        <button type="button" aria-expanded={open} aria-controls={`rules-${c.id}`} onClick={() => setOpen(!open)} className="flex min-h-11 w-full items-center justify-between gap-3 text-left text-sm font-medium">
+          Rules and self-promotion
+          <Icon name="chevronRight" size={16} className={`text-muted transition-transform duration-200 ${open ? "rotate-90" : ""}`} />
+        </button>
+        <div id={`rules-${c.id}`} role="region" aria-label="Rules and self-promotion" className="grid transition-[grid-template-rows] duration-[260ms]" style={{ gridTemplateRows: open ? "1fr" : "0fr" }}>
+          <div className="overflow-hidden">
+            <div className="space-y-2 pb-3 text-sm" hidden={!open}>
+              {c.rulesSummary ? <p><span className="font-medium">Rules: </span>{c.rulesSummary}</p> : null}
+              {c.selfPromoPolicy ? <p><span className="font-medium">Self-promotion: </span>{c.selfPromoPolicy}</p> : null}
+              {!c.rulesSummary && !c.selfPromoPolicy ? <p className="text-muted">We have not summarised this community&rsquo;s rules yet. Read them on the community itself before you post.</p> : null}
+            </div>
           </div>
         </div>
+      </div>
+
+      {canTrack ? (
+        <div className="space-y-3">
+          <SegmentedControl label={`Your status for ${c.name}`} options={OPTIONS} value={shownStatus} onChange={(next) => { setStatus(next); persist(next, notes); }} />
+          {shownStatus !== "none" ? (
+            <div className="space-y-1">
+              <label className="text-sm font-medium" htmlFor={`notes-${c.id}`}>Notes</label>
+              <textarea id={`notes-${c.id}`} rows={2} maxLength={2000} value={notes} onChange={(e) => setNotes(e.target.value)} onBlur={() => { if (notes !== savedNotes.current) persist(status, notes); }} className="block w-full rounded-control border border-line bg-surface px-3 py-2 text-sm" />
+            </div>
+          ) : null}
+        </div>
       ) : null}
+
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <span role="status" aria-live="polite" className="text-muted">{canTrack ? (saved ?? "Saved automatically") : ""}</span>
+        <a href={c.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center gap-1.5 font-semibold text-foreground">
+          Open community <Icon name="external" size={14} /><span className="sr-only"> (opens in a new tab)</span>
+        </a>
+      </div>
     </li>
   );
 }
 
-export function FinderList({ communities, tracker, canTrack, hasNiche, actions }: Props) {
+export function FinderList({ communities, tracker, canTrack, hasNiche, showUnverified, actions }: Props) {
   const [platform, setPlatform] = useState("all");
   const [mine, setMine] = useState(false);
-  const platforms = useMemo(() => [...new Set(communities.map((c) => c.platform))].sort(), [communities]);
-  const shown = communities.filter((c) => (platform === "all" || c.platform === platform) && (!mine || tracker[c.id]));
+  // Communities nobody has verified are hidden from normal users.
+  const listed = useMemo(() => communities.filter((c) => showUnverified || !c.needsVerification), [communities, showUnverified]);
+  const platforms = useMemo(() => [...new Set(listed.map((c) => c.platform))].sort(), [listed]);
+  const shown = listed.filter((c) => (platform === "all" || c.platform === platform) && (!mine || tracker[c.id]));
 
   return (
-    <div className="space-y-4">
-      <p role="note" className="rounded-md border border-amber-700/40 bg-amber-50 p-3 text-sm text-amber-950">
-        <strong>Read the rules before you post.</strong> Many communities ban or limit self-promotion. This list is a starting point, it may be out of date, and we do not check what you post. Never post a client&rsquo;s story without their approval.
-      </p>
-      {!hasNiche ? <p className="text-sm text-neutral-600 dark:text-neutral-400">Add your niche and audience in your workspace settings to rank this list for you.</p> : null}
+    <div className="space-y-5">
+      <Callout tone="warn" icon="shield">
+        <strong>Read the rules before you post.</strong> Many communities limit self-promotion. Never post a client&rsquo;s story without their approval.
+      </Callout>
+      {!hasNiche ? <p className="text-sm text-muted">Add your niche and audience in your workspace settings to rank this list for you.</p> : null}
 
-      <div className="flex flex-wrap items-end gap-4">
-        <div className="space-y-1">
-          <label htmlFor="platform-filter" className="block text-sm font-medium">Platform</label>
-          <select id="platform-filter" className={`${field} w-auto`} value={platform} onChange={(e) => setPlatform(e.target.value)}>
-            <option value="all">All platforms</option>
-            {platforms.map((p) => <option key={p} value={p}>{p}</option>)}
-          </select>
+      {listed.length > 0 ? (
+        <div role="group" aria-label="Filter communities" className="flex flex-wrap gap-2">
+          <Chip selected={platform === "all"} onClick={() => setPlatform("all")}>All platforms</Chip>
+          {platforms.map((p) => <Chip key={p} selected={platform === p} onClick={() => setPlatform(p)}>{platformLabel(p)}</Chip>)}
+          {canTrack ? <Chip selected={mine} onClick={() => setMine(!mine)}>Tracked only</Chip> : null}
         </div>
-        {canTrack ? (
-          <label className="flex min-h-11 items-center gap-2 text-sm">
-            <input type="checkbox" className="size-5" checked={mine} onChange={(e) => setMine(e.target.checked)} /> Only the ones I track
-          </label>
-        ) : null}
-      </div>
+      ) : null}
 
-      {shown.length === 0 ? <p className="text-neutral-600 dark:text-neutral-400">Nothing matches those filters.</p> : null}
-      <ul className="space-y-4">
-        {shown.map((c) => <Card key={c.id} c={c} entry={tracker[c.id]} canTrack={canTrack} actions={actions} />)}
-      </ul>
+      {listed.length === 0 ? (
+        <div className="flex flex-col items-center gap-4 rounded-card border border-line bg-surface px-6 py-10 text-center">
+          <Illustration id="FD-1" decorative className="w-56" />
+          <div>
+            <h2 className="text-lg font-semibold">No communities to show yet</h2>
+            <p className="mt-1 text-sm text-muted">We only list a community after checking its rules. Check back soon.</p>
+          </div>
+        </div>
+      ) : shown.length === 0 ? (
+        <div className="flex flex-col items-center gap-4 rounded-card border border-line bg-surface px-6 py-10 text-center">
+          <Illustration id="FD-2" decorative className="w-56" />
+          <div>
+            <h2 className="text-lg font-semibold">{mine ? "You are not tracking any communities yet" : "Nothing matches those filters"}</h2>
+            <p className="mt-1 text-sm text-muted">{mine ? "Mark a community as Saved, Joined or Posted and it appears here." : "Try another platform."}</p>
+          </div>
+        </div>
+      ) : (
+        <ul className="grid gap-4 lg:grid-cols-2">
+          {shown.map((c) => <CommunityCard key={c.id} c={c} entry={tracker[c.id]} canTrack={canTrack} actions={actions} />)}
+        </ul>
+      )}
     </div>
   );
 }

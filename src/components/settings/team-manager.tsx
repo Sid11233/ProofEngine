@@ -4,6 +4,7 @@ import { useActionState, useState, useTransition } from "react";
 import { ReauthPrompt } from "@/components/auth/reauth-prompt";
 import { FormMessage, SubmitButton, TextField } from "@/components/auth/form-parts";
 import type { TeamActionResult } from "@/app/app/settings/team/actions";
+import { Select } from "@/components/ui/select";
 
 type Role = "owner" | "admin" | "editor" | "viewer";
 
@@ -34,8 +35,6 @@ interface Props {
   };
 }
 
-const selectClass =
-  "min-h-11 rounded-md border border-neutral-300 bg-transparent px-2 py-1 text-base outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 dark:border-neutral-700";
 const buttonClass =
   "inline-flex min-h-11 items-center rounded-md px-3 text-sm underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 disabled:opacity-60";
 
@@ -93,17 +92,16 @@ export function TeamManager({ viewerRole, members, invites, actions }: Props) {
                   {canManage ? (
                     <>
                       <label className="sr-only" htmlFor={`role-${member.userId}`}>Role for {member.label}</label>
-                      <select
+                      <Select
                         id={`role-${member.userId}`}
-                        className={selectClass}
                         value={member.role}
                         disabled={pending}
                         onChange={(event) => run(() => actions.changeRole(member.userId, event.target.value))}
-                      >
+                       className="w-full">
                         {[...new Set([member.role, ...roleOptions])].map((role) => (
                           <option key={role} value={role} disabled={role === "owner" && !isOwner}>{role}</option>
                         ))}
-                      </select>
+                      </Select>
                       <button type="button" className={buttonClass} disabled={pending} onClick={() => run(() => actions.remove(member.userId))}>
                         Remove
                       </button>
@@ -131,11 +129,11 @@ export function TeamManager({ viewerRole, members, invites, actions }: Props) {
               <TextField label="Email" name="email" type="email" autoComplete="off" errors={inviteState.fieldErrors?.email} />
               <div className="space-y-1.5">
                 <label htmlFor="invite-role" className="block text-sm font-medium">Role</label>
-                <select id="invite-role" name="role" defaultValue="editor" className={selectClass}>
+                <Select id="invite-role" name="role" defaultValue="editor" className="w-full">
                   {isOwner && <option value="admin">admin</option>}
                   <option value="editor">editor</option>
                   <option value="viewer">viewer</option>
-                </select>
+                </Select>
               </div>
               <FormMessage state={inviteState} />
               {inviteState.inviteLink && (

@@ -4,6 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 import { confirmMfaEnrollmentAction, disableMfaAction, startMfaEnrollmentAction } from "./actions";
 import { pageTitle } from "@/lib/brand";
 
+import { ContentFade } from "@/components/motion/content-fade";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card } from "@/components/ui/card";
+import { Illustration } from "@/components/illustrations/illustration";
 export const metadata = { title: pageTitle("Security") };
 
 export default async function SecurityPage() {
@@ -12,14 +16,14 @@ export default async function SecurityPage() {
   const { data: factors } = await supabase.auth.mfa.listFactors();
 
   return (
-    <div className="max-w-xl space-y-8">
-      <h1 className="text-2xl font-semibold">Security</h1>
-      <MfaSettings
+    <ContentFade className="max-w-3xl space-y-6">
+      <PageHeader title="Security" subtitle="Protect your workspace with a second step when you sign in." art={<Illustration id="IV-2" decorative />} />
+      <Card><MfaSettings
         verifiedFactorId={factors?.totp?.[0]?.id ?? null}
         start={startMfaEnrollmentAction}
         confirm={confirmMfaEnrollmentAction}
         disable={disableMfaAction}
-      />
-    </div>
+      /></Card>
+    </ContentFade>
   );
 }

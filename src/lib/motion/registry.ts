@@ -25,6 +25,7 @@ export const MOTION_REGISTRY: readonly MotionEntry[] = [
   { id: "G-13", name: "Popover and dropdown", component: "Popover", file: "src/components/motion/popover.tsx", status: "built" },
   { id: "G-15", name: "Button press", component: "PressableButton", file: "src/components/motion/pressable-button.tsx", status: "built" },
   { id: "G-16", name: "Button loading to success", component: "LoadingButton", file: "src/components/motion/loading-button.tsx", status: "built" },
+  { id: "G-29", name: "Number count-up", component: "AnimatedNumber", file: "src/components/motion/animated-number.tsx", status: "built" },
   { id: "S-02", name: "Magnet loader (Attract Studio lockup)", component: "AttractLoader", file: "src/components/motion/attract-loader.tsx", status: "built" },
   { id: "G-22", name: "List stagger entry", component: "ListStagger", file: "src/components/motion/list-stagger.tsx", status: "built" },
   { id: "G-27", name: "Skeleton shimmer", component: "Skeleton", file: "src/components/motion/skeleton.tsx", status: "built" },

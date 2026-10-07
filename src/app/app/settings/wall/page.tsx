@@ -8,6 +8,10 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentWorkspace } from "@/lib/workspace/current";
 import { saveWallSettingsAction } from "./actions";
 
+import { ContentFade } from "@/components/motion/content-fade";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card } from "@/components/ui/card";
+import { Illustration } from "@/components/illustrations/illustration";
 export const metadata = { title: pageTitle("Wall of proof") };
 
 export default async function WallSettingsPage() {
@@ -17,10 +21,9 @@ export default async function WallSettingsPage() {
   const isAdmin = workspace.role === "owner" || workspace.role === "admin";
   if (!isAdmin) {
     return (
-      <div className="max-w-2xl space-y-3">
-        <h1 className="text-2xl font-semibold">Wall of proof</h1>
-        <p>Only admins and owners can manage the embeddable widget.</p>
-      </div>
+      <ContentFade className="max-w-2xl space-y-6">
+        <PageHeader title="Wall of proof" subtitle="Only admins and owners can manage the embeddable widget." art={<Illustration id="PB-3" decorative />} />
+      </ContentFade>
     );
   }
 
@@ -34,12 +37,9 @@ export default async function WallSettingsPage() {
   const embedUrl = domain && workspace.subdomainSlug ? publicPageUrl(domain, workspace.subdomainSlug, "embed", publicEnv.NEXT_PUBLIC_APP_URL.startsWith("https")) : null;
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Wall of proof</h1>
-        <p className="mt-1 text-neutral-600 dark:text-neutral-400">Show your published case studies on your own website. Only published, client-approved stories ever appear.</p>
-      </div>
-      <WallForm
+    <ContentFade className="max-w-3xl space-y-6">
+      <PageHeader title="Wall of proof" subtitle="Show your published case studies on your own website. Only published, client-approved stories ever appear." art={<Illustration id="PB-3" decorative />} />
+      <Card><WallForm
         initial={{
           enabled: data?.enabled === true,
           originsText: Array.isArray(data?.allowed_origins) ? data.allowed_origins.join("\n") : "",
@@ -48,7 +48,7 @@ export default async function WallSettingsPage() {
         }}
         embedUrl={embedUrl}
         save={saveWallSettingsAction}
-      />
-    </div>
+      /></Card>
+    </ContentFade>
   );
 }

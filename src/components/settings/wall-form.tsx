@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { FormState } from "@/lib/validation/form";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select } from "@/components/ui/select";
 
 interface Props {
   initial: { enabled: boolean; originsText: string; layout: "grid" | "list"; maxItems: number };
@@ -31,10 +33,7 @@ export function WallForm({ initial, embedUrl, save }: Props) {
 
   return (
     <form onSubmit={submit} className="space-y-5">
-      <label className="flex min-h-11 items-center gap-3">
-        <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} className="size-5" />
-        <span className="font-medium">Allow the wall of proof to be embedded</span>
-      </label>
+      <Checkbox checked={enabled} onChange={(e) => setEnabled(e.target.checked)}><span className="font-medium">Allow the wall of proof to be embedded</span></Checkbox>
 
       <div className="space-y-1">
         <label htmlFor="wall-origins" className="block text-sm font-medium">Sites allowed to embed it (one per line)</label>
@@ -45,10 +44,10 @@ export function WallForm({ initial, embedUrl, save }: Props) {
       <div className="grid gap-4 @sm:grid-cols-2">
         <div className="space-y-1">
           <label htmlFor="wall-layout" className="block text-sm font-medium">Layout</label>
-          <select id="wall-layout" value={layout} onChange={(e) => setLayout(e.target.value === "list" ? "list" : "grid")} className={field}>
+          <Select id="wall-layout" value={layout} onChange={(e) => setLayout(e.target.value === "list" ? "list" : "grid")} className="w-full">
             <option value="grid">Grid of cards</option>
             <option value="list">List</option>
-          </select>
+          </Select>
         </div>
         <div className="space-y-1">
           <label htmlFor="wall-max" className="block text-sm font-medium">Stories to show (1 to 24)</label>

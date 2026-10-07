@@ -5,6 +5,7 @@ import { MagnetSpinner } from "@/components/motion/magnet-spinner";
 import { isReachable } from "@/lib/referrals/schemas";
 import { TurnstileWidget } from "@/components/turnstile-widget";
 import { useEffect, useRef, useState } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type Role = "client" | "bot";
 interface Message {
@@ -151,10 +152,7 @@ function IntroScreen({
         <li>Nothing is published until you have approved the exact wording.</li>
       </ul>
       <form onSubmit={start} className="mt-6 space-y-4">
-        <label className="flex min-h-11 items-start gap-3 rounded-md border border-neutral-300 p-3 dark:border-neutral-700">
-          <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-1 size-5 shrink-0" required />
-          <span className="text-sm">{consentText}</span>
-        </label>
+        <Checkbox checked={agreed} onChange={(e) => setAgreed(e.target.checked)} required className="rounded-md border border-neutral-300 p-3">{consentText}</Checkbox>
         <p className="text-sm text-neutral-600 dark:text-neutral-400">
           How your answers are used, kept and deleted: <a href="/privacy" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center underline underline-offset-2">privacy policy (opens in a new tab)</a>.
         </p>
