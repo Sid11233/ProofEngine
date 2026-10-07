@@ -5,7 +5,7 @@ import { randomInt } from "node:crypto";
 export const RESERVED_SLUGS: readonly string[] = [
   "www", "app", "api", "admin", "i", "mail", "support", "billing", "status", "docs",
   "auth", "login", "logout", "signup", "dashboard", "static", "assets", "cdn",
-  "embed", "pages", "blog", "help", "smtp", "ftp", "dev", "staging", "test",
+  "embed", "demo", "demos", "pages", "blog", "help", "smtp", "ftp", "dev", "staging", "test",
   "security", "privacy", "terms", "root", "null", "undefined",
 ];
 

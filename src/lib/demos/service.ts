@@ -124,3 +124,35 @@ export async function unpublishDemo(supabase: SupabaseClient, demoId: unknown): 
 }
 
 export { demoContentSchema };
+
+/** "https://Example.com/page?x" becomes "https://example.com"; anything that is not a plain https site is refused. */
+export function normaliseOrigin(raw: unknown): string | null {
+  if (typeof raw !== "string" || raw.length > 300) return null;
+  try {
+    const url = new URL(raw.trim());
+    if (url.protocol !== "https:" || url.username || url.password || !url.hostname.includes(".")) return null;
+    const origin = url.origin.toLowerCase();
+    return /^https:\/\/[a-z0-9.-]+(:[0-9]+)?$/.test(origin) && origin.length <= 253 ? origin : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function addEmbedOrigin(supabase: SupabaseClient, demoId: unknown, rawOrigin: unknown): Promise<{ ok: true } | { ok: false; error: DemoError | "bad_origin" | "too_many" }> {
+  const id = idSchema.safeParse(demoId);
+  if (!id.success) return { ok: false, error: "not_found" };
+  const origin = normaliseOrigin(rawOrigin);
+  if (!origin) return { ok: false, error: "bad_origin" };
+  const { data: demo } = await supabase.from("demos").select("workspace_id").eq("id", id.data).maybeSingle();
+  if (!demo) return { ok: false, error: "not_found" };
+  const { error } = await supabase.from("demo_embed_origins").insert({ demo_id: id.data, workspace_id: demo.workspace_id, origin });
+  if (!error || error.code === "23505") return { ok: true };
+  return { ok: false, error: error.code === "54000" ? "too_many" : error.code === "42501" ? "forbidden" : "failed" };
+}
+
+export async function removeEmbedOrigin(supabase: SupabaseClient, demoId: unknown, originId: unknown): Promise<{ ok: true } | { ok: false; error: DemoError }> {
+  const ids = z.object({ demo: idSchema, origin: idSchema }).safeParse({ demo: demoId, origin: originId });
+  if (!ids.success) return { ok: false, error: "not_found" };
+  const { error } = await supabase.from("demo_embed_origins").delete().eq("id", ids.data.origin).eq("demo_id", ids.data.demo);
+  return error ? { ok: false, error: "failed" } : { ok: true };
+}
