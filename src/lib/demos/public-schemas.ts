@@ -18,6 +18,7 @@ export const leadSchema = z
     step_reached: z.number().int().min(0).max(200).optional(),
     // A honeypot: people never see it, so a filled value means a bot.
     company: z.string().max(0).optional(),
+    turnstileToken: z.string().max(2048).optional(),
   })
   .strict();
 

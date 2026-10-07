@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { DemoEditor } from "@/components/demos/demo-editor";
+import { ButtonLink } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { requireUser } from "@/lib/auth/session";
 import { pageTitle } from "@/lib/brand";
@@ -29,7 +30,7 @@ export default async function DemoPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Edit demo" subtitle="Changes save automatically." />
+      <PageHeader title="Edit demo" subtitle="Changes save automatically." action={<ButtonLink variant="secondary" href={`/app/demos/${id}/results`}>Results</ButtonLink>} />
       <DemoEditor
         role={workspace.role}
         demo={{

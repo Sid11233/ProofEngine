@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { TurnstileWidget } from "@/components/turnstile-widget";
 import { CONSENT_LABEL } from "@/lib/demos/public-schemas";
 import type { DemoContent, DemoSettings, DemoTheme } from "@/lib/demos/schema";
 import { DemoPlayer } from "./demo-player";
@@ -20,11 +21,12 @@ function beacon(slug: string, type: Beacon, step?: number) {
 
 const input = "block w-full rounded-md border border-neutral-400 bg-white px-3 py-2 text-base text-neutral-900";
 
-function LeadForm({ slug, step, onDone }: { slug: string; step: number; onDone: () => void }) {
+function LeadForm({ slug, step, onDone, turnstile }: { slug: string; step: number; onDone: () => void; turnstile?: { siteKey: string; nonce?: string } }) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [consent, setConsent] = useState(false);
   const [company, setCompany] = useState("");
+  const [human, setHuman] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +37,7 @@ function LeadForm({ slug, step, onDone }: { slug: string; step: number; onDone: 
     try {
       const res = await fetch(`${base(slug)}/lead`, {
         method: "POST", headers: { "Content-Type": "application/json" }, credentials: "omit",
-        body: JSON.stringify({ email, ...(name ? { name } : {}), consent, step_reached: step, ...(company ? { company } : {}) }),
+        body: JSON.stringify({ email, ...(name ? { name } : {}), consent, step_reached: step, ...(company ? { company } : {}), ...(human ? { turnstileToken: human } : {}) }),
       });
       if (res.ok) onDone();
       else setError(res.status === 429 ? "Too many tries. Please wait a few minutes." : "Please check your email address and tick the box.");
@@ -52,15 +54,16 @@ function LeadForm({ slug, step, onDone }: { slug: string; step: number; onDone: 
       <label className="block text-sm font-medium">Your name (optional)<input type="text" autoComplete="name" maxLength={200} value={name} onChange={(e) => setName(e.target.value)} className={`${input} mt-1`} /></label>
       <div aria-hidden="true" className="absolute -left-[9999px]"><label>Company<input tabIndex={-1} autoComplete="off" value={company} onChange={(e) => setCompany(e.target.value)} /></label></div>
       <label className="flex items-start gap-2 text-sm"><input type="checkbox" required checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-1 size-4" /><span>{CONSENT_LABEL}</span></label>
+      {turnstile ? <TurnstileWidget siteKey={turnstile.siteKey} nonce={turnstile.nonce} onToken={setHuman} /> : null}
       {error ? <p role="alert" className="text-sm text-[#b42318]">{error}</p> : null}
-      <button type="submit" disabled={busy} className="rounded-full bg-neutral-900 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60">{busy ? "Sending…" : "Continue"}</button>
+      <button type="submit" disabled={busy || Boolean(turnstile && !human)} className="rounded-full bg-neutral-900 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60">{busy ? "Sending…" : "Continue"}</button>
     </form>
   );
 }
 
-export function PublicDemo({ slug, title, content, theme, settings, assetBase, badge, reportHref, embedded }: {
+export function PublicDemo({ slug, title, content, theme, settings, assetBase, badge, reportHref, embedded, turnstile }: {
   slug: string; title: string; content: DemoContent; theme: DemoTheme; settings: DemoSettings; assetBase: string;
-  badge: { href: string; name: string } | null; reportHref: string; embedded: boolean;
+  badge: { href: string; name: string } | null; reportHref: string; embedded: boolean; turnstile?: { siteKey: string; nonce?: string };
 }) {
   const [started, setStarted] = useState(settings.lead_gate !== "start");
   const [leadDone, setLeadDone] = useState(false);
@@ -76,7 +79,7 @@ export function PublicDemo({ slug, title, content, theme, settings, assetBase, b
     <a href={settings.cta_url} target="_blank" rel="noopener noreferrer nofollow" onClick={() => beacon(slug, "cta_click")} className="inline-block rounded-full px-6 py-3 text-sm font-semibold text-white no-underline" style={{ background: theme.primary }}>{settings.cta_text}</a>
   ) : null;
   const end = settings.lead_gate === "end" && !leadDone
-    ? <LeadForm slug={slug} step={reached} onDone={() => setLeadDone(true)} />
+    ? <LeadForm slug={slug} step={reached} onDone={() => setLeadDone(true)} turnstile={turnstile} />
     : cta;
 
   return (
@@ -85,7 +88,7 @@ export function PublicDemo({ slug, title, content, theme, settings, assetBase, b
       {!started ? (
         <div className="rounded-2xl border border-neutral-300 bg-white p-6">
           <p className="mb-4 text-neutral-700">Enter your email to watch the demo.</p>
-          <LeadForm slug={slug} step={0} onDone={() => { setLeadDone(true); setStarted(true); }} />
+          <LeadForm slug={slug} step={0} onDone={() => { setLeadDone(true); setStarted(true); }} turnstile={turnstile} />
         </div>
       ) : (
         <DemoPlayer

@@ -7,7 +7,7 @@ import { demoContentSchema, demoSettingsSchema, demoThemeSchema, validateDemoCon
 // (row level security, publish rules trigger, functions) has the last word. `supabase` is always the user's own client.
 
 export type DemoError = "invalid" | "not_found" | "locked" | "forbidden" | "slug_taken" | "failed" | PublishBlock;
-export type PublishBlock = "blocked" | "not_attested" | "not_redacted" | "flagged_assets" | "bad_slug" | "empty" | "plan_limit" | "invalid_state";
+export type PublishBlock = "sensitive_text" | "blocked" | "not_attested" | "not_redacted" | "flagged_assets" | "bad_slug" | "empty" | "plan_limit" | "invalid_state";
 
 export const DEMO_ERROR_MESSAGES: Record<DemoError, string> = {
   invalid: "Some of the demo is not valid. Check the highlighted steps.",
@@ -16,6 +16,7 @@ export const DEMO_ERROR_MESSAGES: Record<DemoError, string> = {
   forbidden: "You do not have permission to do that.",
   slug_taken: "That address is already used by another demo. Choose a different one.",
   failed: "Something went wrong. Please try again.",
+  sensitive_text: "A step contains what looks like a key, token or card number. Remove it before publishing.",
   blocked: "This demo has been blocked and cannot be published.",
   not_attested: "Confirm that this demo is a true example before publishing.",
   not_redacted: "Confirm that you removed private information before publishing.",
@@ -112,6 +113,10 @@ export async function publishDemo(supabase: SupabaseClient, demoId: unknown, raw
   const slug = slugSchema.safeParse(rawSlug);
   if (!id.success) return { ok: false, error: "not_found" };
   if (!slug.success) return { ok: false, error: "bad_slug" };
+  // Typed text that looks like a secret or a card number never goes public (emails and phones only warn in the editor).
+  const { data: row } = await supabase.from("demos").select("content").eq("id", id.data).maybeSingle();
+  const content = demoContentSchema.safeParse(row?.content);
+  if (content.success && scanDemoText(content.data).some((f) => f.kinds.includes("secret") || f.kinds.includes("card"))) return { ok: false, error: "sensitive_text" };
   const { data, error } = await supabase.rpc("publish_demo", { demo: id.data, new_slug: slug.data });
   return error || typeof data !== "string" ? { ok: false, error: error ? publishError(error) : "failed" } : { ok: true, slug: data };
 }

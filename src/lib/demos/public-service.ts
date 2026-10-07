@@ -22,6 +22,10 @@ export async function recordDemoEvent(admin: SupabaseClient, demoId: string, eve
 export async function saveDemoLead(admin: SupabaseClient, demoId: string, lead: LeadInput): Promise<boolean> {
   const demo = await livePublishedDemo(admin, demoId);
   if (!demo) return false;
+  // The same address twice in a day is one lead: answer "saved" without storing a duplicate.
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { count } = await admin.from("demo_leads").select("id", { count: "exact", head: true }).eq("demo_id", demoId).eq("email", lead.email).gte("created_at", since);
+  if ((count ?? 0) > 0) return true;
   const { error } = await admin.from("demo_leads").insert({
     workspace_id: demo.workspaceId, demo_id: demoId, email: lead.email, name: lead.name || null,
     consent: true, consent_text_version: CONSENT_VERSION, step_reached: lead.step_reached ?? null,
