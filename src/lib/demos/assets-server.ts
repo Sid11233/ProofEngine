@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createPublicClient } from "@/lib/supabase/public";
 import { createSupabaseStore, type UploadStore } from "@/lib/uploads/store";
 import { DEMO_BUCKET } from "./assets";
 
@@ -22,4 +23,12 @@ export async function publicAssetPath(assetId: string): Promise<string | null> {
   if (!asset) return null;
   const { data: demo } = await admin.from("demos").select("status").eq("id", asset.demo_id).maybeSingle();
   return demo?.status === "published" ? (asset.file_path as string) : null;
+}
+
+/** The file of an image shown on a published demo's public page: the asset must belong to the demo at this workspace and slug. */
+export async function publishedAssetPath(workspaceSlug: string, demoSlug: string, assetId: string): Promise<string | null> {
+  const { data: demo } = await createPublicClient().from("public_demos").select("id").eq("workspace_slug", workspaceSlug).eq("slug", demoSlug).maybeSingle();
+  if (!demo) return null;
+  const { data: asset } = await createAdminClient().from("demo_assets").select("file_path").eq("id", assetId).eq("demo_id", String(demo.id)).maybeSingle();
+  return asset ? String(asset.file_path) : null;
 }

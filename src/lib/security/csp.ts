@@ -6,10 +6,13 @@ export function buildCsp({
   nonce,
   supabaseUrl,
   isDev,
+  frameAncestors,
 }: {
   nonce: string;
   supabaseUrl: string;
   isDev: boolean;
+  /** Only for an embeddable page: the https origins allowed to frame it. Empty or missing means nobody. */
+  frameAncestors?: string[];
 }): string {
   const supabaseOrigin = new URL(supabaseUrl).origin;
 
@@ -33,7 +36,7 @@ export function buildCsp({
     "object-src": ["'none'"],
     "base-uri": ["'self'"],
     "form-action": ["'self'"],
-    "frame-ancestors": ["'none'"],
+    "frame-ancestors": frameAncestors && frameAncestors.length > 0 ? frameAncestors : ["'none'"],
   };
 
   const parts = Object.entries(directives).map(([name, values]) => `${name} ${values.join(" ")}`);

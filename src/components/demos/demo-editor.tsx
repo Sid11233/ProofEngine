@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { deleteDemoAction, publishDemoAction, saveDemoAction, unpublishDemoAction, type DemoActionResult } from "@/app/app/demos/actions";
+import { addEmbedOriginAction, deleteDemoAction, publishDemoAction, removeEmbedOriginAction, saveDemoAction, unpublishDemoAction, type DemoActionResult } from "@/app/app/demos/actions";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { Card, SectionLabel } from "@/components/ui/card";
@@ -13,7 +13,7 @@ import type { TextFinding } from "@/lib/demos/redaction";
 import type { DemoContent, DemoSettings, DemoTheme, Scene } from "@/lib/demos/schema";
 import { AssetsPanel, assetSrc, type AssetView } from "./assets-panel";
 import { DemoPlayer } from "./demo-player";
-import { Field, TextInput } from "./fields";
+import { Field, TextArea, TextInput } from "./fields";
 import { SceneForm } from "./scene-forms";
 
 export interface EditorDemo {
@@ -42,7 +42,7 @@ function blankScene(type: Scene["type"], assets: AssetView[]): Scene {
 
 type Phase = "saved" | "dirty" | "saving" | "error";
 
-export function DemoEditor({ demo, assets, role }: { demo: EditorDemo; assets: AssetView[]; role: string }) {
+export function DemoEditor({ demo, assets, role, origins, publicBase }: { demo: EditorDemo; assets: AssetView[]; role: string; origins: Array<{ id: string; origin: string }>; publicBase: string | null }) {
   const router = useRouter();
   const locked = demo.status === "published" || demo.status === "blocked";
   const canPublish = role === "owner" || role === "admin";
@@ -57,6 +57,7 @@ export function DemoEditor({ demo, assets, role }: { demo: EditorDemo; assets: A
   const [problems, setProblems] = useState<string[]>([]);
   const [findings, setFindings] = useState<TextFinding[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
+  const [newOrigin, setNewOrigin] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [rev, setRev] = useState(0);
   const latest = useRef({ title, scenes, settings, attested, redacted });
@@ -164,6 +165,32 @@ export function DemoEditor({ demo, assets, role }: { demo: EditorDemo; assets: A
           <Field label="Button link" hint="Must start with https://"><TextInput type="url" maxLength={500} value={settings.cta_url ?? ""} onChange={(e) => setSettingsE({ ...settings, cta_url: e.target.value || undefined })} /></Field>
           <div className="sm:col-span-2"><Checkbox checked={settings.allow_embed} onChange={(e) => setSettingsE({ ...settings, allow_embed: e.target.checked })}>Allow this demo to be embedded on other websites</Checkbox></div>
         </fieldset>
+        {settings.allow_embed ? (
+          <div className="mt-4 space-y-3 border-t border-line pt-4">
+            <p className="text-sm font-medium">Websites that may show this demo</p>
+            <p className="text-xs text-muted">Only the websites listed here can embed it. Without one, embedding stays off.</p>
+            <ul className="space-y-1 text-sm">
+              {origins.map((o) => (
+                <li key={o.id} className="flex items-center gap-2"><span className="min-w-0 flex-1 truncate">{o.origin}</span>
+                  {canPublish ? <Button size="sm" variant="quiet" loading={busy === `rm-${o.id}`} onClick={() => run(`rm-${o.id}`, () => removeEmbedOriginAction(demo.id, o.id))}>Remove</Button> : null}
+                </li>
+              ))}
+              {origins.length === 0 ? <li className="text-muted">None yet.</li> : null}
+            </ul>
+            {canPublish ? (
+              <div className="flex flex-wrap items-end gap-2">
+                <div className="min-w-[14rem] flex-1"><Field label="Add a website"><TextInput type="url" placeholder="https://www.example.com" maxLength={300} value={newOrigin} onChange={(e) => setNewOrigin(e.target.value)} /></Field></div>
+                <Button variant="secondary" loading={busy === "add-origin"} disabled={!newOrigin.trim()} onClick={() => run("add-origin", () => addEmbedOriginAction(demo.id, newOrigin), () => setNewOrigin(""))}>Add</Button>
+              </div>
+            ) : <p className="text-xs text-muted">Only admins can change this list.</p>}
+            {origins.length > 0 && publicBase && demo.status === "published" && demo.slug ? (
+              <Field label="Embed code" hint="Paste this into the page where the demo should appear.">
+                <TextArea readOnly rows={3} value={`<iframe src="${publicBase}/demo/${demo.slug}/embed" title="${demo.title.replace(/[<>"&]/g, "")}" width="100%" height="640" style="border:0" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>`} />
+              </Field>
+            ) : null}
+          </div>
+        ) : null}
+        {publicBase && demo.status === "published" && demo.slug ? <p className="mt-4 text-sm">Public link: <a href={`${publicBase}/demo/${demo.slug}`} target="_blank" rel="noopener noreferrer" className="underline">{`${publicBase}/demo/${demo.slug}`}</a></p> : null}
       </Card>
 
       <Card aria-labelledby="preview">

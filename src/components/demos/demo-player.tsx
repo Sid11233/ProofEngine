@@ -13,12 +13,14 @@ interface Props {
   assetSrc: (assetId: string) => string;
   onStep?: (index: number) => void;
   onComplete?: () => void;
+  /** Shown on the last screen (a lead form, a call to action). */
+  end?: React.ReactNode;
 }
 
 const pct = (n: number) => `${(n * 100).toFixed(3)}%`;
 const boxStyle = (r: Rect) => ({ left: pct(r.x), top: pct(r.y), width: pct(r.w), height: pct(r.h) });
 
-export function DemoPlayer({ content, theme, assetSrc, onStep, onComplete }: Props) {
+export function DemoPlayer({ content, theme, assetSrc, onStep, onComplete, end }: Props) {
   const [index, setIndex] = useState(0);
   const [done, setDone] = useState(false);
   const scenes = content.scenes;
@@ -41,6 +43,7 @@ export function DemoPlayer({ content, theme, assetSrc, onStep, onComplete }: Pro
     return (
       <div className="demo-player rounded-2xl border border-[var(--border)] bg-white p-8 text-center" style={accent}>
         <p className="text-lg font-semibold">That is the end of the demo.</p>
+        {end ? <div className="mt-4">{end}</div> : null}
         <button type="button" className="mt-4 text-sm underline-offset-2 hover:underline" onClick={() => { setDone(false); setIndex(0); onStep?.(0); }}>
           Watch again
         </button>

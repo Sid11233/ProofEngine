@@ -30,10 +30,15 @@ const nextConfig: NextConfig = {
     return [
       // Everything except the embeddable widget, which must be framable by the sites an admin lists
       // (its own CSP frame-ancestors is the allowlist, and it contains no scripts).
-      { source: "/((?!embed$).*)", headers: securityHeaders },
+      { source: "/((?!embed$|demo/[^/]+/embed$).*)", headers: securityHeaders },
       {
         source: "/embed",
         headers: securityHeaders.filter((h) => h.key !== "X-Frame-Options" && h.key !== "Cross-Origin-Opener-Policy"),
+      },
+      // A demo's embed page: framable only by the origins its owner listed (CSP frame-ancestors set per request in proxy.ts).
+      {
+        source: "/demo/:slug/embed",
+        headers: [...securityHeaders.filter((h) => h.key !== "X-Frame-Options" && h.key !== "Cross-Origin-Opener-Policy"), { key: "X-Robots-Tag", value: "noindex, nofollow" }],
       },
       // API responses can hold private data: never let a browser or shared cache keep them.
       { source: "/api/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },

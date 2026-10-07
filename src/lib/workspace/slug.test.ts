@@ -91,7 +91,8 @@ describe("slugCandidates", () => {
 
 describe("reserved list", () => {
   it("matches public.is_reserved_slug() in the database migration", () => {
-    const sql = readFileSync(join(process.cwd(), "supabase/migrations/20261004000001_identity.sql"), "utf8");
+    // The newest migration that defines the function is the source of truth.
+    const sql = readFileSync(join(process.cwd(), "supabase/migrations/20261024000001_reserve_demo_slug.sql"), "utf8");
     const body = /select slug = any \(array\[([\s\S]*?)\]\)/.exec(sql)?.[1] ?? "";
     const fromSql = [...body.matchAll(/'([^']+)'/g)].map((m) => m[1]).sort();
     expect(fromSql.length).toBeGreaterThan(10);

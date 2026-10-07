@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { requireUser } from "@/lib/auth/session";
 import { pageTitle } from "@/lib/brand";
 import { demoContentSchema, demoSettingsSchema, demoThemeSchema } from "@/lib/demos/schema";
+import { publicEnv } from "@/lib/security/env.public";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentWorkspace } from "@/lib/workspace/current";
 
@@ -21,6 +22,11 @@ export default async function DemoPage({ params }: { params: Promise<{ id: strin
   if (!demo || !workspace || demo.workspace_id !== workspace.id) notFound();
   const { data: assets } = await supabase.from("demo_assets").select("id, width, height, flagged").eq("demo_id", id).order("created_at");
 
+  const { data: origins } = await supabase.from("demo_embed_origins").select("id, origin").eq("demo_id", id).order("origin");
+  const sitesDomain = process.env.PUBLIC_SITES_DOMAIN;
+  const subdomain = (await supabase.from("workspaces").select("subdomain_slug").eq("id", workspace.id).maybeSingle()).data?.subdomain_slug;
+  const publicBase = sitesDomain && subdomain ? `${publicEnv.NEXT_PUBLIC_APP_URL.startsWith("https") ? "https" : "http"}://${subdomain}.${sitesDomain}` : null;
+
   return (
     <div className="space-y-6">
       <PageHeader title="Edit demo" subtitle="Changes save automatically." />
@@ -33,6 +39,8 @@ export default async function DemoPage({ params }: { params: Promise<{ id: strin
           theme: demoThemeSchema.catch(demoThemeSchema.parse({})).parse(demo.theme),
           attested: demo.authenticity_attested === true, redacted: demo.redaction_acknowledged === true,
         }}
+        origins={(origins ?? []).map((o) => ({ id: String(o.id), origin: String(o.origin) }))}
+        publicBase={publicBase}
         assets={(assets ?? []).map((a) => ({ id: String(a.id), width: Number(a.width), height: Number(a.height), flagged: a.flagged === true }))}
       />
     </div>

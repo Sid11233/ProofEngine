@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { needsSession, resolveAuthRedirect } from "@/lib/auth/redirects";
+import { frameAncestorsFor } from "@/lib/demos/public";
 import { isSitesPath, siteSubdomain } from "@/lib/public/host";
 import { buildCsp } from "@/lib/security/csp";
 import { updateSession } from "@/lib/supabase/middleware";
@@ -25,9 +26,16 @@ export async function proxy(request: NextRequest) {
   if (workspace) {
     const url = request.nextUrl.clone();
     url.pathname = `/sites/${workspace}${pathname === "/" ? "" : pathname}`;
+    // A demo's embed page may be framed, but only by the origins its owner listed (read through the public view).
+    const embed = /^\/demo\/([a-z0-9-]{3,60})\/embed$/.exec(pathname);
+    let pageCsp = csp;
+    if (embed) {
+      pageCsp = buildCsp({ nonce, supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", isDev: process.env.NODE_ENV !== "production", frameAncestors: await embedOrigins(workspace, embed[1]) });
+      requestHeaders.set("Content-Security-Policy", pageCsp);
+    }
     const rewritten = NextResponse.rewrite(url, { request: { headers: requestHeaders } });
     // The embed widget sets its own CSP (frame-ancestors is the workspace's allowlist).
-    if (pathname !== "/embed") rewritten.headers.set("Content-Security-Policy", csp);
+    if (pathname !== "/embed") rewritten.headers.set("Content-Security-Policy", pageCsp);
     // Short shared-cache window: an unpublished page disappears from the CDN within a minute.
     rewritten.headers.set("Cache-Control", "public, max-age=0, s-maxage=60");
     return rewritten;
@@ -72,3 +80,22 @@ export const config = {
     },
   ],
 };
+
+/** The listed embed origins of a published demo, from the public view with the anon key. Any failure means nobody may frame it. */
+async function embedOrigins(workspace: string, slug: string): Promise<string[]> {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!base || !key) return [];
+  try {
+    const url = new URL("/rest/v1/public_demos", base);
+    url.searchParams.set("select", "embed_origins");
+    url.searchParams.set("workspace_slug", `eq.${workspace}`);
+    url.searchParams.set("slug", `eq.${slug}`);
+    const res = await fetch(url, { headers: { apikey: key, authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(2000), cache: "no-store" });
+    if (!res.ok) return [];
+    const rows = (await res.json()) as Array<{ embed_origins?: unknown }>;
+    return frameAncestorsFor(rows[0]?.embed_origins);
+  } catch {
+    return [];
+  }
+}

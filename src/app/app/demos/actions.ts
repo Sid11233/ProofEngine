@@ -10,7 +10,7 @@ import { isAuthAttemptAllowed, RATE_LIMITED_MESSAGE } from "@/lib/auth/rate-limi
 import { requireUser } from "@/lib/auth/session";
 import { draftChat, DEMO_AI_MESSAGES, suggestTooltip } from "@/lib/demos/ai";
 import { getDemoStore } from "@/lib/demos/assets-server";
-import { createDemo, DEMO_ERROR_MESSAGES, publishDemo, saveDemo, unpublishDemo, type DemoError } from "@/lib/demos/service";
+import { addEmbedOrigin, createDemo, DEMO_ERROR_MESSAGES, publishDemo, removeEmbedOrigin, saveDemo, unpublishDemo, type DemoError } from "@/lib/demos/service";
 import type { TextFinding } from "@/lib/demos/redaction";
 import { getClientIp } from "@/lib/security/client-ip";
 import { serverEnv } from "@/lib/security/env.server";
@@ -118,4 +118,25 @@ export async function suggestTooltipAction(notes: unknown): Promise<SuggestionRe
 export async function draftChatAction(notes: unknown): Promise<SuggestionResult> {
   const r = await withAi(notes, draftChat);
   return r.ok ? { ok: true, messages: r.value.messages } : r;
+}
+
+const ORIGIN_MESSAGES = { bad_origin: "Enter a full https:// address such as https://www.example.com.", too_many: "You can list up to 10 websites." } as const;
+
+/** Admins only (the database checks it too). Only plain https origins are accepted, never a path or a wildcard. */
+export async function addEmbedOriginAction(demoId: string, origin: string): Promise<DemoActionResult> {
+  const auth = await authorise();
+  if (typeof auth === "string") return fail(auth);
+  const result = await addEmbedOrigin(await createClient(), demoId, origin);
+  if (!result.ok) return result.error === "bad_origin" || result.error === "too_many" ? { ok: false, message: ORIGIN_MESSAGES[result.error] } : fail(result.error);
+  revalidatePath(`/app/demos/${demoId}`);
+  return { ok: true };
+}
+
+export async function removeEmbedOriginAction(demoId: string, originId: string): Promise<DemoActionResult> {
+  const auth = await authorise();
+  if (typeof auth === "string") return fail(auth);
+  const result = await removeEmbedOrigin(await createClient(), demoId, originId);
+  if (!result.ok) return fail(result.error);
+  revalidatePath(`/app/demos/${demoId}`);
+  return { ok: true };
 }
