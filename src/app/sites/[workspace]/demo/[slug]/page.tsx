@@ -27,6 +27,7 @@ export default async function PublicDemoPage({ params }: { params: Promise<Param
     <PublicDemo
       slug={demo.slug} title={demo.title} content={demo.content} theme={demo.theme} settings={demo.settings}
       assetBase={`/demo/${demo.slug}/asset`} reportHref={`/demo/${demo.slug}/report`} embedded={false}
+      turnstile={publicEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? { siteKey: publicEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY, nonce: (await headers()).get("x-nonce") ?? undefined } : undefined}
       badge={demo.showBadge ? { href: publicEnv.NEXT_PUBLIC_APP_URL, name: brand.name } : null}
     />
   );

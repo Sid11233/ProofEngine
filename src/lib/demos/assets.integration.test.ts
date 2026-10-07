@@ -92,4 +92,18 @@ describe("demo service, end to end", () => {
     expect(await unpublishDemo(owner.client, id)).toEqual({ ok: true });
     expect(await saveDemo(owner.client, id, { title: "Changed" })).toMatchObject({ ok: true });
   }, 60_000);
+
+  it("refuses to publish typed text that looks like a key or card number", async () => {
+    const { createDemo, saveDemo, publishDemo } = await import("./service");
+    await admin.from("workspaces").update({ plan: "pro" }).eq("id", ws);
+    const made = await createDemo(owner.client, { workspaceId: ws, userId: owner.id }, "Leaky");
+    if (!made.ok) throw new Error("create failed");
+    const chat = (text: string) => ({ scenes: [{ id: "c1", type: "chat", persona: { name: "Ava", role: "Agent" }, messages: [{ from: "agent", text, delayMs: 0 }], choices: [] }] });
+    await saveDemo(owner.client, made.id, { content: chat("Use key sk_live_abcdefghijklmnop1234 to connect"), authenticity_attested: true, redaction_acknowledged: true });
+    expect(await publishDemo(owner.client, made.id, "leaky-demo")).toEqual({ ok: false, error: "sensitive_text" });
+    await saveDemo(owner.client, made.id, { content: chat("Pay with 4242 4242 4242 4242") });
+    expect(await publishDemo(owner.client, made.id, "leaky-demo")).toEqual({ ok: false, error: "sensitive_text" });
+    await saveDemo(owner.client, made.id, { content: chat("Connect with your own key") });
+    expect(await publishDemo(owner.client, made.id, "leaky-demo")).toEqual({ ok: true, slug: "leaky-demo" });
+  }, 60_000);
 });

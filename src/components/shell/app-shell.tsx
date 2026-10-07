@@ -12,7 +12,7 @@ import { spring } from "@/lib/motion/springs";
 import { useReducedMotion } from "@/lib/motion/useReducedMotion";
 import { BrandLogo } from "./brand-logo";
 import { MenuButton } from "./menu";
-import { ADMIN_ITEM, isActive, NAV_GROUPS, SETTINGS_ITEMS, settingsActive, TAB_ITEMS, type NavItem } from "./nav-config";
+import { ADMIN_ITEMS, isActive, NAV_GROUPS, SETTINGS_ITEMS, settingsActive, TAB_ITEMS, type NavItem } from "./nav-config";
 
 /** The workspace's orange circle with its first letter (the pill at the top of the sidebar). */
 function WorkspaceBadge({ name, size }: { name: string; size: number }) {
@@ -66,7 +66,7 @@ function Sidebar({ collapsed, onToggle, workspace, isPlatformAdmin }: { collapse
   const inSettings = settingsActive(pathname);
   const [settingsOpen, setSettingsOpen] = useState(inSettings);
   const open = settingsOpen || inSettings;
-  const groups = NAV_GROUPS.map((group) => (group.label === "Workspace" && isPlatformAdmin ? { ...group, items: [...group.items, ADMIN_ITEM] } : group));
+  const groups = NAV_GROUPS.map((group) => (group.label === "Workspace" && isPlatformAdmin ? { ...group, items: [...group.items, ...ADMIN_ITEMS] } : group));
 
   return (
     <m.aside
@@ -229,7 +229,7 @@ function BottomBar({ isPlatformAdmin }: { isPlatformAdmin: boolean }) {
 
   const tabs: NavItem[] = TAB_ITEMS;
   const moreActive = !tabs.some((tab) => isActive(pathname, tab.href));
-  const groups = NAV_GROUPS.slice(1).map((group) => (group.label === "Workspace" && isPlatformAdmin ? { ...group, items: [...group.items, ADMIN_ITEM] } : group));
+  const groups = NAV_GROUPS.slice(1).map((group) => (group.label === "Workspace" && isPlatformAdmin ? { ...group, items: [...group.items, ...ADMIN_ITEMS] } : group));
   const cell = "relative flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 text-[11px] outline-none no-underline hover:no-underline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--signal-strong)]";
 
   return (

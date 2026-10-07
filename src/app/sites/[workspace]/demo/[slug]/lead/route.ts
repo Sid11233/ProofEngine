@@ -5,8 +5,10 @@ import { loadPublicDemo } from "@/lib/demos/public";
 import { saveDemoLead } from "@/lib/demos/public-service";
 import { getClientIp } from "@/lib/security/client-ip";
 import { readLimited } from "@/lib/security/body";
+import { serverEnv } from "@/lib/security/env.server";
 import { sha256Hex } from "@/lib/security/hash";
 import { createRateLimiter } from "@/lib/security/rate-limit";
+import { verifyTurnstile } from "@/lib/security/turnstile";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createPublicClient } from "@/lib/supabase/public";
 
@@ -33,6 +35,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ wor
   try { body = JSON.parse(new TextDecoder().decode(bytes)); } catch { return json({ error: "invalid" }, 400); }
   const parsed = leadSchema.safeParse(body);
   if (!parsed.success) return json({ error: "invalid" }, 400);
+
+  // Bot check when Turnstile is configured; fails closed.
+  if (serverEnv.TURNSTILE_SECRET_KEY && !(await verifyTurnstile({ secret: serverEnv.TURNSTILE_SECRET_KEY, token: parsed.data.turnstileToken, ip: getClientIp(request.headers) }))) return json({ error: "bot_check" }, 400);
 
   const demo = await loadPublicDemo(createPublicClient(), workspace, slug);
   // A demo that does not ask for emails collects none, even if someone posts to this address.

@@ -47,7 +47,10 @@ export const SETTINGS_ITEMS: NavItem[] = [
   { href: "/app/settings/security", label: "Security", icon: "shield" },
 ];
 
-export const ADMIN_ITEM: NavItem = { href: "/app/admin/takedowns", label: "Takedowns", icon: "shield" };
+export const ADMIN_ITEMS: NavItem[] = [
+  { href: "/app/admin/takedowns", label: "Takedowns", icon: "shield" },
+  { href: "/app/admin/demo-reports", label: "Demo reports", icon: "shield" },
+];
 
 /** The five places on the phone's bottom bar; everything else is under More. */
 export const TAB_ITEMS: NavItem[] = NAV_GROUPS[0].items;
