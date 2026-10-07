@@ -4,7 +4,7 @@
 -- Run with: npx supabase test db
 
 begin;
-select plan(27);
+select plan(28);
 
 -- Tables and policies ---------------------------------------------------------------------------
 select is(
@@ -16,8 +16,8 @@ select is(
   (select array_agg(c.relname::text order by c.relname) from pg_class c join pg_namespace n on n.oid = c.relnamespace
    where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity
      and not exists (select 1 from pg_policy p where p.polrelid = c.oid)),
-  array['ai_daily_usage', 'signing_challenges', 'stripe_events'],
-  'the only tables with RLS and no policy are the server-only ai_daily_usage, signing_challenges and stripe_events');
+  array['ai_daily_usage', 'demo_reports', 'signing_challenges', 'stripe_events'],
+  'the only tables with RLS and no policy are the server-only ai_daily_usage, demo_reports, signing_challenges and stripe_events');
 
 select is(
   (select array_agg(distinct polrelid::regclass::text order by polrelid::regclass::text) from pg_policy
@@ -31,19 +31,19 @@ select is(
 
 select is(
   (select count(*)::int from pg_class c join pg_namespace n on n.oid = c.relnamespace
-   where n.nspname = 'public' and c.relkind = 'v' and c.relname not in ('public_case_studies', 'public_wall_settings')
+   where n.nspname = 'public' and c.relkind = 'v' and c.relname not in ('public_case_studies', 'public_wall_settings', 'public_demos')
      and coalesce((select option_value from pg_options_to_table(c.reloptions) where option_name = 'security_invoker'), 'false') <> 'true'),
   0, 'every public view except the reviewed public one runs with the caller''s privileges (security_invoker)');
 
 select is(
   (select array_agg(c.relname::text order by c.relname) from pg_class c join pg_namespace n on n.oid = c.relnamespace
    where n.nspname = 'public' and c.relkind = 'v' and coalesce((select option_value from pg_options_to_table(c.reloptions) where option_name = 'security_invoker'), 'false') <> 'true'),
-  array['public_case_studies', 'public_wall_settings'], 'the only views that bypass row-level security are the two reviewed public ones');
+  array['public_case_studies', 'public_demos', 'public_wall_settings'], 'the only views that bypass row-level security are the three reviewed public ones');
 
 select is(
   (select array_agg(c.relname::text) from pg_class c join pg_namespace n on n.oid = c.relnamespace
-   where n.nspname = 'public' and c.relkind = 'v' and c.relname in ('public_case_studies', 'public_wall_settings') and c.reloptions::text like '%security_barrier=true%'),
-  array['public_case_studies', 'public_wall_settings'], 'the public views are security barriers');
+   where n.nspname = 'public' and c.relkind = 'v' and c.relname in ('public_case_studies', 'public_wall_settings', 'public_demos') and c.reloptions::text like '%security_barrier=true%'),
+  array['public_case_studies', 'public_demos', 'public_wall_settings'], 'the public views are security barriers');
 
 -- No signed-in role can write through a view ----------------------------------------------------
 select is(
@@ -57,7 +57,7 @@ select is(
 select is(
   (select coalesce(array_agg(table_name::text || ':' || privilege_type order by table_name, privilege_type), '{}')
    from information_schema.role_table_grants where grantee = 'anon' and table_schema = 'public'),
-  array['public_case_studies:SELECT', 'public_wall_settings:SELECT'], 'anon can only SELECT the two reviewed public views and holds nothing else');
+  array['public_case_studies:SELECT', 'public_demos:SELECT', 'public_wall_settings:SELECT'], 'anon can only SELECT the three reviewed public views and holds nothing else');
 
 select is(
   (select count(*)::int from information_schema.columns
@@ -91,7 +91,7 @@ select set_eq(
   $$ values ('accept_invite'), ('autosave_case_study'), ('bump_ai_usage'), ('cancel_account_deletion'), ('cancel_workspace_deletion'), ('change_member_role'),
             ('create_generated_case_study'), ('create_invite'), ('create_preview_link'), ('create_proof_request'), ('create_social_drafts'),
             ('create_workspace'), ('delete_interview'), ('discard_new_workspace'), ('get_invite_preview'), ('is_member'), ('is_reserved_slug'), ('list_team_members'),
-            ('plan_interview_limit'), ('plan_refinement_limit'), ('reserve_refinement'), ('release_refinement'), ('apply_text_refinement'), ('publish_case_study'), ('remove_member'), ('request_account_deletion'), ('request_client_approval'), ('request_workspace_deletion'), ('revoke_invite'), ('revoke_preview_link'), ('revoke_request'),
+            ('plan_interview_limit'), ('plan_demo_limit'), ('publish_demo'), ('unpublish_demo'), ('resolve_demo_asset'), ('plan_refinement_limit'), ('reserve_refinement'), ('release_refinement'), ('apply_text_refinement'), ('publish_case_study'), ('remove_member'), ('request_account_deletion'), ('request_client_approval'), ('request_workspace_deletion'), ('revoke_invite'), ('revoke_preview_link'), ('revoke_request'),
             ('role_rank'), ('rotate_request_token'), ('save_case_study_edit'), ('save_notification_preferences'), ('save_push_subscription'), ('save_wall_settings'), ('snapshot_case_study'),
             ('template_allowed'), ('unpublish_case_study'), ('write_audit_log') $$,
   'the RPC surface for signed-in users is exactly the reviewed list (a new function must be added here on purpose)');
@@ -101,7 +101,7 @@ select is(
    where n.nspname = 'public'
      and p.proname in ('start_interview', 'record_client_message', 'record_bot_message', 'finish_interview',
                        'record_upload', 'check_ai_breaker', 'audit', 'handle_new_user',
-                       'check_claim_quote', 'guard_last_owner', 'reject_mutation')
+                       'check_claim_quote', 'guard_last_owner', 'reject_mutation', 'set_demo_blocked', 'enforce_demo_rules')
      and has_function_privilege('authenticated', p.oid, 'EXECUTE')),
   0, 'server-only and trigger functions are not callable by signed-in users');
 
@@ -150,6 +150,12 @@ select is(
   case when to_regclass('storage.objects') is null then 0
        else (select count(*)::int from pg_policy where polrelid = 'storage.objects'::regclass and polpermissive) end,
   0, 'no permissive storage policy lets a client touch files directly (the server hands out signed URLs)');
+
+-- The demo-assets bucket likewise has a restrictive deny for clients.
+select is(
+  case when to_regclass('storage.objects') is null then 1
+       else (select count(*)::int from pg_policy where polrelid = 'storage.objects'::regclass and not polpermissive and polname = 'demo_assets_bucket_deny_clients') end,
+  1, 'the demo-assets bucket has a restrictive deny policy for clients');
 
 -- The signatures bucket also has an explicit RESTRICTIVE deny for anon and signed-in users, so a permissive policy added later cannot open it.
 select is(

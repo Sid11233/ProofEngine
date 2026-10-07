@@ -40,6 +40,12 @@ export const EXPORT_SOURCES: Source[] = [
   { file: "signatures.json", table: "signatures", columns: "id, case_study_id, version, signer_name, signer_email, signer_company, signer_role, display_name_choice, consent_text_version, consent_web, consent_social, consent_media, method, content_hash, signed_at", key: "workspace_id", order: "signed_at" },
   { file: "signature_revocations.json", table: "signature_revocations", columns: "*", key: "workspace_id", order: "revoked_at" },
   { file: "text_refinements.json", table: "text_refinements", columns: "*", key: "workspace_id", order: "created_at" },
+  { file: "demos.json", table: "demos", columns: "*", key: "workspace_id", order: "created_at" },
+  { file: "demo_versions.json", table: "demo_versions", columns: "*", key: "workspace_id", order: "created_at" },
+  { file: "demo_assets.json", table: "demo_assets", columns: "id, demo_id, kind, width, height, size_bytes, sha256, flagged, flag_reason, resolution, resolved_at, created_at", key: "workspace_id", order: "created_at" },
+  { file: "demo_embed_origins.json", table: "demo_embed_origins", columns: "*", key: "workspace_id" },
+  { file: "demo_leads.json", table: "demo_leads", columns: "*", key: "workspace_id", order: "created_at" },
+  { file: "demo_events.json", table: "demo_events", columns: "*", key: "workspace_id", order: "created_at" },
   { file: "audit_log.json", table: "audit_log", columns: "*", key: "workspace_id", order: "created_at" },
 ];
 

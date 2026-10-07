@@ -38,6 +38,7 @@ interface Tenant {
   interviewId: string;
   messageId: string;
   caseStudyId: string;
+  demoId: string;
 }
 
 const CLIENT_SENTENCE = "We cut costs by 40 percent.";
@@ -182,6 +183,13 @@ async function seedTenant(ws: string, ownerId: string): Promise<Tenant> {
   const second = await signCurrent(admin, String(caseStudy.id));
   await must(admin.from("signature_revocations").insert({ workspace_id: ws, signature_id: second, method: "email_link", reason: "seed" }).select(), "signature_revocations");
   await must(admin.from("text_refinements").insert({ workspace_id: ws, case_study_id: caseStudy.id, version: 1, field_path: "headline", original_text: "a", suggested_text: "b" }).select(), "text_refinements");
+  const demo = await must(admin.from("demos").insert({ workspace_id: ws, created_by: ownerId, title: "Seed demo" }).select("id").single(), "demos");
+  const demoId = String((demo as { id: string }).id);
+  await must(admin.from("demo_versions").insert({ demo_id: demoId, workspace_id: ws, version: 1, content: { scenes: [] } }).select(), "demo_versions");
+  await must(admin.from("demo_assets").insert({ workspace_id: ws, demo_id: demoId, file_path: `${ws}/${demoId}/${"a".repeat(8)}-aaaa-aaaa-aaaa-${"a".repeat(12)}.webp`, kind: "screenshot", width: 100, height: 100, size_bytes: 1000, sha256: "a".repeat(64), flagged: true, flag_reason: "seed" }).select(), "demo_assets");
+  await must(admin.from("demo_embed_origins").insert({ demo_id: demoId, workspace_id: ws, origin: "https://example.com" }).select(), "demo_embed_origins");
+  await must(admin.from("demo_leads").insert({ workspace_id: ws, demo_id: demoId, email: "lead@example.test", name: "Lead", consent: true, consent_text_version: "demo-lead-v1" }).select(), "demo_leads");
+  await must(admin.from("demo_events").insert({ workspace_id: ws, demo_id: demoId, type: "view" }).select(), "demo_events");
   await must(admin.from("push_subscriptions").insert({ user_id: ownerId, workspace_id: ws, endpoint: "https://fcm.googleapis.com/fcm/send/seedseedseedseedseed", p256dh: "A".repeat(87), auth: "z".repeat(22) }).select(), "push_subscriptions");
   await must(admin.from("notification_preferences").insert({ user_id: ownerId, workspace_id: ws }).select(), "notification_preferences");
   await must(
@@ -208,6 +216,7 @@ async function seedTenant(ws: string, ownerId: string): Promise<Tenant> {
     interviewId: interview.id,
     messageId: message.id,
     caseStudyId: caseStudy.id,
+    demoId,
   };
 }
 
@@ -496,6 +505,44 @@ const SPECS: Spec[] = [
     appendOnly: true,
     patch: { action: "tampered" },
     insert: (t, actor) => ({ workspace_id: t.ws, actor, action: "injected.event" }),
+  },
+  {
+    table: "demos",
+    readRole: "viewer",
+    patch: { title: "HACKED" },
+    insert: (t, actor) => ({ workspace_id: t.ws, created_by: actor, title: INSERT_MARKER }),
+  },
+  {
+    table: "demo_versions",
+    readRole: "viewer",
+    appendOnly: true,
+    patch: { content: { tampered: true } },
+    insert: (t, actor) => ({ demo_id: t.demoId, workspace_id: t.ws, version: 9, content: {}, created_by: actor }),
+  },
+  {
+    table: "demo_assets",
+    readRole: "viewer",
+    patch: { flagged: false },
+    insert: (t) => ({ workspace_id: t.ws, demo_id: t.demoId, file_path: "x", kind: "screenshot", width: 1, height: 1, size_bytes: 1, sha256: "b".repeat(64) }),
+  },
+  {
+    table: "demo_embed_origins",
+    readRole: "viewer",
+    patch: { origin: "https://hacked.example" },
+    insert: (t) => ({ demo_id: t.demoId, workspace_id: t.ws, origin: "https://insert.example" }),
+  },
+  {
+    table: "demo_leads",
+    readRole: "viewer",
+    patch: { name: "HACKED" },
+    insert: (t) => ({ workspace_id: t.ws, demo_id: t.demoId, email: "x@example.test", consent: true, consent_text_version: "demo-lead-v1" }),
+  },
+  {
+    table: "demo_events",
+    readRole: "viewer",
+    appendOnly: true,
+    patch: { type: "complete" },
+    insert: (t) => ({ workspace_id: t.ws, demo_id: t.demoId, type: "view" }),
   },
   {
     table: "page_events",
