@@ -7,7 +7,7 @@ export const FONT_PAIRS = ["inter", "lora-inter", "poppins-inter", "space-grotes
 export const RADII = ["none", "sm", "md", "lg", "xl"] as const;
 export const SPACINGS = ["compact", "comfortable", "spacious"] as const;
 export const MODES = ["light", "dark"] as const;
-export const LAYOUTS = ["classic", "minimal", "before-after", "timeline", "saas-switch"] as const;
+export const LAYOUTS = ["classic", "minimal", "before-after", "timeline", "saas-switch", "spotlight", "quote-led", "editorial", "cards"] as const;
 
 export type FontPair = (typeof FONT_PAIRS)[number];
 export type Layout = (typeof LAYOUTS)[number];

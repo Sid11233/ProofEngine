@@ -62,8 +62,50 @@ function Timeline({ sections }: { sections: Section[] }) {
   );
 }
 
+/** The results come first, right under the headline: for stories where the numbers are the point. */
+function Spotlight({ sections }: { sections: Section[] }) {
+  const results = sections.filter((s) => s.type === "results");
+  const rest = sections.filter((s) => s.type !== "results");
+  return stack(
+    <>
+      {results.map((section, i) => (
+        <div key={`r${i}`} className="p-5 @sm:p-7" style={{ background: "var(--cs-surface)", border: "1px solid var(--cs-border)", borderRadius: "var(--cs-radius)" }}><SectionFor section={section} /></div>
+      ))}
+      {rest.map((section, i) => <SectionFor key={i} section={section} />)}
+    </>,
+  );
+}
+
+/** The client's own words lead; the story follows. */
+function QuoteLed({ sections }: { sections: Section[] }) {
+  const quotes = sections.filter((s) => s.type === "quote" && s.quote);
+  const rest = sections.filter((s) => !quotes.includes(s));
+  return stack(
+    <>
+      {quotes.map((section, i) => (
+        <figure key={`q${i}`} className="p-6 text-center @sm:p-10" style={{ background: "var(--cs-surface)", borderRadius: "var(--cs-radius)" }}>
+          <blockquote className="text-2xl italic leading-relaxed @sm:text-3xl" style={{ fontFamily: "var(--cs-font-heading)" }}>&ldquo;{section.quote?.text}&rdquo;</blockquote>
+          {section.quote?.attribution ? <figcaption className="mt-4 text-sm" style={{ color: "var(--cs-muted)" }}>{section.quote.attribution}</figcaption> : null}
+        </figure>
+      ))}
+      {rest.map((section, i) => <SectionFor key={i} section={section} />)}
+    </>,
+  );
+}
+
+/** Every section in its own card. The call to action keeps its coloured block. */
+function Cards({ sections }: { sections: Section[] }) {
+  return stack(
+    sections.map((section, i) =>
+      section.type === "cta" ? <SectionFor key={i} section={section} /> : (
+        <div key={i} className="p-5 @sm:p-6" style={{ background: "var(--cs-surface)", border: "1px solid var(--cs-border)", borderRadius: "var(--cs-radius)" }}><SectionFor section={section} /></div>
+      ),
+    ),
+  );
+}
+
 function Frame({ layout, children }: { layout: Template["layout"]; children: React.ReactNode }) {
-  const width = layout === "minimal" ? "max-w-xl" : layout === "timeline" ? "max-w-2xl" : "max-w-3xl";
+  const width = layout === "minimal" ? "max-w-xl" : layout === "timeline" || layout === "editorial" ? "max-w-2xl" : "max-w-3xl";
   return <div className={`mx-auto w-full ${width} px-5 py-10 @sm:px-8 @sm:py-14`}>{children}</div>;
 }
 
@@ -79,10 +121,13 @@ export function CaseStudyView({ content, template, theme, watermark, logoUrl }: 
   const body =
     template.layout === "before-after" ? <BeforeAfter sections={content.sections} />
     : template.layout === "timeline" ? <Timeline sections={content.sections} />
+    : template.layout === "spotlight" ? <Spotlight sections={content.sections} />
+    : template.layout === "quote-led" ? <QuoteLed sections={content.sections} />
+    : template.layout === "cards" ? <Cards sections={content.sections} />
     : <Sections sections={content.sections} />;
 
   return (
-    <article className={`@container relative ${fonts.className}`} style={style} data-layout={template.layout}>
+    <article className={`@container relative ${fonts.className} ${template.layout === "editorial" ? "text-lg leading-loose [&_h1]:text-4xl [&_h1]:@sm:text-5xl" : ""}`} style={style} data-layout={template.layout}>
       {watermark ? <Watermark text={watermark} /> : null}
       <Frame layout={template.layout}>
         <div className="space-y-[var(--cs-gap)]">
