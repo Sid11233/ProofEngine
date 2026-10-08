@@ -186,6 +186,7 @@ async function seedTenant(ws: string, ownerId: string): Promise<Tenant> {
   await must(admin.from("signature_revocations").insert({ workspace_id: ws, signature_id: second, method: "email_link", reason: "seed" }).select(), "signature_revocations");
   await must(admin.from("text_refinements").insert({ workspace_id: ws, case_study_id: caseStudy.id, version: 1, field_path: "headline", original_text: "a", suggested_text: "b" }).select(), "text_refinements");
   await must(admin.from("interview_closing").insert({ workspace_id: ws, interview_id: interview.id, rating: 4, comment: "Seed", contact_email: "closing@example.test" }).select(), "interview_closing");
+  await must(admin.from("interview_voice").insert({ workspace_id: ws, interview_id: interview.id, file_path: `${ws}/${interview.id}/${"c".repeat(8)}-cccc-cccc-cccc-${"c".repeat(12)}.webm`, mime_type: "audio/webm", size_bytes: 1000, consent_text_version: "voice-2026-10-v1" }).select(), "interview_voice");
   const client = await must(admin.from("clients").insert({ workspace_id: ws, created_by: ownerId, name: "Seed client", contact_email: "client@example.test" }).select("id").single(), "clients");
   const clientId = String((client as { id: string }).id);
   const project = await must(admin.from("projects").insert({ workspace_id: ws, client_id: clientId, created_by: ownerId, name: "Seed project" }).select("id").single(), "projects");
@@ -523,6 +524,12 @@ const SPECS: Spec[] = [
     readRole: "viewer",
     patch: { comment: "HACKED" },
     insert: (t) => ({ workspace_id: t.ws, interview_id: t.interviewId, rating: 1 }),
+  },
+  {
+    table: "interview_voice",
+    readRole: "viewer",
+    patch: { size_bytes: 1 },
+    insert: (t) => ({ workspace_id: t.ws, interview_id: t.interviewId, file_path: `${t.ws}/${t.interviewId}/${"d".repeat(8)}-dddd-dddd-dddd-${"d".repeat(12)}.webm`, mime_type: "audio/webm", size_bytes: 10, consent_text_version: "voice-2026-10-v1" }),
   },
   {
     table: "clients",

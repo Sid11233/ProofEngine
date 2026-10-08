@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   const guarded = await guardInterviewRequest(request, messageSchema);
   if (!guarded.ok) return guarded.response;
 
-  const result = await answerQuestion(getInterviewerDeps(), guarded.access, guarded.body.message);
+  const result = await answerQuestion(getInterviewerDeps(), guarded.access, guarded.body.message, guarded.body.voiceId);
   if (!result.ok) return json({ error: result.error }, STATUS[result.error]);
   return json({ reply: result.reply, progress: result.progress, done: result.done });
 }

@@ -44,6 +44,8 @@ const nextConfig: NextConfig = {
       { source: "/api/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
       // The service worker must always be re-checked by the browser so a fixed worker reaches everyone.
       { source: "/sw.js", headers: [{ key: "Cache-Control", value: "no-cache, max-age=0, must-revalidate" }, { key: "Service-Worker-Allowed", value: "/app/" }] },
+      // The client interview may use the microphone (voice answers); everything else on the site keeps it off.
+      { source: "/i/:path*", headers: [{ key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=(), payment=(), usb=()" }] },
       // Interview pages carry a secret in the URL: keep them out of search engines and never leak them in Referer.
       {
         source: "/i/:path*",

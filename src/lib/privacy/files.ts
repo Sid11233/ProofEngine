@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // (logos, interview uploads, exports). Files are removed BEFORE the database rows, and a removal that fails
 // throws, so the rows stay and the job tries again instead of leaving files nobody can find.
 
-export const BUCKETS = ["uploads", "exports", "signatures", "demo-assets"] as const;
+export const BUCKETS = ["uploads", "exports", "signatures", "demo-assets", "voice-notes"] as const;
 const PAGE = 100;
 
 /** Every file path under a prefix, folders included recursively. */

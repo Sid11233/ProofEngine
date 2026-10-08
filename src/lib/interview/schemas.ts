@@ -9,7 +9,7 @@ export const startSchema = z
   .strict();
 
 export const messageSchema = z
-  .object({ token: tokenSchema, message: z.string().trim().min(1, "Write an answer first").max(1000, "Please keep answers under 1000 characters") })
+  .object({ token: tokenSchema, message: z.string().trim().min(1, "Write an answer first").max(1000, "Please keep answers under 1000 characters"), voiceId: z.uuid().optional() })
   .strict();
 
 export const finishSchema = z

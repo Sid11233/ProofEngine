@@ -10,10 +10,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseStore, type UploadStore } from "@/lib/uploads/store";
 import { signal } from "@/lib/monitoring/signals";
 import { isBreakerTripped } from "./breaker";
+import { VOICE_BUCKET } from "./voice";
 
 interface Wiring {
   deps: InterviewerDeps;
   store: UploadStore;
+  voiceStore: UploadStore;
+  voiceLimiter: RateLimiter;
   startLimiter: RateLimiter;
   uploadLimiter: RateLimiter;
 }
@@ -38,6 +41,9 @@ function build(): Wiring {
       },
     },
     store: createSupabaseStore(admin),
+    voiceStore: createSupabaseStore(admin, VOICE_BUCKET),
+    // Transcription costs money: 6 recordings per minute per link.
+    voiceLimiter: createRateLimiter({ prefix: "interview:voice:token", limit: 6, windowSec: 60 }),
     // Bot heuristic: at most N interviews started per IP per hour (default 5).
     startLimiter: createRateLimiter({ prefix: "interview:start:ip", limit: limits.interviewStartsPerIpHour, windowSec: 3600 }),
     uploadLimiter: createRateLimiter({ prefix: "interview:upload:token", limit: 10, windowSec: 60 }),
@@ -50,6 +56,11 @@ export const getInterviewerDeps = () => get().deps;
 export const getUploadStore = () => get().store;
 export const getStartLimiter = () => get().startLimiter;
 export const getUploadLimiter = () => get().uploadLimiter;
+export const getVoiceStore = () => get().voiceStore;
+export const getVoiceLimiter = () => get().voiceLimiter;
+
+/** True when a speech-to-text key is configured, so the microphone button may be shown. */
+export const voiceConfigured = () => Boolean(serverEnv.OPENAI_API_KEY);
 
 /** True while the global daily AI spend breaker is open. Alerts the owner once when it first trips. */
 export function breakerTripped(): Promise<boolean> {

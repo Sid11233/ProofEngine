@@ -7,6 +7,10 @@ import { TurnstileWidget } from "@/components/turnstile-widget";
 import { useEffect, useRef, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { isBareStarter, startersFor } from "@/lib/interview/starters";
+import dynamic from "next/dynamic";
+
+// Loaded only when voice answers are switched on, so the interview page does not carry it otherwise.
+const VoiceRecorder = dynamic(() => import("./voice-recorder").then((m) => m.VoiceRecorder), { ssr: false });
 
 type Role = "client" | "bot";
 interface Message {
@@ -25,6 +29,8 @@ export interface InterviewAppProps {
   consentText: string;
   consentVersion: string;
   purpose: "review" | "onboarding";
+  /** True when the server can turn a recording into text. */
+  voiceEnabled?: boolean;
   questions: Array<{ id: string; text: string; key?: string }>;
   turnstileSiteKey?: string;
   nonce?: string;
@@ -89,6 +95,7 @@ export function InterviewApp(props: InterviewAppProps) {
         token={props.token}
         questions={props.questions}
         purpose={props.purpose}
+        voiceEnabled={props.voiceEnabled === true}
         messages={messages}
         progress={progress}
         onMessages={setMessages}
@@ -180,9 +187,10 @@ function IntroScreen({
 }
 
 function ChatScreen({
-  token, questions, purpose, messages, progress, onMessages, onProgress, onDone, onSwitchToForm,
+  token, questions, purpose, voiceEnabled, messages, progress, onMessages, onProgress, onDone, onSwitchToForm,
 }: {
   purpose: "review" | "onboarding";
+  voiceEnabled: boolean;
   onSwitchToForm: () => void;
   token: string;
   questions: Array<{ id: string; text: string; key?: string }>;
@@ -196,6 +204,7 @@ function ChatScreen({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
   const [finished, setFinished] = useState(false);
+  const [voiceId, setVoiceId] = useState<string>();
   const bottom = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -212,7 +221,7 @@ function ChatScreen({
     onMessages(withAnswer);
     setDraft("");
 
-    const result = await post<{ reply: string; progress: Progress; done: boolean }>("/api/interview/message", { token, message: text });
+    const result = await post<{ reply: string; progress: Progress; done: boolean }>("/api/interview/message", { token, message: text, ...(voiceId ? { voiceId } : {}) });
     setPending(false);
     if (!result.ok) {
       // Take the answer back out and return it to the box, so nothing the client typed is lost.
@@ -220,6 +229,7 @@ function ChatScreen({
       setDraft(text);
       return setError(result.error);
     }
+    setVoiceId(undefined);
     onMessages([...withAnswer, { role: "bot", content: result.data.reply }]);
     onProgress(result.data.progress);
     if (result.data.done) setFinished(true);
@@ -291,6 +301,7 @@ function ChatScreen({
               className={`${inputClass} resize-none`}
               aria-describedby="answer-count"
             />
+            {voiceEnabled ? <VoiceRecorder token={token} disabled={pending} onText={(text, id) => { setDraft((d) => (d.trim() ? `${d.trim()} ${text}` : text).slice(0, 1000)); setVoiceId(id); }} /> : null}
             <div className="flex items-center justify-between gap-3">
               <span id="answer-count" className="text-sm text-neutral-600 dark:text-neutral-400">{draft.length} / 1000</span>
               <button type="submit" disabled={pending || (purpose === "review" ? isBareStarter(draft) || isBareStarter(draft.replace(/\s+$/, "…")) : draft.trim() === "")} className={`${buttonPrimary} !w-auto`}>Send</button>

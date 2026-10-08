@@ -58,6 +58,12 @@ export const serverEnvSchema = z.object({
   OPENROUTER_API_KEY: optional(z.string().min(20)),
   OPENROUTER_MODEL: optional(z.string().min(3).max(100).regex(/^[A-Za-z0-9._:/-]+$/)),
 
+  // Voice answers: OpenAI speech-to-text. Optional: without a key the microphone button is hidden.
+  OPENAI_API_KEY: optional(z.string().min(20)),
+  TRANSCRIBE_MODEL: optional(z.string().min(3).max(100).regex(/^[A-Za-z0-9._:-]+$/)),
+  // Tests only: point the transcription call at a local stub. Defaults to OpenAI.
+  TRANSCRIBE_API_URL: optional(z.url()),
+
   // "1" when a proxy you control overwrites X-Forwarded-For (Vercel does this automatically)
   TRUST_PROXY_HEADERS: optional(z.enum(["0", "1"])),
 
