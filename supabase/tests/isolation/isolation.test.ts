@@ -39,6 +39,8 @@ interface Tenant {
   messageId: string;
   caseStudyId: string;
   demoId: string;
+  clientId: string;
+  projectId: string;
 }
 
 const CLIENT_SENTENCE = "We cut costs by 40 percent.";
@@ -183,6 +185,12 @@ async function seedTenant(ws: string, ownerId: string): Promise<Tenant> {
   const second = await signCurrent(admin, String(caseStudy.id));
   await must(admin.from("signature_revocations").insert({ workspace_id: ws, signature_id: second, method: "email_link", reason: "seed" }).select(), "signature_revocations");
   await must(admin.from("text_refinements").insert({ workspace_id: ws, case_study_id: caseStudy.id, version: 1, field_path: "headline", original_text: "a", suggested_text: "b" }).select(), "text_refinements");
+  const client = await must(admin.from("clients").insert({ workspace_id: ws, created_by: ownerId, name: "Seed client", contact_email: "client@example.test" }).select("id").single(), "clients");
+  const clientId = String((client as { id: string }).id);
+  const project = await must(admin.from("projects").insert({ workspace_id: ws, client_id: clientId, created_by: ownerId, name: "Seed project" }).select("id").single(), "projects");
+  const projectId = String((project as { id: string }).id);
+  await must(admin.from("project_links").insert({ workspace_id: ws, project_id: projectId, label: "Seed", url: "https://example.com" }).select(), "project_links");
+  await must(admin.from("project_feedback").insert({ workspace_id: ws, project_id: projectId, created_by: ownerId, body: "Seed feedback" }).select(), "project_feedback");
   const demo = await must(admin.from("demos").insert({ workspace_id: ws, created_by: ownerId, title: "Seed demo" }).select("id").single(), "demos");
   const demoId = String((demo as { id: string }).id);
   await must(admin.from("demo_versions").insert({ demo_id: demoId, workspace_id: ws, version: 1, content: { scenes: [] } }).select(), "demo_versions");
@@ -217,6 +225,8 @@ async function seedTenant(ws: string, ownerId: string): Promise<Tenant> {
     messageId: message.id,
     caseStudyId: caseStudy.id,
     demoId,
+    clientId,
+    projectId,
   };
 }
 
@@ -505,6 +515,30 @@ const SPECS: Spec[] = [
     appendOnly: true,
     patch: { action: "tampered" },
     insert: (t, actor) => ({ workspace_id: t.ws, actor, action: "injected.event" }),
+  },
+  {
+    table: "clients",
+    readRole: "viewer",
+    patch: { name: "HACKED" },
+    insert: (t, actor) => ({ workspace_id: t.ws, created_by: actor, name: INSERT_MARKER }),
+  },
+  {
+    table: "projects",
+    readRole: "viewer",
+    patch: { name: "HACKED" },
+    insert: (t, actor) => ({ workspace_id: t.ws, client_id: t.clientId, created_by: actor, name: INSERT_MARKER }),
+  },
+  {
+    table: "project_links",
+    readRole: "viewer",
+    patch: { label: "HACKED" },
+    insert: (t) => ({ workspace_id: t.ws, project_id: t.projectId, label: INSERT_MARKER, url: "https://example.com/x" }),
+  },
+  {
+    table: "project_feedback",
+    readRole: "viewer",
+    patch: { body: "HACKED" },
+    insert: (t, actor) => ({ workspace_id: t.ws, project_id: t.projectId, created_by: actor, body: INSERT_MARKER }),
   },
   {
     table: "demos",
