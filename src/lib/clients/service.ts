@@ -28,7 +28,7 @@ function parse<S extends z.ZodType>(schema: S, raw: unknown): { ok: true; data: 
 const nullable = (data: Record<string, unknown>, optional: readonly string[] = []) => ({ ...Object.fromEntries(optional.map((k) => [k, null])), ...Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined)) });
 
 const CLIENT_OPTIONAL = ["contact_name", "contact_email", "website_url", "notes"] as const;
-const PROJECT_OPTIONAL = ["summary", "website_url", "repo_url", "notes", "started_on", "delivered_on"] as const;
+const PROJECT_OPTIONAL = ["summary", "key_facts", "website_url", "repo_url", "notes", "started_on", "delivered_on"] as const;
 
 export async function createClientRecord(supabase: SupabaseClient, ctx: { workspaceId: string; userId: string }, raw: unknown): Promise<Result<{ id: string }>> {
   const p = parse(clientSchema, raw);

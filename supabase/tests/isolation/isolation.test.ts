@@ -191,6 +191,7 @@ async function seedTenant(ws: string, ownerId: string): Promise<Tenant> {
   const project = await must(admin.from("projects").insert({ workspace_id: ws, client_id: clientId, created_by: ownerId, name: "Seed project" }).select("id").single(), "projects");
   const projectId = String((project as { id: string }).id);
   await must(admin.from("project_links").insert({ workspace_id: ws, project_id: projectId, label: "Seed", url: "https://example.com" }).select(), "project_links");
+  await must(admin.from("project_posts").insert({ workspace_id: ws, project_id: projectId, created_by: ownerId, network: "linkedin", kind: "post", body: "Seed post", attested: true }).select(), "project_posts");
   await must(admin.from("project_feedback").insert({ workspace_id: ws, project_id: projectId, created_by: ownerId, body: "Seed feedback" }).select(), "project_feedback");
   const demo = await must(admin.from("demos").insert({ workspace_id: ws, created_by: ownerId, title: "Seed demo" }).select("id").single(), "demos");
   const demoId = String((demo as { id: string }).id);
@@ -540,6 +541,12 @@ const SPECS: Spec[] = [
     readRole: "viewer",
     patch: { label: "HACKED" },
     insert: (t) => ({ workspace_id: t.ws, project_id: t.projectId, label: INSERT_MARKER, url: "https://example.com/x" }),
+  },
+  {
+    table: "project_posts",
+    readRole: "viewer",
+    patch: { body: "HACKED" },
+    insert: (t, actor) => ({ workspace_id: t.ws, project_id: t.projectId, created_by: actor, network: "x", kind: "post", body: INSERT_MARKER, attested: true }),
   },
   {
     table: "project_feedback",

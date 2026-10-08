@@ -21,7 +21,7 @@ export interface RecordResult {
 }
 
 const CLIENT_KEYS = ["name", "contact_name", "contact_email", "website_url", "status", "notes"] as const;
-const PROJECT_KEYS = ["name", "summary", "status", "website_url", "repo_url", "notes", "started_on", "delivered_on"] as const;
+const PROJECT_KEYS = ["name", "summary", "key_facts", "status", "website_url", "repo_url", "notes", "started_on", "delivered_on"] as const;
 const LINK_KEYS = ["label", "url", "kind"] as const;
 const FEEDBACK_KEYS = ["source", "author_name", "body"] as const;
 
