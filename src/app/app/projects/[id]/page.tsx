@@ -22,7 +22,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   const workspace = await getCurrentWorkspace();
   const supabase = await createClient();
   // Row level security: another workspace's project is simply not found.
-  const { data: project } = await supabase.from("projects").select("id, workspace_id, client_id, name, summary, status, website_url, repo_url, notes, started_on, delivered_on").eq("id", id).maybeSingle();
+  const { data: project } = await supabase.from("projects").select("id, workspace_id, client_id, name, summary, key_facts, status, website_url, repo_url, notes, started_on, delivered_on").eq("id", id).maybeSingle();
   if (!project || !workspace || project.workspace_id !== workspace.id) notFound();
   const [{ data: client }, { data: links }, { data: feedback }] = await Promise.all([
     supabase.from("clients").select("id, name").eq("id", project.client_id).maybeSingle(),
@@ -63,6 +63,12 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           {!links?.length ? <li className="py-2 text-sm text-muted">No links yet.</li> : null}
         </ul>
         {canEdit ? <div className="mt-4 border-t border-line pt-4"><ActionForm compact action={addLinkAction} fields={LINK_FIELDS} hidden={{ project_id: id }} submitLabel="Add link" /></div> : null}
+      </Card>
+
+      <Card aria-labelledby="posts-card">
+        <SectionLabel id="posts-card">Posts and carousels</SectionLabel>
+        <p className="mt-1 text-sm text-muted">Turn this project, your key facts and the client&apos;s feedback into posts and designed carousels for each network.</p>
+        <div className="mt-3"><ButtonLink variant="secondary" href={`/app/projects/${id}/posts`}>Open posts and carousels</ButtonLink></div>
       </Card>
 
       <Card aria-labelledby="feedback">

@@ -49,6 +49,7 @@ export const projectSchema = z
   .object({
     name: plainLine(200, { min: 1 }, "Enter the project's name"),
     summary: blank(paragraph(2000)),
+    key_facts: blank(paragraph(1500)),
     status: z.enum(PROJECT_STATUSES).default("in_progress"),
     website_url: blank(httpsUrl),
     repo_url: blank(repoUrl),

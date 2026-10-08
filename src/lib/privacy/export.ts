@@ -44,6 +44,7 @@ export const EXPORT_SOURCES: Source[] = [
   { file: "clients.json", table: "clients", columns: "*", key: "workspace_id", order: "created_at" },
   { file: "projects.json", table: "projects", columns: "*", key: "workspace_id", order: "created_at" },
   { file: "project_links.json", table: "project_links", columns: "*", key: "workspace_id", order: "created_at" },
+  { file: "project_posts.json", table: "project_posts", columns: "*", key: "workspace_id", order: "created_at" },
   { file: "project_feedback.json", table: "project_feedback", columns: "*", key: "workspace_id", order: "created_at" },
   { file: "demos.json", table: "demos", columns: "*", key: "workspace_id", order: "created_at" },
   { file: "demo_versions.json", table: "demo_versions", columns: "*", key: "workspace_id", order: "created_at" },

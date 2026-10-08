@@ -20,6 +20,7 @@ export const PROJECT_FIELDS: FieldSpec[] = [
   { name: "started_on", label: "Started", kind: "date" },
   { name: "delivered_on", label: "Delivered", kind: "date" },
   { name: "summary", label: "What you built", kind: "textarea", maxLength: 2000 },
+  { name: "key_facts", label: "Results and facts to highlight", kind: "textarea", hint: "Numbers and outcomes you want in social posts, for example: bookings up 40% in 3 months. Posts can only use numbers written here, in the summary or in the feedback.", maxLength: 1500 },
   { name: "notes", label: "Private notes", kind: "textarea", hint: "Private to your team.", maxLength: 4000 },
 ];
 
