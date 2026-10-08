@@ -10,7 +10,7 @@ export const formSchema = z
     answers: z
       .array(z.object({ questionId: z.string().min(1).max(40), answer: z.string().trim().min(1, "Please answer every question").max(1000, "Please keep answers under 1000 characters") }).strict())
       .min(1)
-      .max(6),
+      .max(12),
   })
   .strict();
 

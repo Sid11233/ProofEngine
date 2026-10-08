@@ -23,9 +23,19 @@ export const createRequestSchema = z
   })
   .strict();
 
+export const createOnboardingSchema = z
+  .object({
+    clientName: plainLine(200, { min: 1 }, "Enter the client's name"),
+    clientEmail: emailSchema,
+    clientId: z.preprocess((v) => (v === "" ? undefined : v), z.uuid().optional()),
+    sendNow: z.enum(["on"]).optional(),
+  })
+  .strict();
+
 export const requestIdSchema = z.uuid();
 
 export type CreateRequestInput = z.infer<typeof createRequestSchema>;
+export type CreateOnboardingInput = z.infer<typeof createOnboardingSchema>;
 
 export const focusOutcomesOf = (input: Pick<CreateRequestInput, "outcome1" | "outcome2" | "outcome3">): string[] =>
   [input.outcome1, input.outcome2, input.outcome3].filter((value): value is string => Boolean(value));

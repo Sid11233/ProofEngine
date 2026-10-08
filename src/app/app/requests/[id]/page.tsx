@@ -30,7 +30,12 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     ? await supabase.from("case_studies").select("id").eq("interview_id", interview.id).maybeSingle()
     : { data: null };
 
-  const { data: closing } = interview
+  const onboarding = request.purpose === "onboarding";
+  // An onboarding interview's answers are read here, as the conversation (plain text). Row level security scopes this to members.
+  const { data: transcript } = onboarding && interview
+    ? await supabase.from("interview_messages").select("id, role, content").eq("interview_id", interview.id).order("created_at").order("id")
+    : { data: null };
+  const { data: closing } = !onboarding && interview
     ? await supabase.from("interview_closing").select("rating, comment, contact_email, contact_phone, company, job_title").eq("interview_id", interview.id).maybeSingle()
     : { data: null };
 
@@ -43,7 +48,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
       <dl className="divide-y divide-neutral-200 rounded-md border border-neutral-200 text-sm dark:divide-neutral-800 dark:border-neutral-800">
         {[
           ["Status", request.status],
-          ["Interview style", request.flowType],
+          [onboarding ? "Type" : "Interview style", onboarding ? "Client onboarding" : request.flowType],
           ["Project", request.projectType ?? "Not set"],
           ["Link expires", request.expiresAt.slice(0, 10)],
           ["Reminders sent", `${request.reminderCount} of 3`],
@@ -67,7 +72,24 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
           </dl>
         </section>
       )}
-      {interview?.status === "completed" && (
+      {onboarding && (
+        <section aria-labelledby="answers-heading" className="space-y-3 rounded-md border border-neutral-200 p-4 text-sm dark:border-neutral-800">
+          <h2 id="answers-heading" className="font-semibold">Onboarding answers</h2>
+          {!transcript?.length ? <p className="text-neutral-600 dark:text-neutral-400">Nothing yet. The conversation appears here as the client answers.</p> : (
+            <ol className="space-y-2">
+              {transcript.map((m) => (
+                <li key={String(m.id)} className={m.role === "client" ? "rounded bg-neutral-100 p-3 dark:bg-neutral-900" : "px-1 text-neutral-600 dark:text-neutral-400"}>
+                  <span className="mb-1 block text-xs font-medium">{m.role === "client" ? "Client" : "Assistant"}</span>
+                  {/* Plain text: the client typed it; pre-wrap keeps line breaks and nothing is read as markup. */}
+                  <span className="whitespace-pre-wrap break-words" data-testid={m.role === "client" ? "onboarding-answer" : undefined}>{String(m.content)}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+          {request.clientId ? <p><Link href={`/app/clients/${request.clientId}`} className="underline underline-offset-2">Open the client record</Link></p> : null}
+        </section>
+      )}
+      {!onboarding && interview?.status === "completed" && (
         <section aria-labelledby="cs-heading" className="space-y-3 rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
           <h2 id="cs-heading" className="font-semibold">Case study</h2>
           {existing ? (

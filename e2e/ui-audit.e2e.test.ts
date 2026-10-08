@@ -66,7 +66,7 @@ afterAll(async () => {
 const routes = () => [
   "/app/dashboard", "/app/requests", "/app/requests/new", `/app/requests/${ids.request}`,
   "/app/case-studies", `/app/case-studies/${ids.study}/review`, `/app/case-studies/${ids.study}/edit`, `/app/case-studies/${ids.study}/template`,
-  "/app/clients", "/app/projects", "/app/demos", "/app/referrals", "/app/finder",
+  "/app/clients", "/app/projects", "/app/onboarding", "/app/onboarding/new", "/app/onboarding/questions", "/app/demos", "/app/referrals", "/app/finder",
   "/app/settings/wall", "/app/settings/social", "/app/settings/team", "/app/settings/notifications", "/app/settings/privacy", "/app/settings/motion", "/app/settings/security",
   "/app/billing",
 ];

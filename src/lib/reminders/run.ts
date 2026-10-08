@@ -23,14 +23,17 @@ export interface ReminderSummary {
   emailConfigured: boolean;
 }
 
-export function reminderEmail({ clientName, workspaceName, link, unsubscribeLink, number }: { clientName: string; workspaceName: string; link: string; unsubscribeLink: string; number: 1 | 2 }) {
+export function reminderEmail({ clientName, workspaceName, link, unsubscribeLink, number, purpose = "review" }: { clientName: string; workspaceName: string; link: string; unsubscribeLink: string; number: 1 | 2; purpose?: string }) {
   const first = clientName.trim().split(/\s+/)[0] || "there";
+  const onboarding = purpose === "onboarding";
   return {
-    subject: number === 1 ? `Reminder: ${workspaceName} would like to hear from you` : `Last reminder from ${workspaceName}`,
+    subject: onboarding ? (number === 1 ? `Reminder: a few quick questions for ${workspaceName}` : `Last reminder from ${workspaceName}`) : number === 1 ? `Reminder: ${workspaceName} would like to hear from you` : `Last reminder from ${workspaceName}`,
     text: [
       `Hi ${first},`,
       "",
-      number === 1
+      onboarding
+        ? `A quick reminder: ${workspaceName} has a few onboarding questions for you. Your answers go to them only; nothing is published.`
+        : number === 1
         ? `A quick reminder: ${workspaceName} would love to hear about your experience. It takes about 3 minutes, and nothing is published without your approval.`
         : `This is the last reminder. If you have 3 minutes, ${workspaceName} would still love to hear about your experience. Nothing is published without your approval.`,
       "",
@@ -53,7 +56,7 @@ export async function runReminders(ctx: ReminderContext): Promise<ReminderSummar
   summary.considered = ids.length;
 
   for (const id of ids) {
-    const { data: before } = await ctx.admin.from("proof_requests").select("client_name, client_email, workspace_id, reminder_count, last_reminder_at").eq("id", id).maybeSingle();
+    const { data: before } = await ctx.admin.from("proof_requests").select("client_name, client_email, workspace_id, reminder_count, last_reminder_at, purpose").eq("id", id).maybeSingle();
     if (!before) {
       summary.skipped += 1;
       continue;
@@ -76,6 +79,7 @@ export async function runReminders(ctx: ReminderContext): Promise<ReminderSummar
       link: new URL(`/i/${token.raw}`, ctx.appUrl).toString(),
       unsubscribeLink: new URL(`/unsubscribe/${unsubscribeToken(ctx.unsubscribeSecret, id)}`, ctx.appUrl).toString(),
       number: Number(before.reminder_count) === 0 ? 1 : 2,
+      purpose: String(before.purpose),
     });
     const ok = await ctx.sender.send({ to: String(before.client_email), ...message });
     if (ok) {

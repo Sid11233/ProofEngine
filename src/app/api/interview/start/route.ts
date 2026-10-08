@@ -12,6 +12,9 @@ export async function POST(request: Request) {
   const guarded = await guardInterviewRequest(request, startSchema);
   if (!guarded.ok) return guarded.response;
 
+  // The browser must have seen the consent text for THIS link's purpose.
+  if (guarded.body.consentVersion !== guarded.access.view.consentVersion) return json({ error: "invalid" }, 400);
+
   const ip = getClientIp(request.headers);
 
   // Bot check, verified server-side. Skipped only while no secret key is configured.

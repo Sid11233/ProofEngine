@@ -19,21 +19,23 @@ export async function POST(request: Request) {
 
   const { admin } = getInterviewerDeps();
   const result = await finishInterview(admin, guarded.access, guarded.body);
-  if (!result.ok) return json({ error: result.error }, result.error === "failed" ? 500 : 409);
+  if (!result.ok) return json({ error: result.error }, result.error === "failed" ? 500 : result.error === "invalid" ? 400 : 409);
 
   // Best effort: the interview is already finished, so an email problem never fails the client's request.
-  if (guarded.body.referrals.length > 0) {
+  const reviews = guarded.access.purpose === "review";
+  if (reviews && guarded.body.referrals.length > 0) {
     await notifyReferrals({ admin, sender: getEmailSender(), appUrl: publicEnv.NEXT_PUBLIC_APP_URL }, guarded.access.workspaceId, guarded.body.referrals).catch(() => 0);
   }
   const secret = unsubscribeSecret(serverEnv);
   await notifyInterviewFinished(
     { admin, sender: getEmailSender(), appUrl: publicEnv.NEXT_PUBLIC_APP_URL, unsubscribeUrl: (id) => new URL(`/unsubscribe/${unsubscribeToken(secret, id)}`, publicEnv.NEXT_PUBLIC_APP_URL).toString() },
     guarded.access,
-    guarded.body.closing?.rating,
+    reviews ? guarded.body.closing?.rating : undefined,
+    guarded.access.purpose,
   ).catch(() => undefined);
   // Generic push notifications (only to members who switched them on), after the response is sent.
   const workspaceId = guarded.access.workspaceId;
-  const hasReferrals = guarded.body.referrals.length > 0;
+  const hasReferrals = reviews && guarded.body.referrals.length > 0;
   after(async () => {
     await pushToWorkspace(workspaceId, "client_completed").catch(() => undefined);
     if (hasReferrals) await pushToWorkspace(workspaceId, "referral_received").catch(() => undefined);

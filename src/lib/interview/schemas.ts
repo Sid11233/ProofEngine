@@ -1,12 +1,11 @@
 import { z } from "zod";
 import { referralSchema } from "@/lib/referrals/schemas";
 import { closingSchema } from "./closing";
-import { CONSENT_VERSION } from "./consent";
 
 export const tokenSchema = z.string().regex(/^[A-Za-z0-9_-]{43}$/);
 
 export const startSchema = z
-  .object({ token: tokenSchema, consent: z.literal(true), consentVersion: z.literal(CONSENT_VERSION), turnstileToken: z.string().max(2048).optional() })
+  .object({ token: tokenSchema, consent: z.literal(true), consentVersion: z.string().min(1).max(50), turnstileToken: z.string().max(2048).optional() })
   .strict();
 
 export const messageSchema = z
@@ -16,7 +15,8 @@ export const messageSchema = z
 export const finishSchema = z
   .object({
     token: tokenSchema,
-    publishPermission: z.enum(["full", "first_name", "anonymous"]),
+    // Reviews need it; onboarding links ignore it (checked in finishInterview).
+    publishPermission: z.enum(["full", "first_name", "anonymous"]).optional(),
     referrals: z.array(referralSchema).max(3).default([]),
     closing: closingSchema.optional(),
   })

@@ -35,7 +35,7 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="space-y-6">
-      <PageHeader title={String(client.name)} subtitle={client.website_url ? <ExternalLink href={String(client.website_url)}>{String(client.website_url)}</ExternalLink> : "Client"} action={<ButtonLink variant="secondary" href="/app/clients">All clients</ButtonLink>} />
+      <PageHeader title={String(client.name)} subtitle={client.website_url ? <ExternalLink href={String(client.website_url)}>{String(client.website_url)}</ExternalLink> : "Client"} action={<span className="flex gap-2"><ButtonLink variant="secondary" href="/app/clients">All clients</ButtonLink>{canEdit ? <ButtonLink href={`/app/onboarding/new?client=${id}`}>Send onboarding</ButtonLink> : null}</span>} />
       <Card aria-labelledby="projects">
         <SectionLabel id="projects">Projects</SectionLabel>
         {!projects?.length ? <p className="mt-3 text-sm text-muted">No projects yet.</p> : (

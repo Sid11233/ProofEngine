@@ -60,6 +60,8 @@ describe("resolveInterview", () => {
       clientFirstName: "Casey",
       questions: [{ id: "q1", text: "What did Acme do?" }],
       consentVersion: expect.any(String),
+      consentText: expect.any(String),
+      purpose: "review",
     });
     // Nothing about the client's email, other interviews or members can leak through the view.
     expect(JSON.stringify(result.access.view)).not.toMatch(/email|ws-1|req-1/);
