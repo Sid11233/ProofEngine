@@ -15,6 +15,7 @@ import { AssetsPanel, assetSrc, type AssetView } from "./assets-panel";
 import { DemoPlayer } from "./demo-player";
 import { Field, TextArea, TextInput } from "./fields";
 import { SceneForm } from "./scene-forms";
+import { parseImport } from "@/lib/demos/import";
 
 export interface EditorDemo {
   id: string;
@@ -58,6 +59,8 @@ export function DemoEditor({ demo, assets, role, origins, publicBase }: { demo: 
   const [findings, setFindings] = useState<TextFinding[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [newOrigin, setNewOrigin] = useState("");
+  const [importText, setImportText] = useState("");
+  const [importMessage, setImportMessage] = useState<{ ok: boolean; text: string }>();
   const [busy, setBusy] = useState<string | null>(null);
   const [rev, setRev] = useState(0);
   const latest = useRef({ title, scenes, settings, attested, redacted });
@@ -121,6 +124,29 @@ export function DemoEditor({ demo, assets, role, origins, publicBase }: { demo: 
       {demo.status === "published" ? <Callout tone="info">This demo is live. Unpublish it to make changes.</Callout> : null}
       {problems.length ? <Callout tone="warn"><ul className="list-disc pl-4">{problems.slice(0, 6).map((p, i) => <li key={i}>{p}</li>)}</ul></Callout> : null}
       {findings.length ? <Callout tone="warn">Some text looks like it may contain private details ({[...new Set(findings.flatMap((f) => f.kinds))].join(", ")}). Check {findings.length === 1 ? "this step" : "these steps"}: {findings.map((f) => f.path.replace(/^scenes\.(\d+).*/, (_, n) => `step ${Number(n) + 1}`)).filter((v, i, a) => a.indexOf(v) === i).join(", ")}.</Callout> : null}
+
+      {!locked ? (
+        <Card aria-labelledby="import">
+          <SectionLabel id="import">Import steps from your AI</SectionLabel>
+          <details className="mt-3">
+            <summary className="cursor-pointer text-sm font-medium">Paste what your assistant wrote</summary>
+            <div className="mt-3 space-y-3">
+              <p className="text-sm text-muted">Chat and workflow steps only. They are added after your current steps and checked like anything you type. <a href="/app/guides/ai-demo" className="underline underline-offset-2">How to get them from Claude</a>.</p>
+              <TextArea rows={6} value={importText} onChange={(e) => { setImportText(e.target.value); setImportMessage(undefined); }} aria-label="Pasted steps" maxLength={100000} />
+              <div className="flex flex-wrap items-center gap-3">
+                <Button variant="secondary" disabled={importText.trim() === ""} onClick={() => {
+                  const result = parseImport(importText, 40 - scenes.length);
+                  if (!result.ok) return setImportMessage({ ok: false, text: result.message });
+                  changeScenes((l) => [...l, ...result.scenes]);
+                  setImportText("");
+                  setImportMessage({ ok: true, text: `${result.scenes.length} step${result.scenes.length === 1 ? "" : "s"} added below. Read them before you publish.` });
+                }}>Import</Button>
+                <p role="status" aria-live="polite" className={`text-sm ${importMessage?.ok ? "text-[#166534]" : "text-[#b42318]"}`}>{importMessage?.text ?? ""}</p>
+              </div>
+            </div>
+          </details>
+        </Card>
+      ) : null}
 
       <Card aria-labelledby="images">
         <SectionLabel id="images">Images</SectionLabel>

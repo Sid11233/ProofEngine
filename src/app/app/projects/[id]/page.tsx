@@ -71,6 +71,12 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         <div className="mt-3"><ButtonLink variant="secondary" href={`/app/projects/${id}/posts`}>Open posts and carousels</ButtonLink></div>
       </Card>
 
+      <Card aria-labelledby="ai-demo-card">
+        <SectionLabel id="ai-demo-card">Demo from this project</SectionLabel>
+        <p className="mt-1 text-sm text-muted">Let your own AI assistant read the project and write demo steps. We show you how to connect it, and give you the request to paste.</p>
+        <div className="mt-3"><ButtonLink variant="secondary" href={`/app/guides/ai-demo?project=${id}`}>Build a demo with your AI</ButtonLink></div>
+      </Card>
+
       <Card aria-labelledby="feedback">
         <SectionLabel id="feedback">Feedback</SectionLabel>
         <p className="mt-1 text-sm text-muted">What the client said about this project. Plain text; it is never changed or sent anywhere on its own.</p>
