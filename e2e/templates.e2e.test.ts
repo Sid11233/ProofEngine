@@ -31,7 +31,7 @@ async function seed(userId: string, plan: "free" | "pro") {
 }
 
 describe("the template gallery", () => {
-  it("shows five templates with lock badges by plan, filters by category, and switching never touches the content", async () => {
+  it("shows eleven templates with lock badges by plan, filters by category, and switching never touches the content", async () => {
     const owner = await createUser(stack.admin, "tpl-owner");
     const s = await seed(owner.id, "free");
     const page = await newPage(stack);
@@ -41,20 +41,20 @@ describe("the template gallery", () => {
 
     await page.goto(`${BASE}/app/case-studies/${s.studyId}/template`);
     await page.getByRole("heading", { name: "Choose a template" }).waitFor();
-    expect(await page.getByRole("listitem").filter({ has: page.getByRole("heading", { level: 2 }) }).count()).toBe(5);
+    expect(await page.getByRole("listitem").filter({ has: page.getByRole("heading", { level: 2 }) }).count()).toBe(11);
 
-    // Free workspace: 2 free templates open, 3 pro templates locked.
-    expect(await page.getByText(/^Locked: Pro$/).count()).toBe(3);
-    expect(await page.getByText(/^Free$/).count()).toBe(2);
+    // Free workspace: 4 free templates open, 7 pro templates locked.
+    expect(await page.getByText(/^Locked: Pro$/).count()).toBe(7);
+    expect(await page.getByText(/^Free$/).count()).toBe(4);
     await page.getByText("Classic").first().waitFor();
     // The thumbnails use the owner's own content (rendered, hidden from assistive technology).
-    expect(await page.locator("[aria-hidden=true] h1", { hasText: "Faster onboarding for Acme" }).count()).toBe(5);
+    expect(await page.locator("[aria-hidden=true] h1", { hasText: "Faster onboarding for Acme" }).count()).toBe(11);
 
     // Category filter.
     await page.getByRole("button", { name: "story" }).click();
-    expect(await page.getByRole("heading", { level: 2 }).count()).toBe(2);
+    expect(await page.getByRole("heading", { level: 2 }).count()).toBe(4);
     await page.getByRole("button", { name: "all" }).click();
-    expect(await page.getByRole("heading", { level: 2 }).count()).toBe(5);
+    expect(await page.getByRole("heading", { level: 2 }).count()).toBe(11);
 
     const before = (await stack.admin.from("case_studies").select("content, current_version, status").eq("id", s.studyId).single()).data;
 

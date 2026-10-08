@@ -21,7 +21,7 @@ beforeAll(async () => {
   ws = String((await owner.client.rpc("create_workspace", { name: "Tpl Co", type: "agency" })).data);
   await admin.from("workspace_members").insert({ workspace_id: ws, user_id: viewer.id, role: "viewer" });
   await outsider.client.rpc("create_workspace", { name: "Tpl Other", type: "agency" });
-  rows = ((await admin.from("templates").select("*").like("name", "%").in("name", ["Classic", "Minimal", "Before and After", "Timeline Story", "SaaS Switch Story"])).data ?? []) as Array<Record<string, unknown>>;
+  rows = ((await admin.from("templates").select("*").like("name", "%").in("name", ["Classic", "Minimal", "Before and After", "Timeline Story", "SaaS Switch Story", "Clean Cards", "Midnight", "Results First", "Testimonial First", "Editorial", "Agency Win"])).data ?? []) as Array<Record<string, unknown>>;
 }, 60_000);
 
 afterAll(async () => {
@@ -32,8 +32,8 @@ afterAll(async () => {
 });
 
 describe("seeded templates", () => {
-  it("has the five templates from the plan, all valid", () => {
-    expect(rows).toHaveLength(5);
+  it("has the eleven templates, all valid", () => {
+    expect(rows).toHaveLength(11);
     const parsed = rows.map(parseTemplate);
     expect(parsed.every((t) => t !== null)).toBe(true);
     const byName = Object.fromEntries((parsed as Template[]).map((t) => [t.name, t]));
@@ -42,6 +42,12 @@ describe("seeded templates", () => {
     expect(byName["Before and After"]).toMatchObject({ tier: "pro", layout: "before-after" });
     expect(byName["Timeline Story"]).toMatchObject({ tier: "pro", layout: "timeline" });
     expect(byName["SaaS Switch Story"]).toMatchObject({ tier: "pro", layout: "saas-switch" });
+    expect(byName["Clean Cards"]).toMatchObject({ tier: "free", layout: "cards" });
+    expect(byName.Midnight).toMatchObject({ tier: "free", layout: "classic", theme: { mode: "dark" } });
+    expect(byName["Results First"]).toMatchObject({ tier: "pro", layout: "spotlight" });
+    expect(byName["Testimonial First"]).toMatchObject({ tier: "pro", layout: "quote-led" });
+    expect(byName.Editorial).toMatchObject({ tier: "pro", layout: "editorial" });
+    expect(byName["Agency Win"]).toMatchObject({ tier: "pro", layout: "spotlight" });
   });
 
   it("are readable when signed in, never to anonymous, and never writable from the client", async () => {
