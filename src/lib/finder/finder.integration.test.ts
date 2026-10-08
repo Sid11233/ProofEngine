@@ -35,16 +35,28 @@ afterAll(async () => {
 }, 120_000);
 
 describe("the global communities list", () => {
-  it("is seeded with 40 placeholders marked as needing verification, all https", async () => {
-    const { data } = await admin.from("communities").select("url, needs_verification, name").like("name", "[Placeholder]%");
-    expect(data).toHaveLength(40);
-    expect(data?.every((r) => r.needs_verification === true && /^https:\/\//.test(String(r.url)))).toBe(true);
+  it("is seeded with real communities: read-from-the-source ones verified and dated, the rest hidden until someone checks them", async () => {
+    const { data } = await admin.from("communities").select("name, url, platform, needs_verification, last_verified_at, rules_summary, self_promo_policy").eq("active", true);
+    const rows = data ?? [];
+    expect(rows.some((r) => String(r.name).startsWith("[Placeholder]"))).toBe(false);
+    expect(rows.some((r) => /example\.com|example\.test/.test(String(r.url)))).toBe(false);
+    expect(rows.every((r) => /^https:\/\/[a-z0-9.-]+\//.test(String(r.url)))).toBe(true);
+    const verified = rows.filter((r) => r.needs_verification === false);
+    expect(verified.length).toBeGreaterThanOrEqual(10);
+    // A verified entry says where its rules were read and when, and has a promotion policy.
+    for (const r of verified) {
+      expect(r.last_verified_at, String(r.name)).not.toBeNull();
+      expect(String(r.rules_summary), String(r.name)).toMatch(/Source/);
+      expect(String(r.self_promo_policy).length, String(r.name)).toBeGreaterThan(10);
+    }
+    expect(rows.filter((r) => r.needs_verification === true).every((r) => r.last_verified_at === null)).toBe(true);
+    for (const name of ["Hacker News (Show HN)", "Shopify Community", "Product Hunt forums", "Superpath"]) expect(verified.map((r) => r.name)).toContain(name);
   });
 
   it("is readable by any signed-in user (active entries only) and by nobody who is signed out", async () => {
     for (const u of [owner, viewer, other]) {
       const rows = rowsOf(await u.client.from("communities").select("id, active"));
-      expect(rows.length).toBeGreaterThanOrEqual(40);
+      expect(rows.length).toBeGreaterThanOrEqual(25);
       expect(rows.every((r) => r.active === true), "an inactive community was visible").toBe(true);
     }
     expect(rowsOf(await anon.from("communities").select("id"))).toHaveLength(0);
@@ -56,7 +68,7 @@ describe("the global communities list", () => {
       expect(wasBlocked(await u.client.from("communities").update({ url: "https://evil.example" }).eq("id", C1).select()), `${who} updated`).toBe(true);
       expect(wasBlocked(await u.client.from("communities").delete().eq("id", C1).select()), `${who} deleted`).toBe(true);
     }
-    expect((await admin.from("communities").select("url").eq("id", C1).single()).data?.url).toMatch(/^https:\/\/example\.com\/placeholder\//);
+    expect((await admin.from("communities").select("url").eq("id", C1).single()).data?.url).toBe("https://news.ycombinator.com/show");
   });
 
   it("refuses non-https links and oversized fields even from the service role", async () => {
@@ -122,7 +134,7 @@ describe("loadFinder", () => {
   it("ranks by the workspace's niche, drops non-https rows and returns the caller's own tracker only", async () => {
     const view = await loadFinder(owner.client, { id: wsA, niche: "SaaS startup", audience: "Founders" }, { includeTracker: true });
     expect(view.hasNiche).toBe(true);
-    expect(view.communities.length).toBeGreaterThanOrEqual(40);
+    expect(view.communities.length).toBeGreaterThanOrEqual(25);
     expect(view.communities[0].niches).toContain("saas");
     expect(view.communities[0].score).toBeGreaterThan(view.communities[view.communities.length - 1].score);
     expect(view.tracker.get(C1)?.status).toBe("dropped");

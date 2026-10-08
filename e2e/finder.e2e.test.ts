@@ -4,19 +4,23 @@ import { loadLocalConfig, makeClient } from "../supabase/tests/isolation/harness
 
 let stack: Stack;
 let platform: Awaited<ReturnType<typeof createUser>>;
-// Five communities are marked verified for the tests that need something visible to a normal user; they are put back afterwards.
+// The tests need exactly five verified communities (the real seed has more), so the verified flags are set to a known
+// state here and put back exactly as they were afterwards.
 let verified: string[] = [];
+let snapshot: Array<{ id: string; needs_verification: boolean; last_verified_at: string | null }> = [];
 
 beforeAll(async () => {
   platform = await createUser(makeClient(loadLocalConfig(), "service"), "fd-platform");
   stack = await startStack({ PLATFORM_ADMIN_EMAILS: platform.email });
-  const { data } = await stack.admin.from("communities").select("id").eq("needs_verification", true).order("name").limit(5);
-  verified = (data ?? []).map((c) => String(c.id));
+  const { data } = await stack.admin.from("communities").select("id, needs_verification, last_verified_at").order("name");
+  snapshot = (data ?? []).map((c) => ({ id: String(c.id), needs_verification: c.needs_verification === true, last_verified_at: c.last_verified_at ? String(c.last_verified_at) : null }));
+  verified = snapshot.slice(0, 5).map((c) => c.id);
+  await stack.admin.from("communities").update({ needs_verification: true, last_verified_at: null }).not("id", "in", `(${verified.join(",")})`);
   await stack.admin.from("communities").update({ needs_verification: false, last_verified_at: new Date().toISOString() }).in("id", verified);
 }, 120_000);
 
 afterAll(async () => {
-  await stack.admin.from("communities").update({ needs_verification: true, last_verified_at: null }).in("id", verified);
+  for (const c of snapshot) await stack.admin.from("communities").update({ needs_verification: c.needs_verification, last_verified_at: c.last_verified_at }).eq("id", c.id);
   await stopStack(stack);
 });
 
@@ -95,12 +99,12 @@ describe("community finder", () => {
   it("shows platform operators every community, including unverified ones, and lets them filter by platform", async () => {
     const page = await open(platform.email, platform.password);
     const cards = page.getByTestId("community");
-    expect(await cards.count()).toBeGreaterThanOrEqual(40);
-    expect(await page.getByText("Needs verification").count()).toBeGreaterThanOrEqual(30);
+    expect(await cards.count()).toBeGreaterThanOrEqual(25);
+    expect(await page.getByText("Needs verification").count()).toBeGreaterThanOrEqual(20);
     await page.getByRole("button", { name: "Reddit" }).click();
     const reddit = await cards.count();
     expect(reddit).toBeGreaterThan(0);
-    expect(reddit).toBeLessThan(40);
+    expect(reddit).toBeLessThan(snapshot.length);
     for (const text of await cards.allTextContents()) expect(text.toLowerCase()).toContain("reddit");
   }, 180_000);
 
