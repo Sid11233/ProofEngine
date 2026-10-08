@@ -49,11 +49,11 @@ export async function guardInterviewRequest<S extends z.ZodType>(request: Reques
 }
 
 /** Same front door for the multipart upload endpoint. */
-export async function guardInterviewUpload(request: Request): Promise<Guarded<FormData>> {
+export async function guardInterviewUpload(request: Request, maxBytes: number = MAX_MULTIPART_BYTES): Promise<Guarded<FormData>> {
   const type = request.headers.get("content-type") ?? "";
   if (!type.toLowerCase().startsWith("multipart/form-data")) return { ok: false, response: json({ error: "invalid" }, 400) };
 
-  const bytes = await readLimited(request, MAX_MULTIPART_BYTES).catch(() => null);
+  const bytes = await readLimited(request, maxBytes).catch(() => null);
   if (bytes === null) return { ok: false, response: json({ error: "too_large" }, 413) };
 
   let form: FormData;

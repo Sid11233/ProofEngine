@@ -35,6 +35,13 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   const { data: transcript } = onboarding && interview
     ? await supabase.from("interview_messages").select("id, role, content").eq("interview_id", interview.id).order("created_at").order("id")
     : { data: null };
+  // Voice answers (kept 30 days): the recording and the written answer the client confirmed from it.
+  const { data: voice } = interview
+    ? await supabase.from("interview_voice").select("id, message_id, created_at, expires_at").eq("interview_id", interview.id).gt("expires_at", new Date().toISOString()).order("created_at")
+    : { data: null };
+  const voiceMessageIds = (voice ?? []).flatMap((v) => (v.message_id ? [String(v.message_id)] : []));
+  const { data: voiceMessages } = voiceMessageIds.length ? await supabase.from("interview_messages").select("id, content").in("id", voiceMessageIds) : { data: [] };
+  const answerOf = new Map((voiceMessages ?? []).map((m) => [String(m.id), String(m.content)]));
   const { data: closing } = !onboarding && interview
     ? await supabase.from("interview_closing").select("rating, comment, contact_email, contact_phone, company, job_title").eq("interview_id", interview.id).maybeSingle()
     : { data: null };
@@ -59,6 +66,21 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
           </div>
         ))}
       </dl>
+      {voice && voice.length > 0 && (
+        <section aria-labelledby="voice-heading" className="space-y-3 rounded-md border border-neutral-200 p-4 text-sm dark:border-neutral-800">
+          <h2 id="voice-heading" className="font-semibold">Voice answers</h2>
+          <p className="text-neutral-600 dark:text-neutral-400">The client recorded these. Each recording is deleted 30 days after it was made. The text below is what they confirmed and sent.</p>
+          <ol className="space-y-3">
+            {voice.map((v, i) => (
+              <li key={String(v.id)} className="space-y-1">
+                <p className="text-xs text-neutral-600 dark:text-neutral-400">Recording {i + 1} · deleted {String(v.expires_at).slice(0, 10)}</p>
+                <audio controls preload="none" src={`/api/voice/${String(v.id)}`} className="w-full" aria-label={`Recording ${i + 1}`} />
+                {v.message_id && answerOf.has(String(v.message_id)) ? <p className="whitespace-pre-wrap break-words rounded bg-neutral-100 p-2 dark:bg-neutral-900" data-testid="voice-answer">{answerOf.get(String(v.message_id))}</p> : <p className="text-neutral-600 dark:text-neutral-400">Not sent as an answer.</p>}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
       {closing && (
         <section aria-labelledby="closing-heading" className="space-y-2 rounded-md border border-neutral-200 p-4 text-sm dark:border-neutral-800">
           <h2 id="closing-heading" className="font-semibold">Feedback and details from the client</h2>

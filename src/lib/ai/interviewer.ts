@@ -4,6 +4,7 @@ import type { RateLimiter } from "@/lib/security/rate-limit-memory";
 import type { AiClient } from "./client";
 import { validateModelText, type ReplyMode } from "./guard";
 import { buildSystemPrompt, buildTurnMessage, type TranscriptLine } from "./prompts";
+import { attachVoice } from "@/lib/interview/voice";
 import { normalizeAnswer } from "./sanitize";
 
 // The server, not the model, runs the interview: it owns the question list, the
@@ -139,7 +140,7 @@ async function modelText(
 }
 
 /** One turn: save the answer, build a reply, save it, advance. */
-export async function answerQuestion(deps: InterviewerDeps, access: InterviewAccess, rawAnswer: string): Promise<TurnResult> {
+export async function answerQuestion(deps: InterviewerDeps, access: InterviewAccess, rawAnswer: string, voiceId?: string): Promise<TurnResult> {
   const interviewId = access.interviewId;
   if (!interviewId) return { ok: false, error: "closed" };
   const total = access.view.questions.length;
@@ -153,6 +154,9 @@ export async function answerQuestion(deps: InterviewerDeps, access: InterviewAcc
   });
   const row = Array.isArray(saved.data) ? saved.data[0] : null;
   if (saved.error || !row) return { ok: false, error: rpcErrorKind(saved.error?.code) };
+
+  // A spoken answer: tie the recording to this message (the written text is what the client reviewed and sent).
+  if (voiceId && row.message_id) await attachVoice(deps.admin, access, voiceId, String(row.message_id));
 
   const index = Number(row.question_index);
   const probes = Number(row.probe_count);

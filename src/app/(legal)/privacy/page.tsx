@@ -36,6 +36,7 @@ export default function PrivacyPage() {
 
       <h2>AI</h2>
       <p>Interview questions are phrased and case studies are drafted with AI models from our subprocessor Anthropic. Only the text of a client&rsquo;s answers is sent: never names, emails, tokens or ids. The model does not decide what is published: every number and quote must match the client&rsquo;s own words, and the client approves the final page. We do not use customer or client content to train models.</p>
+      <p>A client may choose to answer by voice. The recording is sent to our speech-to-text subprocessor OpenAI to be written out, and the client reads and corrects the text before sending it. The business that asked can listen to the recording for 30 days, after which it is deleted automatically; the written answer is kept like any other answer.</p>
 
       <h2>Who receives data</h2>
       <p>Only the companies listed on the <Link href="/subprocessors" className="underline">subprocessors page</Link>, the customer who invited you to an interview, and, for pages the client approved, the public. We do not sell personal data.</p>

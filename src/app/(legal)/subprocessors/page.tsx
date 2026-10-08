@@ -7,6 +7,7 @@ export const SUBPROCESSORS = [
   { name: "Supabase", purpose: "Database, sign-in (authentication) and private file storage", data: "Account and workspace data, interviews and transcripts, case studies, uploaded files", region: "To be confirmed (the region of the hosted project)" },
   { name: "Vercel", purpose: "Application hosting and content delivery", data: "Requests to the app and public pages (IP addresses in infrastructure logs)", region: "To be confirmed" },
   { name: "Anthropic", purpose: "AI models that phrase interview questions and draft case studies", data: "The text of a client's answers. Names, email addresses, tokens and ids are never sent.", region: "United States" },
+  { name: "OpenAI (speech to text)", purpose: "Writing out voice answers a client chooses to record (only if enabled)", data: "The audio of a recording only. Names, email addresses, tokens and ids are never sent.", region: "United States" },
   { name: "Stripe", purpose: "Subscription payments and invoices", data: "Workspace owner billing details (card data goes to Stripe only, never to us)", region: "United States / EU" },
   { name: "Resend", purpose: "Transactional email (interview invitations, approval requests, reminders, notifications)", data: "Recipient email address and the message", region: "United States" },
   { name: "Upstash", purpose: "Rate limiting (abuse protection)", data: "Keyed hashes derived from IP addresses and tokens, held for minutes to hours", region: "To be confirmed" },

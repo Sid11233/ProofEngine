@@ -4,7 +4,7 @@ import { InterviewApp } from "@/components/interview/interview-app";
 import { resolveInterview } from "@/lib/interview-access";
 import { publicEnv } from "@/lib/security/env.public";
 import { loadInitialState } from "@/lib/interview/state";
-import { breakerTripped } from "@/lib/interview/server";
+import { breakerTripped, voiceConfigured } from "@/lib/interview/server";
 import { MAINTENANCE_MESSAGE } from "@/lib/interview/breaker";
 
 // Every bad link gets the same 404, via resolveInterview(). Headers (noindex, no-referrer,
@@ -52,6 +52,7 @@ export default async function InterviewPage({ params }: { params: Promise<{ toke
       consentVersion={access.view.consentVersion}
       questions={access.view.questions}
       purpose={access.view.purpose}
+      voiceEnabled={voiceConfigured()}
       turnstileSiteKey={publicEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
       nonce={(await headers()).get("x-nonce") ?? undefined}
       initial={initial}

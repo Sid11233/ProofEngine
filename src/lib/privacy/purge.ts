@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { purgeExpiredVoice } from "@/lib/interview/voice";
 import { deleteWorkspaceFiles, removeFiles } from "./files";
 
 // The daily purge job. Each step is independent: one workspace that fails (storage down, a guard) is
@@ -8,11 +9,12 @@ export interface PurgeSummary {
   workspaces: number;
   accounts: number;
   staleRequests: number;
+  voiceRecordings: number;
   failures: number;
 }
 
 export async function runPurge(admin: SupabaseClient): Promise<PurgeSummary> {
-  const summary: PurgeSummary = { workspaces: 0, accounts: 0, staleRequests: 0, failures: 0 };
+  const summary: PurgeSummary = { workspaces: 0, accounts: 0, staleRequests: 0, voiceRecordings: 0, failures: 0 };
 
   // 1. Workspaces whose 30 day grace period is over: files first, then the rows.
   const { data: workspaces } = await admin.rpc("due_workspace_deletions");
@@ -47,6 +49,13 @@ export async function runPurge(admin: SupabaseClient): Promise<PurgeSummary> {
     } catch {
       summary.failures += 1;
     }
+  }
+
+  // 4. Voice recordings older than their 30 days: files first, then rows.
+  try {
+    summary.voiceRecordings = await purgeExpiredVoice(admin);
+  } catch {
+    summary.failures += 1;
   }
   return summary;
 }
