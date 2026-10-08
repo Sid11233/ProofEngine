@@ -6,6 +6,7 @@ import { isReachable } from "@/lib/referrals/schemas";
 import { TurnstileWidget } from "@/components/turnstile-widget";
 import { useEffect, useRef, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { isBareStarter, startersFor } from "@/lib/interview/starters";
 
 type Role = "client" | "bot";
 interface Message {
@@ -23,7 +24,7 @@ export interface InterviewAppProps {
   clientFirstName: string;
   consentText: string;
   consentVersion: string;
-  questions: Array<{ id: string; text: string }>;
+  questions: Array<{ id: string; text: string; key?: string }>;
   turnstileSiteKey?: string;
   nonce?: string;
   initial: { messages: Message[]; progress: Progress; done: boolean } | null;
@@ -85,6 +86,7 @@ export function InterviewApp(props: InterviewAppProps) {
     return (
       <ChatScreen
         token={props.token}
+        questions={props.questions}
         messages={messages}
         progress={progress}
         onMessages={setMessages}
@@ -167,10 +169,11 @@ function IntroScreen({
 }
 
 function ChatScreen({
-  token, messages, progress, onMessages, onProgress, onDone, onSwitchToForm,
+  token, questions, messages, progress, onMessages, onProgress, onDone, onSwitchToForm,
 }: {
   onSwitchToForm: () => void;
   token: string;
+  questions: Array<{ id: string; text: string; key?: string }>;
   messages: Message[];
   progress: Progress;
   onMessages: (m: Message[]) => void;
@@ -254,6 +257,13 @@ function ChatScreen({
           <button type="button" className={buttonPrimary} onClick={onDone}>Continue</button>
         ) : (
           <form onSubmit={send} className="space-y-2">
+            {draft === "" ? (
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Sentence starters">
+                {startersFor(questions[progress.current - 1]?.key).map((starter) => (
+                  <button key={starter} type="button" disabled={pending} onClick={() => setDraft(`${starter.replace(/…$/, "")} `)} className="min-h-11 rounded-full border border-neutral-300 px-3 text-sm hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800">{starter}</button>
+                ))}
+              </div>
+            ) : null}
             <label htmlFor="answer" className="sr-only">Your answer</label>
             <textarea
               id="answer"
@@ -271,7 +281,7 @@ function ChatScreen({
             />
             <div className="flex items-center justify-between gap-3">
               <span id="answer-count" className="text-sm text-neutral-600 dark:text-neutral-400">{draft.length} / 1000</span>
-              <button type="submit" disabled={pending || draft.trim() === ""} className={`${buttonPrimary} !w-auto`}>Send</button>
+              <button type="submit" disabled={pending || isBareStarter(draft) || isBareStarter(draft.replace(/\s+$/, "…"))} className={`${buttonPrimary} !w-auto`}>Send</button>
             </div>
           </form>
         )}
@@ -283,6 +293,8 @@ function ChatScreen({
 function ClosingScreen({ token, workspaceName, onFinished }: { token: string; workspaceName: string; onFinished: () => void }) {
   const [permission, setPermission] = useState("");
   const [referrals, setReferrals] = useState([{ name: "", contact: "" }]);
+  const [rating, setRating] = useState<number>();
+  const [details, setDetails] = useState({ comment: "", email: "", phone: "", company: "", jobTitle: "" });
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
 
@@ -295,9 +307,14 @@ function ClosingScreen({ token, workspaceName, onFinished }: { token: string; wo
     // A referral needs both fields; half-filled rows are ignored rather than guessed at.
     const filled = referrals.filter((r) => r.name.trim() && r.contact.trim());
     if (filled.some((r) => !isReachable(r.contact.trim()))) return setError("Please enter a valid email address or phone number for the person you are suggesting, or clear that row.");
+    if (details.email.trim() && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(details.email.trim())) return setError("Please enter a valid email address, or clear that box.");
     setError(undefined);
     setPending(true);
-    const result = await post("/api/interview/finish", { token, publishPermission: permission, referrals: filled });
+    const closing = {
+      ...(rating ? { rating } : {}),
+      ...Object.fromEntries(Object.entries(details).filter(([, v]) => v.trim() !== "").map(([k, v]) => [k, v.trim()])),
+    };
+    const result = await post("/api/interview/finish", { token, publishPermission: permission, referrals: filled, ...(Object.keys(closing).length ? { closing } : {}) });
     setPending(false);
     if (!result.ok) return setError(result.error);
     onFinished();
@@ -318,6 +335,32 @@ function ClosingScreen({ token, workspaceName, onFinished }: { token: string; wo
               <input type="radio" name="permission" value={value} checked={permission === value} onChange={() => setPermission(value)} className="size-5" />
               {label}
             </label>
+          ))}
+        </fieldset>
+
+        <fieldset className="space-y-3">
+          <legend className="font-medium">How was working with {workspaceName}? (optional)</legend>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">This is private feedback for {workspaceName}. It is not published.</p>
+          <div className="flex gap-2" role="radiogroup" aria-label="Rating out of 5">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button key={n} type="button" role="radio" aria-checked={rating === n} aria-label={`${n} out of 5`} onClick={() => setRating(rating === n ? undefined : n)}
+                className={`inline-flex size-11 items-center justify-center rounded-md border text-base font-medium ${rating === n ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900" : "border-neutral-300 dark:border-neutral-700"}`}>{n}</button>
+            ))}
+          </div>
+          <div>
+            <label htmlFor="closing-comment" className="block text-sm font-medium">Anything else you would like to tell them?</label>
+            <textarea id="closing-comment" className={`${inputClass} resize-y`} rows={3} maxLength={1000} value={details.comment} onChange={(e) => setDetails({ ...details, comment: e.target.value })} />
+          </div>
+        </fieldset>
+
+        <fieldset className="space-y-3">
+          <legend className="font-medium">Your details (optional)</legend>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">Only {workspaceName} sees these, so they can credit your company correctly and stay in touch.</p>
+          {([["company", "Company", "organization"], ["jobTitle", "Your role", "organization-title"], ["email", "Best email to reach you", "email"], ["phone", "Phone", "tel"]] as const).map(([field, label, auto]) => (
+            <div key={field}>
+              <label htmlFor={`closing-${field}`} className="block text-sm font-medium">{label}</label>
+              <input id={`closing-${field}`} className={inputClass} autoComplete={auto} type={field === "email" ? "email" : field === "phone" ? "tel" : "text"} maxLength={field === "email" ? 320 : field === "phone" ? 40 : 200} value={details[field]} onChange={(e) => setDetails({ ...details, [field]: e.target.value })} />
+            </div>
           ))}
         </fieldset>
 

@@ -185,6 +185,7 @@ async function seedTenant(ws: string, ownerId: string): Promise<Tenant> {
   const second = await signCurrent(admin, String(caseStudy.id));
   await must(admin.from("signature_revocations").insert({ workspace_id: ws, signature_id: second, method: "email_link", reason: "seed" }).select(), "signature_revocations");
   await must(admin.from("text_refinements").insert({ workspace_id: ws, case_study_id: caseStudy.id, version: 1, field_path: "headline", original_text: "a", suggested_text: "b" }).select(), "text_refinements");
+  await must(admin.from("interview_closing").insert({ workspace_id: ws, interview_id: interview.id, rating: 4, comment: "Seed", contact_email: "closing@example.test" }).select(), "interview_closing");
   const client = await must(admin.from("clients").insert({ workspace_id: ws, created_by: ownerId, name: "Seed client", contact_email: "client@example.test" }).select("id").single(), "clients");
   const clientId = String((client as { id: string }).id);
   const project = await must(admin.from("projects").insert({ workspace_id: ws, client_id: clientId, created_by: ownerId, name: "Seed project" }).select("id").single(), "projects");
@@ -515,6 +516,12 @@ const SPECS: Spec[] = [
     appendOnly: true,
     patch: { action: "tampered" },
     insert: (t, actor) => ({ workspace_id: t.ws, actor, action: "injected.event" }),
+  },
+  {
+    table: "interview_closing",
+    readRole: "viewer",
+    patch: { comment: "HACKED" },
+    insert: (t) => ({ workspace_id: t.ws, interview_id: t.interviewId, rating: 1 }),
   },
   {
     table: "clients",

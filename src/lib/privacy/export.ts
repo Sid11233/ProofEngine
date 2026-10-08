@@ -40,6 +40,7 @@ export const EXPORT_SOURCES: Source[] = [
   { file: "signatures.json", table: "signatures", columns: "id, case_study_id, version, signer_name, signer_email, signer_company, signer_role, display_name_choice, consent_text_version, consent_web, consent_social, consent_media, method, content_hash, signed_at", key: "workspace_id", order: "signed_at" },
   { file: "signature_revocations.json", table: "signature_revocations", columns: "*", key: "workspace_id", order: "revoked_at" },
   { file: "text_refinements.json", table: "text_refinements", columns: "*", key: "workspace_id", order: "created_at" },
+  { file: "interview_closing.json", table: "interview_closing", columns: "*", key: "workspace_id", order: "created_at" },
   { file: "clients.json", table: "clients", columns: "*", key: "workspace_id", order: "created_at" },
   { file: "projects.json", table: "projects", columns: "*", key: "workspace_id", order: "created_at" },
   { file: "project_links.json", table: "project_links", columns: "*", key: "workspace_id", order: "created_at" },

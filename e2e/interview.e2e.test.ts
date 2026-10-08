@@ -64,6 +64,12 @@ describe("the client interview on a phone", () => {
     await page.getByLabel("Your answer").fill("x".repeat(5));
     expect((await page.getByRole("button", { name: "Send" }).boundingBox())!.height).toBeGreaterThanOrEqual(44);
 
+    // Sentence starters ("pre-answers") only put words in the box; a bare starter cannot be sent.
+    await page.getByLabel("Your answer").fill("");
+    await page.getByRole("button", { name: "We were struggling with…" }).click();
+    expect(await page.getByLabel("Your answer").inputValue()).toBe("We were struggling with ");
+    expect(await page.getByRole("button", { name: "Send" }).isDisabled()).toBe(true);
+
     // A markup payload is shown as text and never becomes an element.
     const xss = `<img src=x onerror="document.title='pwned'"><script>document.title='pwned'</script> ${LONG}`;
     await page.getByLabel("Your answer").fill(xss);
@@ -89,6 +95,14 @@ describe("the client interview on a phone", () => {
     await page.locator("#ref-contact-0").fill("sam@example.test");
     await page.getByRole("button", { name: "Add another" }).click();
     await page.locator("#ref-name-1").fill("Half Filled");
+    // Private feedback and optional details.
+    await page.getByRole("radio", { name: "4 out of 5" }).click();
+    await page.locator("#closing-comment").fill("Great team <b>really</b>.");
+    await page.locator("#closing-company").fill("Acme Roofing");
+    await page.locator("#closing-email").fill("not-an-email");
+    await page.getByRole("button", { name: "Finish" }).click();
+    await page.getByText("Please enter a valid email address, or clear that box.").waitFor();
+    await page.locator("#closing-email").fill("taylor@acme.test");
     await page.getByRole("button", { name: "Finish" }).click();
     await page.getByRole("heading", { name: "Thank you, Taylor!" }).waitFor();
 
@@ -99,6 +113,8 @@ describe("the client interview on a phone", () => {
     expect(interview).toMatchObject({ status: "completed", consent_given: true, publish_permission: "first_name", message_count: 13 });
     const { data: refs } = await stack.admin.from("referrals").select("referred_name").eq("interview_id", interview?.id);
     expect(refs).toEqual([{ referred_name: "Sam Lee" }]);
+    const { data: closing } = await stack.admin.from("interview_closing").select("rating, comment, company, contact_email, contact_phone").eq("interview_id", interview?.id);
+    expect(closing).toEqual([{ rating: 4, comment: "Great team <b>really</b>.", company: "Acme Roofing", contact_email: "taylor@acme.test", contact_phone: null }]);
     const { data: msgs } = await stack.admin.from("interview_messages").select("content").eq("interview_id", interview?.id).eq("role", "client").order("created_at").limit(1);
     expect(msgs?.[0].content, "the client's words must be stored exactly as typed").toBe(xss);
 
