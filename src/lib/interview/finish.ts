@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { InterviewAccess } from "@/lib/interview-access-core";
+import { hasClosing } from "./closing";
 import type { FinishInput } from "./schemas";
 
 export type FinishResult = { ok: true } | { ok: false; error: "closed" | "not_finished" | "failed" };
@@ -27,6 +28,19 @@ export async function finishInterview(admin: SupabaseClient, access: InterviewAc
         referred_contact: r.contact,
       })),
     );
+  }
+  // Feedback and contact details are optional and best effort: the interview is already finished.
+  if (hasClosing(input.closing)) {
+    await admin.from("interview_closing").insert({
+      workspace_id: access.workspaceId,
+      interview_id: access.interviewId,
+      rating: input.closing.rating ?? null,
+      comment: input.closing.comment ?? null,
+      contact_email: input.closing.email ?? null,
+      contact_phone: input.closing.phone ?? null,
+      company: input.closing.company ?? null,
+      job_title: input.closing.jobTitle ?? null,
+    });
   }
   return { ok: true };
 }

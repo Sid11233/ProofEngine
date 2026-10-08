@@ -30,6 +30,10 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     ? await supabase.from("case_studies").select("id").eq("interview_id", interview.id).maybeSingle()
     : { data: null };
 
+  const { data: closing } = interview
+    ? await supabase.from("interview_closing").select("rating, comment, contact_email, contact_phone, company, job_title").eq("interview_id", interview.id).maybeSingle()
+    : { data: null };
+
   return (
     <div className="max-w-xl space-y-6">
       <div>
@@ -50,6 +54,19 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
           </div>
         ))}
       </dl>
+      {closing && (
+        <section aria-labelledby="closing-heading" className="space-y-2 rounded-md border border-neutral-200 p-4 text-sm dark:border-neutral-800">
+          <h2 id="closing-heading" className="font-semibold">Feedback and details from the client</h2>
+          {closing.rating ? <p>Rated working with you <strong>{Number(closing.rating)} out of 5</strong>.</p> : null}
+          {/* Plain text: the client typed these; pre-wrap keeps line breaks and nothing is read as markup. */}
+          {closing.comment ? <p className="whitespace-pre-wrap rounded bg-neutral-100 p-3 dark:bg-neutral-900" data-testid="closing-comment">{String(closing.comment)}</p> : null}
+          <dl className="space-y-1">
+            {([["Company", closing.company], ["Role", closing.job_title], ["Email", closing.contact_email], ["Phone", closing.contact_phone]] as const).filter(([, v]) => v).map(([term, value]) => (
+              <div key={term} className="flex gap-3"><dt className="w-20 shrink-0 text-neutral-600 dark:text-neutral-400">{term}</dt><dd className="break-all">{String(value)}</dd></div>
+            ))}
+          </dl>
+        </section>
+      )}
       {interview?.status === "completed" && (
         <section aria-labelledby="cs-heading" className="space-y-3 rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
           <h2 id="cs-heading" className="font-semibold">Case study</h2>

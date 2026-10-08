@@ -10,6 +10,8 @@ import { CONSENT_VERSION } from "@/lib/interview/consent";
 export interface InterviewQuestion {
   id: string;
   text: string;
+  /** Which part of the story the question is about (challenge, trigger, solution, results, quote, audience), when known. */
+  key?: string;
 }
 
 /** Safe to hand to the browser. */
@@ -54,9 +56,9 @@ function parseQuestions(raw: unknown, workspaceName: string): InterviewQuestion[
   if (!Array.isArray(raw)) return null;
   const out: InterviewQuestion[] = [];
   for (const item of raw) {
-    const q = item as { id?: unknown; text?: unknown };
+    const q = item as { id?: unknown; text?: unknown; key?: unknown };
     if (typeof q?.id !== "string" || typeof q.text !== "string") return null;
-    out.push({ id: q.id, text: q.text.replaceAll("{{workspace}}", workspaceName) });
+    out.push({ id: q.id, text: q.text.replaceAll("{{workspace}}", workspaceName), ...(typeof q.key === "string" ? { key: q.key } : {}) });
   }
   return out.length > 0 ? out : null;
 }

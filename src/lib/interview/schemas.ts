@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { referralSchema } from "@/lib/referrals/schemas";
+import { closingSchema } from "./closing";
 import { CONSENT_VERSION } from "./consent";
 
 export const tokenSchema = z.string().regex(/^[A-Za-z0-9_-]{43}$/);
@@ -17,6 +18,7 @@ export const finishSchema = z
     token: tokenSchema,
     publishPermission: z.enum(["full", "first_name", "anonymous"]),
     referrals: z.array(referralSchema).max(3).default([]),
+    closing: closingSchema.optional(),
   })
   .strict();
 
