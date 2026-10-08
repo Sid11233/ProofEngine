@@ -145,8 +145,10 @@ export async function generateCaseStudy(
 
   const [messagesResult, requestResult] = await Promise.all([
     supabase.from("interview_messages").select("id, role, content").eq("interview_id", interviewId).eq("workspace_id", workspaceId).order("created_at").order("id"),
-    supabase.from("proof_requests_safe").select("client_name").eq("id", interview.request_id).maybeSingle(),
+    supabase.from("proof_requests_safe").select("client_name, purpose").eq("id", interview.request_id).maybeSingle(),
   ]);
+  // Onboarding answers are for the business only: they never become a case study.
+  if (requestResult.data?.purpose === "onboarding") return { ok: false, error: "not_found" };
   const rows = (messagesResult.data ?? []).map((m) => ({ id: String(m.id), role: String(m.role), content: String(m.content) }));
   const clientMessages: ClientMessage[] = rows
     .filter((r) => r.role === "client")

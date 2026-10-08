@@ -49,33 +49,14 @@ const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).length;
 /** Thin answers get a probe (while the budget lasts); detailed ones move on. */
 export function decideMode(questionKey: string, answer: string, probeCount: number): ReplyMode {
   if (probeCount >= MAX_PROBES_PER_QUESTION) return "advance";
+  // "short" questions ask for a brief fact (a link, a name): never follow up.
+  if (questionKey === "short") return "advance";
   const thin = wordCount(answer) < 15 || (questionKey === "results" && !/\d/.test(answer) && wordCount(answer) < 40);
   return thin ? "probe" : "advance";
 }
 
 export function progressOf(questionIndex: number, total: number): Progress {
   return { current: Math.min(questionIndex + 1, total), total };
-}
-
-interface FlowQuestion {
-  id: string;
-  text: string;
-  key?: string;
-}
-
-/** Questions keep their `key` (challenge, results, ...) server-side only. */
-async function loadFlowKeys(admin: SupabaseClient, flowType: string): Promise<Map<string, string>> {
-  const { data } = await admin
-    .from("question_flows")
-    .select("questions")
-    .is("workspace_id", null)
-    .eq("type", flowType === "saas" ? "saas" : "agency")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  const map = new Map<string, string>();
-  for (const q of (data?.questions as FlowQuestion[] | undefined) ?? []) if (q.key) map.set(q.id, q.key);
-  return map;
 }
 
 const rpcErrorKind = (code: string | undefined): TurnError =>
@@ -146,7 +127,7 @@ async function modelText(
   if (deps.canUseAi && !(await deps.canUseAi(access))) return { text: null, tokens: 0, called: false };
   try {
     const result = await deps.ai.complete({
-      system: buildSystemPrompt(access.view.workspaceName),
+      system: buildSystemPrompt(access.view.workspaceName, access.purpose),
       messages: [{ role: "user", content: buildTurnMessage({ mode, currentQuestion: question.text, position: question.position, total: access.view.questions.length, history }) }],
       maxTokens: MODEL_MAX_TOKENS,
     });
@@ -176,15 +157,15 @@ export async function answerQuestion(deps: InterviewerDeps, access: InterviewAcc
   const index = Number(row.question_index);
   const probes = Number(row.probe_count);
   const question = access.view.questions[Math.min(index, total - 1)];
-  const keys = await loadFlowKeys(deps.admin, access.flowType);
+  const key = question.key ?? "";
 
-  const mode = decideMode(keys.get(question.id) ?? "", answer, probes);
+  const mode = decideMode(key, answer, probes);
   const history = await recentHistory(deps.admin, interviewId, access.workspaceId);
   const generated = await modelText(deps, access, mode, answer, { text: question.text, position: index + 1 }, history);
 
   let reply: string;
   if (mode === "probe") {
-    reply = generated.text ?? (keys.get(question.id) === "results" ? CANNED_RESULTS_PROBE : CANNED_PROBE);
+    reply = generated.text ?? (key === "results" ? CANNED_RESULTS_PROBE : CANNED_PROBE);
   } else {
     const ack = generated.text ?? CANNED_ACKS[index % CANNED_ACKS.length];
     const isLast = index + 1 >= total;

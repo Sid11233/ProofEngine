@@ -1,7 +1,6 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { InterviewApp } from "@/components/interview/interview-app";
-import { CONSENT_TEXT } from "@/lib/interview/consent";
 import { resolveInterview } from "@/lib/interview-access";
 import { publicEnv } from "@/lib/security/env.public";
 import { loadInitialState } from "@/lib/interview/state";
@@ -49,9 +48,10 @@ export default async function InterviewPage({ params }: { params: Promise<{ toke
       token={token}
       workspaceName={access.view.workspaceName}
       clientFirstName={access.view.clientFirstName}
-      consentText={CONSENT_TEXT}
+      consentText={access.view.consentText}
       consentVersion={access.view.consentVersion}
       questions={access.view.questions}
+      purpose={access.view.purpose}
       turnstileSiteKey={publicEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
       nonce={(await headers()).get("x-nonce") ?? undefined}
       initial={initial}

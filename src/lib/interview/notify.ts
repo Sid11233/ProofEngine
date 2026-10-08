@@ -7,7 +7,21 @@ import type { EmailSender } from "@/lib/email/types";
 //     never mailed (anyone holding the link could type someone else's address), only shown to the business.
 //   * The workspace owners and admins get a short alert with a link. No answers, names or contact details travel by email.
 
-export function thankYouEmail({ firstName, workspaceName, unsubscribe }: { firstName: string; workspaceName: string; unsubscribe: string }) {
+export function thankYouEmail({ firstName, workspaceName, unsubscribe, purpose = "review" }: { firstName: string; workspaceName: string; unsubscribe: string; purpose?: "review" | "onboarding" }) {
+  if (purpose === "onboarding") {
+    return {
+      subject: `Thank you from ${workspaceName}`,
+      text: [
+        `Hi ${firstName},`,
+        "",
+        `Thank you for answering ${workspaceName}'s questions. Your answers have been sent to them, and nothing is published.`,
+        "",
+        "You do not need to do anything now. They will be in touch about the next steps.",
+        "",
+        `If you would rather not get emails about this request: ${unsubscribe}`,
+      ].join("\n"),
+    };
+  }
   return {
     subject: `Thank you from ${workspaceName}`,
     text: [
@@ -24,7 +38,13 @@ export function thankYouEmail({ firstName, workspaceName, unsubscribe }: { first
   };
 }
 
-export function ownerAlertEmail({ workspaceName, rating, link }: { workspaceName: string; rating?: number; link: string }) {
+export function ownerAlertEmail({ workspaceName, rating, link, purpose = "review" }: { workspaceName: string; rating?: number; link: string; purpose?: "review" | "onboarding" }) {
+  if (purpose === "onboarding") {
+    return {
+      subject: `A new client finished onboarding for ${workspaceName}`,
+      text: ["A client finished answering your onboarding questions.", "", "Open the request to read their answers:", link].join("\n"),
+    };
+  }
   return {
     subject: `A client finished their interview for ${workspaceName}`,
     text: [
@@ -41,6 +61,7 @@ export async function notifyInterviewFinished(
   ctx: { admin: SupabaseClient; sender: EmailSender | null; appUrl: string; unsubscribeUrl: (requestId: string) => string },
   access: { requestId: string; workspaceId: string },
   rating?: number,
+  purpose: "review" | "onboarding" = "review",
 ): Promise<void> {
   if (!ctx.sender) return;
   const [{ data: request }, { data: workspace }, recipients] = await Promise.all([
@@ -51,8 +72,8 @@ export async function notifyInterviewFinished(
   const workspaceName = String(workspace?.name ?? "your workspace");
   if (request?.client_email) {
     const first = String(request.client_name ?? "").trim().split(/\s+/)[0] || "there";
-    await ctx.sender.send({ to: String(request.client_email), ...thankYouEmail({ firstName: first, workspaceName, unsubscribe: ctx.unsubscribeUrl(access.requestId) }) });
+    await ctx.sender.send({ to: String(request.client_email), ...thankYouEmail({ firstName: first, workspaceName, unsubscribe: ctx.unsubscribeUrl(access.requestId), purpose }) });
   }
-  const alert = ownerAlertEmail({ workspaceName, rating, link: new URL(`/app/requests/${access.requestId}`, ctx.appUrl).toString() });
+  const alert = ownerAlertEmail({ workspaceName, rating, purpose, link: new URL(`/app/requests/${access.requestId}`, ctx.appUrl).toString() });
   for (const to of recipients) await ctx.sender.send({ to, ...alert });
 }

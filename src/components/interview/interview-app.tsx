@@ -24,6 +24,7 @@ export interface InterviewAppProps {
   clientFirstName: string;
   consentText: string;
   consentVersion: string;
+  purpose: "review" | "onboarding";
   questions: Array<{ id: string; text: string; key?: string }>;
   turnstileSiteKey?: string;
   nonce?: string;
@@ -87,6 +88,7 @@ export function InterviewApp(props: InterviewAppProps) {
       <ChatScreen
         token={props.token}
         questions={props.questions}
+        purpose={props.purpose}
         messages={messages}
         progress={progress}
         onMessages={setMessages}
@@ -99,12 +101,14 @@ export function InterviewApp(props: InterviewAppProps) {
   if (phase === "form") {
     return <FormScreen token={props.token} questions={props.questions} fromIndex={progress.current - 1} onBack={() => setPhase("chat")} onDone={() => setPhase("closing")} />;
   }
-  if (phase === "closing") return <ClosingScreen token={props.token} workspaceName={props.workspaceName} onFinished={() => setPhase("thanks")} />;
+  if (phase === "closing") return <ClosingScreen token={props.token} workspaceName={props.workspaceName} purpose={props.purpose} onFinished={() => setPhase("thanks")} />;
   return (
     <Shell>
       <h1 className="text-xl font-semibold">Thank you, {props.clientFirstName}!</h1>
       <p className="mt-3 text-neutral-700 dark:text-neutral-300">
-        Your answers have gone to {props.workspaceName}. Nothing will be published without your approval of the exact wording. You can close this page now.
+        {props.purpose === "onboarding"
+          ? `Your answers have gone to ${props.workspaceName}. They will be in touch about the next steps. You can close this page now.`
+          : `Your answers have gone to ${props.workspaceName}. Nothing will be published without your approval of the exact wording. You can close this page now.`}
       </p>
     </Shell>
   );
@@ -124,7 +128,7 @@ function Alert({ message }: { message?: string }) {
 }
 
 function IntroScreen({
-  token, workspaceName, clientFirstName, consentText, consentVersion, turnstileSiteKey, nonce, onStarted,
+  token, workspaceName, clientFirstName, consentText, consentVersion, purpose, questions, turnstileSiteKey, nonce, onStarted,
 }: InterviewAppProps & { onStarted: (s: { messages: Message[]; progress: Progress }) => void }) {
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string>();
@@ -145,6 +149,13 @@ function IntroScreen({
   return (
     <Shell>
       <h1 className="text-2xl font-semibold">Hi {clientFirstName}</h1>
+      {purpose === "onboarding" ? (<>
+        <p className="mt-3 text-neutral-700 dark:text-neutral-300"><strong>{workspaceName}</strong> is looking forward to working with you. A few quick questions will help them start well.</p>
+        <ul className="mt-4 list-disc space-y-1 pl-5 text-neutral-700 dark:text-neutral-300">
+          <li>It takes about {Math.max(3, Math.ceil(questions.length * 0.6))} minutes: {questions.length} short questions, one at a time.</li>
+          <li>Your answers go to {workspaceName} only. Nothing is published.</li>
+        </ul>
+      </>) : (<>
       <p className="mt-3 text-neutral-700 dark:text-neutral-300">
         <strong>{workspaceName}</strong> would love to hear about your experience working together.
       </p>
@@ -152,7 +163,7 @@ function IntroScreen({
         <li>It takes about 3 minutes: six short questions, one at a time.</li>
         <li>We use your answers to write a short case study about your experience.</li>
         <li>Nothing is published until you have approved the exact wording.</li>
-      </ul>
+      </ul></>)}
       <form onSubmit={start} className="mt-6 space-y-4">
         <Checkbox checked={agreed} onChange={(e) => setAgreed(e.target.checked)} required className="rounded-md border border-neutral-300 p-3">{consentText}</Checkbox>
         <p className="text-sm text-neutral-600 dark:text-neutral-400">
@@ -169,8 +180,9 @@ function IntroScreen({
 }
 
 function ChatScreen({
-  token, questions, messages, progress, onMessages, onProgress, onDone, onSwitchToForm,
+  token, questions, purpose, messages, progress, onMessages, onProgress, onDone, onSwitchToForm,
 }: {
+  purpose: "review" | "onboarding";
   onSwitchToForm: () => void;
   token: string;
   questions: Array<{ id: string; text: string; key?: string }>;
@@ -257,7 +269,7 @@ function ChatScreen({
           <button type="button" className={buttonPrimary} onClick={onDone}>Continue</button>
         ) : (
           <form onSubmit={send} className="space-y-2">
-            {draft === "" ? (
+            {draft === "" && purpose === "review" ? (
               <div className="flex flex-wrap gap-2" role="group" aria-label="Sentence starters">
                 {startersFor(questions[progress.current - 1]?.key).map((starter) => (
                   <button key={starter} type="button" disabled={pending} onClick={() => setDraft(`${starter.replace(/…$/, "")} `)} className="min-h-11 rounded-full border border-neutral-300 px-3 text-sm hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800">{starter}</button>
@@ -281,7 +293,7 @@ function ChatScreen({
             />
             <div className="flex items-center justify-between gap-3">
               <span id="answer-count" className="text-sm text-neutral-600 dark:text-neutral-400">{draft.length} / 1000</span>
-              <button type="submit" disabled={pending || isBareStarter(draft) || isBareStarter(draft.replace(/\s+$/, "…"))} className={`${buttonPrimary} !w-auto`}>Send</button>
+              <button type="submit" disabled={pending || (purpose === "review" ? isBareStarter(draft) || isBareStarter(draft.replace(/\s+$/, "…")) : draft.trim() === "")} className={`${buttonPrimary} !w-auto`}>Send</button>
             </div>
           </form>
         )}
@@ -290,7 +302,8 @@ function ChatScreen({
   );
 }
 
-function ClosingScreen({ token, workspaceName, onFinished }: { token: string; workspaceName: string; onFinished: () => void }) {
+function ClosingScreen({ token, workspaceName, purpose, onFinished }: { token: string; workspaceName: string; purpose: "review" | "onboarding"; onFinished: () => void }) {
+  const onboarding = purpose === "onboarding";
   const [permission, setPermission] = useState("");
   const [referrals, setReferrals] = useState([{ name: "", contact: "" }]);
   const [rating, setRating] = useState<number>();
@@ -303,7 +316,7 @@ function ClosingScreen({ token, workspaceName, onFinished }: { token: string; wo
 
   async function finish(event: React.FormEvent) {
     event.preventDefault();
-    if (!permission) return setError("Please choose how we may credit you.");
+    if (!onboarding && !permission) return setError("Please choose how we may credit you.");
     // A referral needs both fields; half-filled rows are ignored rather than guessed at.
     const filled = referrals.filter((r) => r.name.trim() && r.contact.trim());
     if (filled.some((r) => !isReachable(r.contact.trim()))) return setError("Please enter a valid email address or phone number for the person you are suggesting, or clear that row.");
@@ -314,7 +327,7 @@ function ClosingScreen({ token, workspaceName, onFinished }: { token: string; wo
       ...(rating ? { rating } : {}),
       ...Object.fromEntries(Object.entries(details).filter(([, v]) => v.trim() !== "").map(([k, v]) => [k, v.trim()])),
     };
-    const result = await post("/api/interview/finish", { token, publishPermission: permission, referrals: filled, ...(Object.keys(closing).length ? { closing } : {}) });
+    const result = await post("/api/interview/finish", onboarding ? { token } : { token, publishPermission: permission, referrals: filled, ...(Object.keys(closing).length ? { closing } : {}) });
     setPending(false);
     if (!result.ok) return setError(result.error);
     onFinished();
@@ -324,6 +337,13 @@ function ClosingScreen({ token, workspaceName, onFinished }: { token: string; wo
     <Shell>
       <h1 className="text-xl font-semibold">Almost done</h1>
       <form onSubmit={finish} className="mt-5 space-y-6" noValidate>
+        {onboarding ? (
+          <fieldset className="space-y-3">
+            <legend className="font-medium">Add your logo (optional)</legend>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400">PNG, JPG or WebP, up to 2 MB. It goes to {workspaceName} only.</p>
+            <FileUpload token={token} kind="logo" label="Company logo" />
+          </fieldset>
+        ) : (<>
         <fieldset className="space-y-2">
           <legend className="font-medium">If {workspaceName} publishes your story, how may they credit you?</legend>
           {[
@@ -392,6 +412,8 @@ function ClosingScreen({ token, workspaceName, onFinished }: { token: string; wo
             </button>
           )}
         </fieldset>
+
+        </>)}
 
         <Alert message={error} />
         <button type="submit" className={buttonPrimary} disabled={pending}>{pending ? <span className="inline-flex items-center gap-2"><MagnetSpinner size={18} />Sending...</span> : "Finish"}</button>

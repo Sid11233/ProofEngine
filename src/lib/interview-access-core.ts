@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { RateLimiter } from "@/lib/security/rate-limit-memory";
 import { constantTimeEqualHex, hashToken, isWellFormedToken } from "@/lib/security/tokens";
-import { CONSENT_VERSION } from "@/lib/interview/consent";
+import { consentFor, type InterviewPurpose } from "@/lib/interview/consent";
 
 // The client-facing door. Everything an interview endpoint knows about who is
 // calling comes from here, so it returns as little as possible and says "not found"
@@ -20,6 +20,8 @@ export interface InterviewPublicView {
   clientFirstName: string;
   questions: InterviewQuestion[];
   consentVersion: string;
+  consentText: string;
+  purpose: InterviewPurpose;
 }
 
 /** Server-side only: ids the endpoints need to scope their queries. Never serialise this to a client. */
@@ -29,6 +31,7 @@ export interface InterviewAccess {
   /** Null until the client accepts the consent screen and the interview starts. */
   interviewId: string | null;
   flowType: "agency" | "saas" | "custom";
+  purpose: InterviewPurpose;
   tokenHash: string;
   view: InterviewPublicView;
 }
@@ -74,7 +77,7 @@ export function createResolver({ admin, ipLimiter, tokenLimiter, now = Date.now 
 
     const { data: request } = await admin
       .from("proof_requests")
-      .select("id, workspace_id, client_name, flow_type, token_hash, status, expires_at, revoked_at")
+      .select("id, workspace_id, client_name, flow_type, token_hash, status, expires_at, revoked_at, purpose, questions_snapshot")
       .eq("token_hash", hash)
       .maybeSingle();
     if (!request) return NOT_FOUND;
@@ -87,6 +90,7 @@ export function createResolver({ admin, ipLimiter, tokenLimiter, now = Date.now 
     if (!OPEN_STATUSES.has(String(request.status))) return NOT_FOUND;
 
     const flowType = request.flow_type === "saas" ? "saas" : "agency";
+    const purpose: InterviewPurpose = request.purpose === "onboarding" ? "onboarding" : "review";
     const [workspace, interview, flow] = await Promise.all([
       admin.from("workspaces").select("name").eq("id", request.workspace_id).single(),
       admin
@@ -102,13 +106,15 @@ export function createResolver({ admin, ipLimiter, tokenLimiter, now = Date.now 
         .select("questions")
         .is("workspace_id", null)
         .eq("type", flowType)
+        .eq("purpose", purpose)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
     ]);
 
     const workspaceName = workspace.data?.name;
-    const questions = workspaceName ? parseQuestions(flow.data?.questions, workspaceName) : null;
+    // An onboarding link carries the questions as they were when it was made; editing the list later does not change it.
+    const questions = workspaceName ? parseQuestions(purpose === "onboarding" && request.questions_snapshot ? request.questions_snapshot : flow.data?.questions, workspaceName) : null;
     // Fail closed if the flow cannot be loaded; never serve a half-built interview.
     if (!workspaceName || !questions) return NOT_FOUND;
 
@@ -119,12 +125,15 @@ export function createResolver({ admin, ipLimiter, tokenLimiter, now = Date.now 
         workspaceId: String(request.workspace_id),
         interviewId: interview.data?.id ? String(interview.data.id) : null,
         flowType: request.flow_type as InterviewAccess["flowType"],
+        purpose,
         tokenHash: hash,
         view: {
           workspaceName,
           clientFirstName: firstName(String(request.client_name)),
           questions,
-          consentVersion: CONSENT_VERSION,
+          consentVersion: consentFor(purpose).version,
+          consentText: consentFor(purpose).text,
+          purpose,
         },
       },
     };

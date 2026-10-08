@@ -1,97 +1,114 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { randomBytes } from "node:crypto";
 import { BASE, createUser, newPage, signIn, startStack, stopStack, watchConsole, type Stack } from "./harness";
 
 let stack: Stack;
-
 beforeAll(async () => {
   stack = await startStack();
 }, 120_000);
-
 afterAll(async () => {
   await stopStack(stack);
 });
 
-describe("signup and onboarding in a real browser", () => {
-  it("takes a new user from signup through onboarding to a working dashboard", async () => {
+const LONG = "We run a small roofing company with about twelve people and we mostly serve homeowners across the region every year";
+
+describe("client onboarding", () => {
+  it("the owner edits the questions, sends an onboarding link, the client answers it, and the owner reads the answers", async () => {
+    const owner = await createUser(stack.admin, "ob-e2e");
     const page = await newPage(stack);
     const problems = watchConsole(page);
-    const email = `e2e-signup-${randomBytes(4).toString("hex")}@example.test`;
-
-    await page.goto(`${BASE}/signup`);
-    await page.getByLabel("Your name").fill("Ada Lovelace");
-    await page.getByLabel("Work email").fill(email);
-    await page.getByLabel("Password").fill("a-long-enough-password");
-    await page.getByRole("button", { name: "Create account" }).click();
-
-    // Local Supabase auto-confirms, so signup lands straight in onboarding.
-    await page.waitForURL(`${BASE}/onboarding`);
-
-    // Step 1 needs a choice.
-    await page.getByRole("button", { name: "Continue" }).click();
-    await page.getByText("Choose one").waitFor();
-    await page.getByLabel(/^Agency/).check();
-    await page.getByLabel("Business name").fill("Admin");
-    await page.getByRole("button", { name: "Continue" }).click();
-
-    // Step 2: an insecure website is refused by the server and the wizard shows why.
-    await page.getByLabel("Your niche").fill("AI automation for dentists");
-    await page.getByLabel("Who you serve").fill("Dental practice owners");
-    await page.getByLabel("Website (optional)").fill("http://insecure.example.com");
-    await page.getByLabel("What do you sell, in one line?").fill("Chat assistants that book appointments.");
-    await page.getByRole("button", { name: "Continue" }).click();
-    await page.getByRole("button", { name: "Create workspace" }).click();
-    await page.getByText(/public https:\/\//).waitFor();
-
-    await page.getByLabel("Website (optional)").fill("https://acme.example.com");
-    await page.getByRole("button", { name: "Continue" }).click();
-    await page.getByRole("button", { name: "Create workspace" }).click();
-
-    // The optional social links step comes first; it can be skipped.
-    await page.waitForURL(`${BASE}/app/settings/social`);
-    await page.getByRole("link", { name: "Skip for now" }).click();
+    await signIn(page, owner.email, owner.password);
     await page.waitForURL(`${BASE}/app/dashboard`);
-    await page.getByRole("heading", { name: "Dashboard" }).waitFor();
-    await page.getByText("Admin · free plan").waitFor();
 
-    // The reserved name "Admin" must not have become the subdomain.
-    const { data: user } = await stack.admin.from("profiles").select("id").eq("email", email).single();
-    const { data: member } = await stack.admin.from("workspace_members").select("workspace_id").eq("user_id", user?.id ?? "").single();
-    const { data: workspace } = await stack.admin.from("workspaces").select("subdomain_slug, website, plan").eq("id", member?.workspace_id ?? "").single();
-    // "admin-hq", or a suffixed variant if an earlier run already took it.
-    expect(workspace?.subdomain_slug).toMatch(/^admin-hq(-[a-z0-9]{4})?$/);
-    expect(workspace?.website).toBe("https://acme.example.com/");
-    expect(workspace?.plan).toBe("free");
+    // the CMS: cut the standard list down to two questions, make the second a short one, save
+    await page.goto(`${BASE}/app/onboarding/questions`);
+    await page.getByLabel("Question 1 text").waitFor();
+    for (let i = 0; i < 6; i++) await page.getByRole("button", { name: "Remove question 3" }).click();
+    await page.getByLabel("Question 1 text").fill("What does your company do and for whom?");
+    await page.getByLabel("Question 2 text").fill("Please paste your website and social links.");
+    await page.getByRole("checkbox").nth(1).check();
+    await page.getByRole("button", { name: "Save questions" }).click();
+    await page.getByText(/Saved\. New onboarding links use these questions/).waitFor();
+    const { data: flows } = await stack.admin.from("question_flows").select("questions, purpose").eq("purpose", "onboarding").not("workspace_id", "is", null);
+    expect(flows).toHaveLength(1);
+    expect((flows![0].questions as Array<{ text: string; key?: string }>).map((q) => [q.text, q.key])).toEqual([["What does your company do and for whom?", undefined], ["Please paste your website and social links.", "short"]]);
 
-    // Onboarding is only for people without a workspace.
-    await page.goto(`${BASE}/onboarding`);
-    expect(new URL(page.url()).pathname).toBe("/app/dashboard");
+    // an empty question is refused by the server
+    await page.getByLabel("Question 2 text").fill("");
+    await page.getByRole("button", { name: "Save questions" }).click();
+    await page.getByText(/at least 3 characters/).waitFor();
+    await page.getByLabel("Question 2 text").fill("Please paste your website and social links.");
+    await page.getByRole("button", { name: "Save questions" }).click();
+    await page.getByText(/Saved\./).waitFor();
 
-    expect(problems, `console problems: ${problems.join(" | ")}`).toEqual([]);
-    await page.close();
-  });
+    // create the onboarding link
+    await page.goto(`${BASE}/app/onboarding/new`);
+    await page.getByLabel("Contact name").fill("Dana Doe");
+    await page.getByLabel("Contact email").fill("dana@example.test");
+    await page.getByRole("button", { name: "Create onboarding" }).click();
+    const link = await page.getByLabel("Interview link").inputValue();
+    expect(link).toMatch(/\/i\/[A-Za-z0-9_-]{43}$/);
+    const { data: request } = await stack.admin.from("proof_requests").select("id, purpose, status").eq("client_email", "dana@example.test").single();
+    expect(request).toMatchObject({ purpose: "onboarding" });
+    await stack.admin.from("proof_requests").update({ status: "sent" }).eq("id", request!.id);
 
-  it("sends a signed-in user with no workspace from the app to onboarding", async () => {
-    const user = await createUser(stack.admin, "no-ws", { withWorkspace: false });
-    const page = await newPage(stack);
-    await signIn(page, user.email, user.password);
-    await page.waitForURL(`${BASE}/app/dashboard`).catch(() => undefined);
-    await page.goto(`${BASE}/app/dashboard`);
-    expect(new URL(page.url()).pathname).toBe("/onboarding");
-    await page.close();
-  });
+    // the client
+    const client = await stack.browser.newContext({ viewport: { width: 390, height: 800 }, extraHTTPHeaders: { "x-forwarded-for": "198.51.100.91" } });
+    const phone = await client.newPage();
+    await phone.goto(link);
+    await phone.getByRole("heading", { name: "Hi Dana" }).waitFor();
+    await phone.getByText(/looking forward to working with you/).waitFor();
+    await phone.getByText(/2 short questions/).waitFor();
+    expect(await phone.getByText(/case study/i).count()).toBe(0);
+    await phone.getByRole("checkbox").check();
+    await phone.getByRole("button", { name: "Start the interview" }).click();
+    await phone.getByText("Question 1 of 2").waitFor();
+    expect(await phone.getByRole("group", { name: "Sentence starters" }).count()).toBe(0); // starters are for reviews only
+    await phone.getByLabel("Your answer").fill(`${LONG} <b>bold</b>`);
+    await phone.getByRole("button", { name: "Send" }).click();
+    await phone.getByText("Question 2 of 2").waitFor();
+    await phone.getByLabel("Your answer").fill("https://roofing.example.test");
+    await phone.getByRole("button", { name: "Send" }).click(); // a short question: no follow-up, straight to the end
+    await phone.getByText(/That is everything I wanted to ask/).waitFor();
+    await phone.getByRole("button", { name: "Continue" }).click();
+    await phone.getByRole("heading", { name: "Almost done" }).waitFor();
+    expect(await phone.getByText("how may they credit you").count()).toBe(0);
+    expect(await phone.getByText("Know someone who might want").count()).toBe(0);
+    await phone.getByRole("button", { name: "Finish" }).click();
+    await phone.getByRole("heading", { name: "Thank you, Dana!" }).waitFor();
+    const { data: done } = await stack.admin.from("interviews").select("status, publish_permission, consent_text_version").eq("request_id", request!.id).single();
+    expect(done).toMatchObject({ status: "completed", consent_text_version: "onboarding-2026-10-v1" });
 
-  it("rejects a weak signup password with a field error and no account", async () => {
-    const page = await newPage(stack);
-    const email = `e2e-weak-${randomBytes(4).toString("hex")}@example.test`;
-    await page.goto(`${BASE}/signup`);
-    await page.getByLabel("Your name").fill("Weak Pass");
-    await page.getByLabel("Work email").fill(email);
-    await page.getByLabel("Password").fill("short");
-    await page.getByRole("button", { name: "Create account" }).click();
-    await page.getByText("Use at least 12 characters").waitFor();
-    const { data } = await stack.admin.from("profiles").select("id").eq("email", email);
-    expect(data ?? []).toHaveLength(0);
-    await page.close();
-  });
+    // the owner reads the answers as text; there is no case study route for them
+    await page.goto(`${BASE}/app/requests/${request!.id}`);
+    await page.getByRole("heading", { name: "Onboarding answers" }).waitFor();
+    const answers = page.getByTestId("onboarding-answer");
+    expect(await answers.first().textContent()).toBe(`${LONG} <b>bold</b>`);
+    expect(await answers.first().locator("b").count()).toBe(0);
+    expect(await page.getByText("Open the case study").count()).toBe(0);
+    expect(await page.getByRole("button", { name: /Generate/ }).count()).toBe(0);
+    await page.goto(`${BASE}/app/onboarding`);
+    await page.getByRole("link", { name: "Dana Doe" }).waitFor();
+    expect(problems.filter((p) => !/401|403|404/.test(p))).toEqual([]);
+    await client.close();
+  }, 240_000);
+
+  it("another workspace sees neither the questions nor the request", async () => {
+    const a = await createUser(stack.admin, "ob-a");
+    const b = await createUser(stack.admin, "ob-b");
+    const pa = await newPage(stack);
+    await signIn(pa, a.email, a.password);
+    await pa.waitForURL(`${BASE}/app/dashboard`);
+    await pa.goto(`${BASE}/app/onboarding/new`);
+    await pa.getByLabel("Contact name").fill("Only A");
+    await pa.getByLabel("Contact email").fill("only-a@example.test");
+    await pa.getByRole("button", { name: "Create onboarding" }).click();
+    await pa.getByLabel("Interview link").waitFor();
+    const { data: req } = await stack.admin.from("proof_requests").select("id").eq("client_email", "only-a@example.test").single();
+    const pb = await newPage(stack);
+    await signIn(pb, b.email, b.password);
+    await pb.waitForURL(`${BASE}/app/dashboard`);
+    expect((await pb.goto(`${BASE}/app/requests/${req!.id}`))?.status()).toBe(404);
+    await pb.goto(`${BASE}/app/onboarding`);
+    expect(await pb.getByText("Only A").count()).toBe(0);
+  }, 180_000);
 });

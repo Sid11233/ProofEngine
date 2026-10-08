@@ -3,7 +3,8 @@ import { canCreateInterview, interviewsUsedThisMonth } from "@/lib/billing/entit
 import type { EmailSender } from "@/lib/email/types";
 import { generateToken } from "@/lib/security/tokens";
 import { classify, type TeamError } from "@/lib/team/service";
-import type { CreateRequestInput } from "./schemas";
+import { loadEffectiveFlow } from "@/lib/onboarding/flow";
+import type { CreateOnboardingInput, CreateRequestInput } from "./schemas";
 import { focusOutcomesOf } from "./schemas";
 
 // Proof request operations over the caller's own Supabase client: the database
@@ -41,6 +42,8 @@ export interface RequestSummary {
   revokedAt: string | null;
   reminderCount: number;
   createdAt: string;
+  purpose: "review" | "onboarding";
+  clientId: string | null;
 }
 
 export interface Context {
@@ -55,14 +58,18 @@ export interface Context {
 
 export const buildInterviewLink = (appUrl: string, rawToken: string) => new URL(`/i/${rawToken}`, appUrl).toString();
 
-function inviteEmail(kind: "send" | "remind", { clientName, workspaceName, link, unsubscribe }: { clientName: string; workspaceName: string; link: string; unsubscribe?: string }) {
+function inviteEmail(kind: "send" | "remind", { clientName, workspaceName, link, unsubscribe, purpose = "review" }: { clientName: string; workspaceName: string; link: string; unsubscribe?: string; purpose?: string }) {
   const first = clientName.trim().split(/\s+/)[0] || "there";
-  const intro =
-    kind === "send"
+  const onboarding = purpose === "onboarding";
+  const intro = onboarding
+    ? kind === "send"
+      ? `${workspaceName} is looking forward to working with you. A few quick questions will help them start well. Your answers go to them only; nothing is published.`
+      : `A quick reminder: ${workspaceName} has a few onboarding questions for you.`
+    : kind === "send"
       ? `${workspaceName} would love to hear about your experience. It takes about 3 minutes, and nothing is published without your approval.`
       : `A quick reminder: ${workspaceName} would love to hear about your experience. It takes about 3 minutes.`;
   return {
-    subject: kind === "send" ? `${workspaceName} would like to hear from you` : `Reminder: ${workspaceName} would like to hear from you`,
+    subject: onboarding ? (kind === "send" ? `Welcome to ${workspaceName}: a few quick questions` : `Reminder: a few quick questions for ${workspaceName}`) : kind === "send" ? `${workspaceName} would like to hear from you` : `Reminder: ${workspaceName} would like to hear from you`,
     text: [
       `Hi ${first},`,
       "",
@@ -82,10 +89,10 @@ function inviteEmail(kind: "send" | "remind", { clientName, workspaceName, link,
 async function loadForEmail(supabase: SupabaseClient, requestId: string) {
   const { data } = await supabase
     .from("proof_requests_safe")
-    .select("client_name, client_email")
+    .select("client_name, client_email, purpose")
     .eq("id", requestId)
     .maybeSingle();
-  return data ? { clientName: String(data.client_name), clientEmail: String(data.client_email) } : null;
+  return data ? { clientName: String(data.client_name), clientEmail: String(data.client_email), purpose: String(data.purpose) } : null;
 }
 
 async function rotateAndEmail(
@@ -103,7 +110,7 @@ async function rotateAndEmail(
   if (purpose !== "regenerate" && ctx.sender) {
     const recipient = await loadForEmail(supabase, requestId);
     if (recipient) {
-      const message = inviteEmail(purpose, { clientName: recipient.clientName, workspaceName: ctx.workspaceName, link, unsubscribe: ctx.unsubscribeUrl?.(requestId) });
+      const message = inviteEmail(purpose, { clientName: recipient.clientName, workspaceName: ctx.workspaceName, link, unsubscribe: ctx.unsubscribeUrl?.(requestId), purpose: recipient.purpose });
       emailSent = await ctx.sender.send({ to: recipient.clientEmail, ...message });
     }
   }
@@ -139,6 +146,33 @@ export async function createRequest(
   return { ok: true, link: buildInterviewLink(ctx.appUrl, token.raw), emailSent: false, requestId: data };
 }
 
+/** An onboarding link: the business's current questions are copied into the request, so later edits never change it. */
+export async function createOnboardingRequest(
+  supabase: SupabaseClient,
+  workspace: { id: string; type: "agency" | "saas" },
+  input: CreateOnboardingInput,
+  ctx: Context,
+): Promise<RequestOutcome<LinkResult>> {
+  if (ctx.plan) {
+    const decision = canCreateInterview({ plan: ctx.plan, usedThisMonth: await interviewsUsedThisMonth(supabase, workspace.id) });
+    if (!decision.allowed) return { ok: false, error: "limit" };
+  }
+  const flow = await loadEffectiveFlow(supabase, workspace.id, workspace.type);
+  if (!flow) return { ok: false, error: "failed" };
+  const token = generateToken();
+  const { data, error } = await supabase.rpc("create_onboarding_request", {
+    ws: workspace.id,
+    client: input.clientId ?? null,
+    client_name: input.clientName,
+    client_email: input.clientEmail,
+    questions: flow.questions,
+    hash: token.hash,
+  });
+  if (error || typeof data !== "string") return { ok: false, error: error ? classify(error) : "failed" };
+  if (input.sendNow) return rotateAndEmail(supabase, data, "send", ctx);
+  return { ok: true, link: buildInterviewLink(ctx.appUrl, token.raw), emailSent: false, requestId: data };
+}
+
 export const sendInvite = (supabase: SupabaseClient, requestId: string, ctx: Context) =>
   rotateAndEmail(supabase, requestId, "send", ctx);
 export const sendReminder = (supabase: SupabaseClient, requestId: string, ctx: Context) =>
@@ -152,7 +186,7 @@ export async function revokeRequest(supabase: SupabaseClient, requestId: string)
 }
 
 const COLUMNS =
-  "id, client_name, client_email, project_type, flow_type, status, expires_at, revoked_at, reminder_count, created_at";
+  "id, client_name, client_email, project_type, flow_type, status, expires_at, revoked_at, reminder_count, created_at, purpose, client_id";
 
 const toSummary = (row: Record<string, unknown>): RequestSummary => ({
   id: String(row.id),
@@ -165,11 +199,13 @@ const toSummary = (row: Record<string, unknown>): RequestSummary => ({
   revokedAt: typeof row.revoked_at === "string" ? row.revoked_at : null,
   reminderCount: Number(row.reminder_count ?? 0),
   createdAt: String(row.created_at),
+  purpose: row.purpose === "onboarding" ? "onboarding" : "review",
+  clientId: typeof row.client_id === "string" ? row.client_id : null,
 });
 
-export async function listRequests(supabase: SupabaseClient): Promise<RequestSummary[]> {
+export async function listRequests(supabase: SupabaseClient, purpose: "review" | "onboarding" = "review"): Promise<RequestSummary[]> {
   // proof_requests_safe has no token_hash column; RLS still scopes it to the caller's workspaces.
-  const { data } = await supabase.from("proof_requests_safe").select(COLUMNS).order("created_at", { ascending: false }).limit(200);
+  const { data } = await supabase.from("proof_requests_safe").select(COLUMNS).eq("purpose", purpose).order("created_at", { ascending: false }).limit(200);
   return (data ?? []).map(toSummary);
 }
 

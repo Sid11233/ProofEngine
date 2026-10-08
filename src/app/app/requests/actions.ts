@@ -7,18 +7,14 @@ import { z } from "zod";
 import { isAuthAttemptAllowed, RATE_LIMITED_MESSAGE } from "@/lib/auth/rate-limits";
 import { checkRecentAuth, REAUTH_MESSAGE, type ReauthNeeded } from "@/lib/auth/recent-auth";
 import { requireUser } from "@/lib/auth/session";
-import { getEmailSender } from "@/lib/email/resend";
 import { getClientIp } from "@/lib/security/client-ip";
-import { publicEnv } from "@/lib/security/env.public";
-import { serverEnv } from "@/lib/security/env.server";
-import { unsubscribeSecret } from "@/lib/security/ip-hash";
-import { unsubscribeToken } from "@/lib/security/unsubscribe";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentWorkspace } from "@/lib/workspace/current";
 import { plainLine } from "@/lib/validation/text";
 import { fieldErrorsOf, formDataToObject, type FieldErrors } from "@/lib/validation/form";
 import { removeUploadFiles } from "@/lib/privacy/server";
 import { createRequestSchema, requestIdSchema } from "@/lib/requests/schemas";
+import { buildRequestContext } from "@/lib/requests/context";
 import * as requests from "@/lib/requests/service";
 
 export interface RequestActionResult {
@@ -43,17 +39,6 @@ async function authorise() {
   return { workspace };
 }
 
-async function context(workspaceName: string, plan: string): Promise<requests.Context> {
-  const secret = unsubscribeSecret(serverEnv);
-  return {
-    appUrl: publicEnv.NEXT_PUBLIC_APP_URL,
-    workspaceName,
-    plan,
-    sender: getEmailSender(),
-    unsubscribeUrl: (requestId) => new URL(`/unsubscribe/${unsubscribeToken(secret, requestId)}`, publicEnv.NEXT_PUBLIC_APP_URL).toString(),
-  };
-}
-
 function describe(result: requests.LinkResult, verb: string): RequestActionResult {
   return {
     ok: true,
@@ -75,7 +60,7 @@ export async function createRequestAction(_prev: RequestActionResult, formData: 
   );
   if (!parsed.success) return { ok: false, fieldErrors: fieldErrorsOf(parsed.error) };
 
-  const result = await requests.createRequest(await createClient(), auth.workspace.id, parsed.data, await context(auth.workspace.name, auth.workspace.plan));
+  const result = await requests.createRequest(await createClient(), auth.workspace.id, parsed.data, buildRequestContext(auth.workspace.name, auth.workspace.plan));
   if (!result.ok) return fail(result.error);
   revalidatePath("/app/requests");
   return describe(result, parsed.data.sendNow ? "Request created and invitation sent." : "Request created.");
@@ -90,7 +75,7 @@ async function linkAction(requestId: string, run: LinkAction, verb: string): Pro
   const id = requestIdSchema.safeParse(requestId);
   if (!id.success) return fail("invalid");
 
-  const result = await run(await createClient(), id.data, await context(auth.workspace.name, auth.workspace.plan));
+  const result = await run(await createClient(), id.data, buildRequestContext(auth.workspace.name, auth.workspace.plan));
   if (!result.ok) return fail(result.error);
   revalidatePath("/app/requests");
   revalidatePath(`/app/requests/${id.data}`);
